@@ -71,8 +71,21 @@ jobs:
       - name: Install cargo-deny
         uses: taiki-e/install-action@cargo-deny
 
-      - name: cargo deny check bans (core-purity invariant)
-        run: cargo deny check bans
+      - name: cargo deny check bans licenses (core-purity + license allow-list)
+        run: cargo deny check bans licenses
+
+      - name: Regenerate TS bindings (ts-rs export tests)
+        run: cargo test -p vertice-core --locked
+
+      - name: Generated contract in sync
+        # `git add --intent-to-add` first: plain `git diff` ignores untracked
+        # files, so a NEW type whose generated binding was never committed
+        # would slip through silently — the exact case this gate exists for.
+        # Registering the regenerated files in the index makes them show up
+        # as additions in the diff below.
+        run: |
+          git add --intent-to-add -- frontend/src/bindings
+          git diff --exit-code -- frontend/src/bindings
 
   frontend:
     name: frontend (lint, check, test, build)

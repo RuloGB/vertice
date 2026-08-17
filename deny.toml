@@ -1,12 +1,21 @@
 # cargo-deny configuration.
 #
-# T1 only gates `cargo deny check bans` — the core-purity invariant that
+# T1 gates `cargo deny check bans` — the core-purity invariant that
 # `vertice-core` never depends (directly or transitively) on `tauri` or the
 # Tauri runtime crates it wraps. `cargo deny check advisories` is
 # time-dependent (new RustSec advisories can appear with no code change) and
 # would red-flag unrelated PRs; it belongs in a scheduled workflow, not a PR
 # gate. See openspec/changes/bootstrap-workspace-ci/design.md ("Core-purity
 # enforcement").
+#
+# T2 additionally gates `cargo deny check licenses`. Unlike `advisories`,
+# `check licenses` is deterministic for a locked dependency graph (no time
+# dependency), so the precedent above argues FOR enabling it, not against.
+# Verified locally against the full pre-existing Tauri graph plus `ts-rs`
+# and `unicode-normalization` (2026-08-17): `cargo deny check licenses`
+# passes cleanly with the allow-list below — zero new entries were needed.
+# `ts-rs` itself is MIT. See
+# openspec/changes/domain-model-type-contract/design.md §4.2.
 
 [graph]
 all-features = true
