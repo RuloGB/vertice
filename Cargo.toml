@@ -13,6 +13,8 @@ repository = "https://github.com/vertice/vertice"
 vertice-core = { path = "crates/vertice-core" }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+ts-rs = "12"
+unicode-normalization = "0.1"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
