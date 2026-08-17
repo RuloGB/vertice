@@ -66,8 +66,8 @@ Change is additive to an empty repo: revert the branch. No three-layer impact to
 
 ## Success Criteria
 
-- [ ] `cargo test` and app build pass on all three matrix platforms.
-- [ ] `cargo fmt --check`, `cargo clippy -D warnings` and frontend lint pass in CI.
-- [ ] `vertice-core` imports nothing from `tauri`, verified by dependency inspection in CI.
-- [ ] MSRV is declared and a CI job fails if it is violated.
-- [ ] YAML crate decision is written with justification and rejected alternatives.
+- [x] `cargo test` and app build pass on all three matrix platforms. Verified live: `https://github.com/RuloGB/vertice/actions/runs/32015782992` — `rust` job green on ubuntu-24.04, windows-2022, macos-14.
+- [x] `cargo fmt --check`, `cargo clippy -D warnings` and frontend lint pass in CI. Verified live in the `quality` and `frontend` jobs of the same run.
+- [x] `vertice-core` imports nothing from `tauri`, verified by dependency inspection in CI. Enforced by `cargo deny check bans` in the `quality` job; negative-path tested (`tauri` temporarily added to `vertice-core`, confirmed `cargo deny` fails, reverted) during both apply and verify.
+- [x] MSRV is declared and a CI job fails if it is violated. `msrv` job green in the same run; empirically confirmed `1.85` fails (real transitive-dep floor) and `1.88` passes.
+- [x] YAML crate decision is written with justification and rejected alternatives. See `design.md` — `serde_norway` selected, `serde_yml`/`yaml-rust2` rejected, `serde_yaml_ng` recorded as fallback.
