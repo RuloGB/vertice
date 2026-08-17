@@ -45,9 +45,10 @@ The workspace MUST declare a Minimum Supported Rust Version (MSRV) in the root `
 
 #### Scenario: MSRV declared and consistent
 
-- GIVEN the root `Cargo.toml` and `rust-toolchain.toml`
+- GIVEN the root `Cargo.toml` (`rust-version`, the MSRV floor) and `rust-toolchain.toml` (`channel`, the pinned dev/CI toolchain)
 - WHEN both files are inspected
-- THEN both declare the same Rust version
+- THEN `rust-toolchain.toml`'s `channel` is a version equal to or newer than `Cargo.toml`'s `rust-version` (a floor relationship, not an exact match — the toolchain pin may be newer than the MSRV floor it enforces)
+- AND a CI consistency check fails the build if the toolchain channel is older than the declared MSRV
 
 #### Scenario: MSRV violation fails CI
 
