@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal capability for the empty PoC skeleton window: core windowing/events only. No filesystem, shell, or dialog permissions are granted (CA-16: read-only, no broad filesystem access).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

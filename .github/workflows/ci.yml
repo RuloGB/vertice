@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Highest floor across the resolved dependency graph (empirically verified
+  # locally with `RUSTUP_TOOLCHAIN=1.88 cargo check --workspace --locked
+  # --all-targets`: 1.85 failed — several transitive deps of `tauri`
+  # (`darling`, `icu_*`, `time`, `serde_with`) require rustc 1.88; 1.88
+  # passed). Kept identical to `[workspace.package] rust-version` in
+  # Cargo.toml — the `quality` job's "MSRV consistency" step fails the build
+  # if these two drift. `rust-toolchain.toml` pins a newer exact patch
+  # (1.97.1) for local/CI dev builds, which is expected (MSRV is a floor).
+  MSRV: "1.88"
+
+jobs:
+  quality:
+    name: quality (fmt, MSRV consistency, core purity)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read toolchain channel from rust-toolchain.toml
+        id: toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          channel=$(grep -m1 '^channel' rust-toolchain.toml | cut -d '"' -f2)
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain (pinned, matches rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+          components: rustfmt, clippy
+
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+
+      - name: MSRV consistency (Cargo.toml vs rust-toolchain.toml vs $MSRV)
+        run: |
+          set -euo pipefail
+          manifest_rv=$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*"([0-9.]+)".*/\1/')
+          toolchain_channel=$(grep -m1 '^channel' rust-toolchain.toml | sed -E 's/.*"([0-9.]+)".*/\1/')
+
+          echo "Cargo.toml rust-version:      $manifest_rv"
+          echo "rust-toolchain.toml channel:  $toolchain_channel"
+          echo "workflow MSRV env:            $MSRV"
+
+          if [ "$manifest_rv" != "$MSRV" ]; then
+            echo "::error::Cargo.toml rust-version ($manifest_rv) does not match workflow MSRV ($MSRV)"
+            exit 1
+          fi
+
+          # The pinned dev/CI toolchain must never be BELOW the declared MSRV
+          # floor (it may be newer; MSRV is a floor, not an exact pin).
+          highest=$(printf '%s\n%s\n' "$manifest_rv" "$toolchain_channel" | sort -V | tail -n1)
+          if [ "$highest" != "$toolchain_channel" ]; then
+            echo "::error::rust-toolchain.toml channel ($toolchain_channel) is older than MSRV ($manifest_rv)"
+            exit 1
+          fi
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: cargo deny check bans (core-purity invariant)
+        run: cargo deny check bans
+
+  frontend:
+    name: frontend (lint, check, test, build)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check
+      - run: npm run test
+      - run: npm run build
+
+      - name: Upload frontend/dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  rust:
+    name: rust (clippy, test, build)
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux WebView dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Read toolchain channel from rust-toolchain.toml
+        id: toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          channel=$(grep -m1 '^channel' rust-toolchain.toml | cut -d '"' -f2)
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain (pinned, matches rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Download frontend/dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: cargo clippy -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test --workspace --locked
+        run: cargo test --workspace --locked
+
+      - name: cargo build --release -p vertice-app
+        run: cargo build --release -p vertice-app
+
+  msrv:
+    name: msrv (1.88)
+    needs: frontend
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MSRV Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.MSRV }}
+
+      - name: Download frontend/dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: cargo check --workspace --locked --all-targets (MSRV)
+        env:
+          RUSTUP_TOOLCHAIN: ${{ env.MSRV }}
+        run: cargo check --workspace --locked --all-targets

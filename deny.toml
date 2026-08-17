@@ -1,0 +1,62 @@
+# cargo-deny configuration.
+#
+# T1 only gates `cargo deny check bans` — the core-purity invariant that
+# `vertice-core` never depends (directly or transitively) on `tauri` or the
+# Tauri runtime crates it wraps. `cargo deny check advisories` is
+# time-dependent (new RustSec advisories can appear with no code change) and
+# would red-flag unrelated PRs; it belongs in a scheduled workflow, not a PR
+# gate. See openspec/changes/bootstrap-workspace-ci/design.md ("Core-purity
+# enforcement").
+
+[graph]
+all-features = true
+exclude-dev = true
+targets = [
+  "x86_64-unknown-linux-gnu",
+  "x86_64-pc-windows-msvc",
+  "x86_64-apple-darwin",
+  "aarch64-apple-darwin",
+]
+
+[bans]
+multiple-versions = "allow"
+wildcards = "allow"
+
+# `wrappers` only exempts a crate's DIRECT dependents (verified empirically:
+# listing internal Tauri crates like `wry`/`tao`/`tauri-runtime-wry` here
+# with `wrappers = ["vertice-app"]` fails, because `vertice-app` is never
+# their direct parent — `tauri` is). `tauri` and `tauri-build` ARE direct
+# (runtime and build) dependencies of `vertice-app`, so banning exactly
+# those two with `vertice-app` as the sole allowed direct parent is what
+# actually enforces "only `vertice-app` may depend on Tauri": any other
+# workspace member (`vertice-core`, or a future `vertice-cli`) that adds
+# `tauri`/`tauri-build` directly fails this check immediately. Tauri's own
+# internal crates (`wry`, `tao`, `tauri-runtime`, ...) are not meant to be
+# depended on directly by application code at all, so banning them here
+# would only produce false positives on legitimate transitive dependencies.
+deny = [
+  { name = "tauri", wrappers = ["vertice-app"] },
+  # `tauri` itself uses `tauri-build` as a build-dependency internally (its
+  # own codegen tooling), so both `vertice-app` and `tauri` are legitimate
+  # direct parents here.
+  { name = "tauri-build", wrappers = ["vertice-app", "tauri"] },
+]
+
+[licenses]
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "CC0-1.0",
+  "MPL-2.0",
+]
+confidence-threshold = 0.8
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

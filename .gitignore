@@ -3,3 +3,14 @@ internal-docs/
 
 #AI
 .atl/
+.codegraph/
+
+#Rust
+/target
+# Tauri regenerates capability/ACL JSON schemas (IDE autocomplete only) on
+# every build; not meant to be committed.
+crates/vertice-app/gen/schemas
+
+#Frontend
+frontend/node_modules
+frontend/dist

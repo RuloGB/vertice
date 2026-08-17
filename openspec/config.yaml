@@ -1,0 +1,76 @@
+schema: spec-driven
+
+context: |
+  Project: Vertice — AI component inventory and management for desktop
+  Tech Stack: Rust (core) + Tauri 2 + Svelte 5 + Vite + Tailwind CSS
+  Architecture: Three-layer (vertice-core library, vertice-app Tauri, frontend SPA)
+  Testing: cargo test (unit), Vitest (frontend), tauri-driver (E2E)
+  Platforms: macOS, Windows, Linux
+  Persistence: SQLite (v1+); PoC reads-only from memory
+  Distribution: Unsigned installers (PoC); signed binaries required for public release
+
+design_principles: |
+  1. Vertical-first: core/adaptors before UI
+  2. Pure core library (no Tauri imports) — enables CLI as second binary
+  3. Type-safe contracts between layers (Rust → TypeScript via ts-rs or tauri-specta)
+  4. Fixtures-based testing, not machine-dependent
+  5. Strict ACL: only necessary capability scopes, no broad filesystem access
+  6. Read-only in PoC (CA-16: no writes outside app data directory)
+  7. i18n from first commit (English + Spanish)
+  8. No telemetry by default
+
+strict_tdd: true
+testing_runner: cargo test (core), npm run test (frontend), tauri-driver (E2E)
+
+rules:
+  proposal:
+    - Trace to a concrete phase in plan-desarrollo-poc.md (T1–T16)
+    - Identify which Criteria of Acceptance (CA-1 through CA-17) the change addresses
+    - For PoC: verify change does not introduce out-of-scope features (MCPs, project scope, write operations)
+    - Include rollback impact for three-layer architecture
+
+  specs:
+    - Use Given/When/Then for behavior specs
+    - Separate core (Rust) specs from frontend (TypeScript) specs
+    - For adaptors: specify input path, output component schema, error handling per ScanIssue
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Verify fixture coverage for each adapter
+
+  design:
+    - Document core data model changes (Component, Location, Scope, SearchRoot, ScanReport)
+    - For CLI pathways: diagram how core library isolates from Tauri
+    - For frontend: detail IPC contract surface (commands, events)
+    - For platform-specific paths: document by OS (XDG on Linux, %APPDATA% on Windows, ~/Library/Application Support on macOS)
+    - Include error paths (ScanIssue taxonomy)
+
+  tasks:
+    - Group by phase from plan-desarrollo-poc.md (Phase 0–4)
+    - Link each task to T1–T16 and its CA criteria
+    - For platform work: separate fixture creation (all platforms CI) from system verification (local)
+    - Mark read-only constraints explicitly
+    - Order: T1 (CI/workspace) → T2 (model) → T3–T7 (adaptors parallel) → T8–T9 (consolidation) → T10–T13 (UI/i18n) → T14–T16 (audit/release/platform)
+
+  apply:
+    - Fetch exact task details from openspec/changes/{change-name}/tasks.md
+    - Follow existing patterns: three-layer separation, generated types, fixture-based tests
+    - For adaptor PRs: include fixture deltas showing coverage for Windows, plan macOS/Linux verification in T16
+    - Verify compile/test matrix passes before merge: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `npm run lint`, `npm run test`, full build matrix
+    - Read-only invariant: grep Cargo.toml and core code for any `OpenOptions::write()`, `File::create()`, or similar outside app data directory
+    tdd: true
+    test_command: cargo test && npm run test
+
+  verify:
+    - Run full build matrix (macOS, Windows, Linux) with `cargo build --release`
+    - Verify PoC acceptance criteria (CA-1 through CA-17) where applicable
+    - For T16 (platform validation): manual verification against oracles (opencode debug skill, claude agents)
+    - Check fixture coverage: all adaptor tests must have versionable fixtures, not machine-dependent paths
+    - Confirm no writes outside app data dir: inspect code + filesystem hash comparison test (T14)
+    test_command: cargo test && npm run test && cargo test --release
+    build_command: cargo build --release
+    coverage_threshold: 0  # No coverage requirement yet; PoC prioritizes core adaptor correctness
+
+  archive:
+    - After each phase closes, move completed tasks from openspec/changes/{change-name}/ to openspec/changes/archive/YYYY-MM-DD-{change-name}/
+    - Merge any delta specs (openspec/changes/{change-name}/specs/{domain}/) into main specs (openspec/specs/{domain}/)
+    - Warn before accepting merges that introduce out-of-scope features (MCPs, write operations, project scope)
+    - Document known limitations for each phase in archive comments (e.g., T16 macOS WebDriver limitation)

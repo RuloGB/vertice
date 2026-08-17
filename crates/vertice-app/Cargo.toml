@@ -1,0 +1,24 @@
+[package]
+name = "vertice-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "vertice_app_lib"
+# Desktop-only PoC (no mobile target in scope for T1): a plain `rlib` is
+# enough for `src/main.rs` to link against. `staticlib`/`cdylib` are only
+# needed for Tauri's mobile entry point, which `#[cfg_attr(mobile, ...)]`
+# below is a no-op for anyway on desktop.
+crate-type = ["rlib"]
+
+[lints]
+workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+vertice-core = { workspace = true }
+tauri = { version = "2", features = [] }
