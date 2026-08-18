@@ -23,6 +23,13 @@ struct Simple {
     value: String,
 }
 
+#[derive(Debug, Deserialize, PartialEq)]
+struct Probe {
+    name: String,
+    #[allow(dead_code)]
+    description: Option<String>,
+}
+
 #[test]
 fn folded_scalar_joins_lines_with_spaces() {
     let input = "description: >\n  This is a\n  folded block\n  scalar.\n";
@@ -87,6 +94,28 @@ fn duplicate_keys_are_rejected_as_a_parse_error() {
     let err = result.expect_err("duplicate keys should be rejected");
     assert!(
         err.to_string().contains("duplicate field"),
+        "unexpected error message: {err}"
+    );
+}
+
+#[test]
+fn scalar_field_given_a_yaml_sequence_returns_an_error_not_a_panic() {
+    // T3 checkpoint (openspec/changes/skill-frontmatter-reader/design.md §10):
+    // at this point in the apply sequence `frontmatter.rs` does not exist yet,
+    // so this probe calls the seam directly to confirm, before the module is
+    // built, that `serde_norway` returns `Err` on a type mismatch instead of
+    // panicking. The YAML fragment below is hardcoded inline and matches
+    // `tests/fixtures/frontmatter/type-mismatch-name/SKILL.md`'s frontmatter
+    // block. If this test ever panics instead of failing an assertion, the
+    // fix belongs in `src/yaml.rs`, not in a future `frontmatter.rs`.
+    let input = "name:\n  - not\n  - a\n  - string\ndescription: The name field above is a YAML sequence, not a scalar string.\n";
+
+    let result: Result<Probe, _> = yaml::from_str(input);
+
+    let err =
+        result.expect_err("a YAML sequence fed to a String field must be an Err, not a panic");
+    assert!(
+        err.to_string().contains("invalid type"),
         "unexpected error message: {err}"
     );
 }
