@@ -156,6 +156,40 @@ fn resolve_opencode(home: &Path) -> ResolvedRoot {
     }
 }
 
+/// Resolve the OpenCode agent config root under `home`. `SearchRoot.path`
+/// carries `~/.config/opencode/opencode.json` (the merge base, design §3);
+/// `scan_paths` carries the base then the `.jsonc` overlay, in merge order.
+/// `status` is `Found` if EITHER file exists. Root id is hardcoded, never
+/// path-derived. Structurally a sibling of `resolve_opencode` above: same
+/// two-`push` path construction, same `match (probe(a), probe(b))` status
+/// fold, same `scan_paths` vector — `probe` is reused unchanged.
+pub fn opencode_agent_root(home: &Path) -> ResolvedRoot {
+    let mut base = home.to_path_buf();
+    base.push(".config");
+    base.push("opencode");
+    base.push("opencode.json");
+
+    let mut overlay = home.to_path_buf();
+    overlay.push(".config");
+    overlay.push("opencode");
+    overlay.push("opencode.jsonc");
+
+    let status = match (probe(&base), probe(&overlay)) {
+        (SearchRootStatus::Found, _) | (_, SearchRootStatus::Found) => SearchRootStatus::Found,
+        _ => SearchRootStatus::NotFound,
+    };
+
+    ResolvedRoot {
+        root: SearchRoot {
+            id: SearchRootId("opencode-agents".to_string()),
+            path: base.clone(),
+            kind: SearchRootKind::Agent,
+            status,
+        },
+        scan_paths: vec![base, overlay],
+    }
+}
+
 /// Probe whether `path` exists on disk. Returns `NotFound` only for
 /// `ErrorKind::NotFound`; any other outcome (the path existing, or a
 /// probe error of another kind) is `Found` — `NotFound` is a positive claim
@@ -189,6 +223,38 @@ mod tests {
         assert_eq!(resolved.scan_paths.len(), 2);
         assert!(resolved.scan_paths.iter().any(|p| p.ends_with("skills")));
         assert!(resolved.scan_paths.iter().any(|p| p.ends_with("skill")));
+    }
+
+    /// Requirement: OpenCode Agent Root Resolves Under The Home Directory
+    /// To Two Config Files (T6, design §3/§5.1). `scan_paths` order is the
+    /// single source of merge order and MUST be asserted, not assumed.
+    #[test]
+    fn opencode_agent_root_resolves_to_two_config_files_in_merge_order() {
+        let home = PathBuf::from("/home/example");
+
+        let resolved = opencode_agent_root(&home);
+
+        assert_eq!(
+            resolved.root.id,
+            SearchRootId("opencode-agents".to_string())
+        );
+        assert_eq!(resolved.root.kind, SearchRootKind::Agent);
+        assert!(resolved.root.path.ends_with("opencode.json"));
+
+        assert_eq!(resolved.scan_paths.len(), 2);
+        assert!(resolved.scan_paths[0].ends_with("opencode.json"));
+        assert!(resolved.scan_paths[1].ends_with("opencode.jsonc"));
+    }
+
+    /// `opencode_agent_root`'s id is hardcoded, never path-derived, exactly
+    /// like the other roots in this module.
+    #[test]
+    fn opencode_agent_root_id_is_stable_and_never_path_derived() {
+        let first = opencode_agent_root(&PathBuf::from("/home/alice"));
+        let second = opencode_agent_root(&PathBuf::from("/home/bob"));
+
+        assert_eq!(first.root.id, second.root.id);
+        assert_eq!(first.root.id, SearchRootId("opencode-agents".to_string()));
     }
 
     /// Root ids are hardcoded, never path-derived — the same three ids
