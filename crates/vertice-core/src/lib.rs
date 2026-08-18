@@ -4,6 +4,7 @@
 //! transitively (enforced by `deny.toml` in the workspace root). It exists so
 //! a future CLI binary can reuse the same logic as the desktop app.
 
+pub mod agents;
 pub mod frontmatter;
 pub mod model;
 pub mod roots;
