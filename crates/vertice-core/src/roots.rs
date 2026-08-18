@@ -60,14 +60,53 @@ fn resolve_home(raw: Option<PathBuf>) -> Result<PathBuf, ScanError> {
 /// `PathBuf::push` (design §9).
 pub fn skill_roots(home: &Path) -> [ResolvedRoot; 3] {
     [
-        resolve_single(home, "claude-skills", [".claude", "skills"]),
-        resolve_single(home, "agents-skills", [".agents", "skills"]),
+        resolve_single(
+            home,
+            "claude-skills",
+            SearchRootKind::Skill,
+            [".claude", "skills"],
+        ),
+        resolve_single(
+            home,
+            "agents-skills",
+            SearchRootKind::Skill,
+            [".agents", "skills"],
+        ),
         resolve_opencode(home),
     ]
 }
 
+/// Resolve the Claude Code agent roots under `home`. Two entries: the
+/// on-disk root that is walked, and the embedded pseudo-root that is only
+/// probed (design §3). Root ids are hardcoded, never derived from `home`.
+pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
+    let agents = resolve_single(
+        home,
+        "claude-agents",
+        SearchRootKind::Agent,
+        [".claude", "agents"],
+    );
+
+    let mut embedded_path = home.to_path_buf();
+    embedded_path.push(".claude");
+    let embedded_status = probe(&embedded_path);
+
+    let embedded = ResolvedRoot {
+        root: SearchRoot {
+            id: SearchRootId("claude-embedded-agents".to_string()),
+            path: embedded_path,
+            kind: SearchRootKind::Agent,
+            status: embedded_status,
+        },
+        // Probed, never walked (design §3).
+        scan_paths: vec![],
+    };
+
+    [agents, embedded]
+}
+
 /// Resolve a root with exactly one scan path (Claude Code, Agents).
-fn resolve_single(home: &Path, id: &str, suffix: [&str; 2]) -> ResolvedRoot {
+fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: [&str; 2]) -> ResolvedRoot {
     let mut path = home.to_path_buf();
     for segment in suffix {
         path.push(segment);
@@ -79,7 +118,7 @@ fn resolve_single(home: &Path, id: &str, suffix: [&str; 2]) -> ResolvedRoot {
         root: SearchRoot {
             id: SearchRootId(id.to_string()),
             path: path.clone(),
-            kind: SearchRootKind::Skill,
+            kind,
             status,
         },
         scan_paths: vec![path],
@@ -184,6 +223,57 @@ mod tests {
         assert!(roots
             .iter()
             .all(|r| r.root.status == SearchRootStatus::NotFound));
+    }
+
+    /// `agent_roots` returns exactly two entries: the walked on-disk root
+    /// and the probed-only embedded pseudo-root, both with hardcoded,
+    /// never-path-derived ids (design §3, task 1.1).
+    #[test]
+    fn agent_roots_returns_exactly_two_entries_with_stable_ids() {
+        let home = PathBuf::from("/home/example");
+
+        let [agents, embedded] = agent_roots(&home);
+
+        assert_eq!(agents.root.id, SearchRootId("claude-agents".to_string()));
+        let mut expected_agents_path = home.clone();
+        expected_agents_path.push(".claude");
+        expected_agents_path.push("agents");
+        assert_eq!(agents.root.path, expected_agents_path);
+        assert_eq!(agents.root.kind, SearchRootKind::Agent);
+        assert_eq!(agents.scan_paths, vec![expected_agents_path]);
+
+        assert_eq!(
+            embedded.root.id,
+            SearchRootId("claude-embedded-agents".to_string())
+        );
+        let mut expected_embedded_path = home.clone();
+        expected_embedded_path.push(".claude");
+        assert_eq!(embedded.root.path, expected_embedded_path);
+        assert_eq!(embedded.root.kind, SearchRootKind::Agent);
+        assert!(
+            embedded.scan_paths.is_empty(),
+            "the embedded pseudo-root is probed but never walked"
+        );
+    }
+
+    /// Root ids returned by `agent_roots` never change with `home`.
+    #[test]
+    fn agent_root_ids_are_stable_and_never_path_derived() {
+        let first = agent_roots(&PathBuf::from("/home/alice"));
+        let second = agent_roots(&PathBuf::from("/home/bob"));
+
+        let ids = |roots: &[ResolvedRoot; 2]| -> Vec<SearchRootId> {
+            roots.iter().map(|r| r.root.id.clone()).collect()
+        };
+
+        assert_eq!(ids(&first), ids(&second));
+        assert_eq!(
+            ids(&first),
+            vec![
+                SearchRootId("claude-agents".to_string()),
+                SearchRootId("claude-embedded-agents".to_string()),
+            ]
+        );
     }
 
     /// Task 2.7 (`.gitkeep` tripwire, status half): the empty-alias fixture
