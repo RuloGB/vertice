@@ -1,0 +1,5 @@
+{
+  "agent": {
+    "reviewer": { "description": "Lowercase key, from opencode.jsonc" }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "example-server": { "type": "local", "command": ["echo"] }
+  },
+  "permission": { "bash": "ask" },
+  "share": "manual",
+  "agent": {
+    "alpha": {
+      "description": "Alpha agent from opencode.json",
+      "mode": "subagent",
+      "prompt": "You are alpha.",
+      "tools": { "read": true, "grep": true },
+      "hidden": false
+    },
+    "beta": {
+      "description": "Beta agent from opencode.json",
+      "mode": "subagent",
+      "prompt": "You are beta.",
+      "tools": { "read": true },
+      "hidden": true
+    },
+    "gamma": {
+      "description": "Gamma agent from opencode.json",
+      "mode": "primary",
+      "prompt": "You are gamma.",
+      "tools": { "read": true, "write": false },
+      "permission": { "edit": "ask" }
+    },
+    "delta": {
+      "description": "Delta agent from opencode.json",
+      "mode": "subagent",
+      "prompt": "You are delta.",
+      "tools": {}
+    },
+    "epsilon": {
+      "description": "Epsilon agent, base value from opencode.json",
+      "mode": "subagent",
+      "prompt": "You are epsilon, from the base file.",
+      "tools": { "read": true },
+      "permission": { "bash": "deny" }
+    }
+  }
+}

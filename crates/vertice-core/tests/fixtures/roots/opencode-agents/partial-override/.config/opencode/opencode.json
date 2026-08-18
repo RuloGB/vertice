@@ -1,0 +1,8 @@
+{
+  "agent": {
+    "reviewer": {
+      "description": "Reviews code for quality issues",
+      "permission": { "edit": "ask", "bash": "deny" }
+    }
+  }
+}

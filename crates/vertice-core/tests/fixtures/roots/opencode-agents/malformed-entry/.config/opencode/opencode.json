@@ -1,0 +1,8 @@
+{
+  "agent": {
+    "string-valued": "not-an-object",
+    "bad-description": { "description": 42 },
+    "tools-as-string": { "description": "Tools typed as a string", "tools": "read,write" },
+    "empty-body": {}
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "agent": {
+    "healthy-one": { "description": "First healthy agent" },
+    "healthy-two": { "description": "Second healthy agent" }
+  }
+}
