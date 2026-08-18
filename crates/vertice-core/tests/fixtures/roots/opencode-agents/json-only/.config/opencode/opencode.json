@@ -1,0 +1,6 @@
+{
+  "agent": {
+    "json-only-one": { "description": "First agent, json-only" },
+    "json-only-two": { "description": "Second agent, json-only" }
+  }
+}

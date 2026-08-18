@@ -1,0 +1,14 @@
+{
+  "agent": {
+    "epsilon": {
+      "description": "Epsilon agent, overridden by opencode.jsonc"
+    },
+    "zeta": {
+      "description": "Zeta agent, jsonc-only",
+      "mode": "subagent"
+    },
+    "eta": {
+      "description": "Eta agent, jsonc-only"
+    }
+  }
+}

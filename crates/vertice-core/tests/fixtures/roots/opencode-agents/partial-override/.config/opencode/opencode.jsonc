@@ -1,0 +1,7 @@
+{
+  "agent": {
+    "reviewer": {
+      "permission": { "edit": "allow" }
+    }
+  }
+}

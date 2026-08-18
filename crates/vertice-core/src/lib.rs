@@ -6,7 +6,9 @@
 
 pub mod agents;
 pub mod frontmatter;
+pub mod jsonc;
 pub mod model;
+pub mod opencode_agents;
 pub mod roots;
 pub mod skills;
 pub mod yaml;

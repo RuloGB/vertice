@@ -1,0 +1,7 @@
+{
+  // a line comment before the agent block
+  "agent": {
+    "commented-one": { "description": "First agent, near a comment" },
+    "commented-two": { "description": "Second agent" }, /* a block comment right before the trailing comma */
+  }
+}
