@@ -6,6 +6,8 @@
 
 pub mod frontmatter;
 pub mod model;
+pub mod roots;
+pub mod skills;
 pub mod yaml;
 
 #[cfg(test)]

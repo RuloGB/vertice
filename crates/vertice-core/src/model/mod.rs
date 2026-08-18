@@ -32,5 +32,7 @@ pub use component::{Component, ComponentKind, Scope};
 pub use error::ScanError;
 pub use identity::ComponentId;
 pub use installation::{ClientInstallation, ClientKind};
-pub use location::{Location, LocationOrigin, SearchRoot, SearchRootId, SearchRootKind};
+pub use location::{
+    Location, LocationOrigin, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
+};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};
