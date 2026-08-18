@@ -4,7 +4,7 @@
 
 use vertice_core::model::{
     ClientInstallation, ClientKind, Component, ComponentId, ComponentKind, IssueSeverity, Location,
-    LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind,
+    LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
 };
 use vertice_core::model::{ScanIssue, ScanReport};
 
@@ -13,6 +13,7 @@ fn sample_search_root(id: &str, kind: SearchRootKind) -> SearchRoot {
         id: SearchRootId(id.to_string()),
         path: std::path::PathBuf::from(format!("/roots/{id}")),
         kind,
+        status: SearchRootStatus::Found,
     }
 }
 
