@@ -1,0 +1,5 @@
+# Test fixtures are byte-exact inputs. Never normalize line endings.
+crates/vertice-core/tests/fixtures/** -text
+
+# The non-UTF-8 fixture is binary content: also suppress diff/merge attempts.
+crates/vertice-core/tests/fixtures/frontmatter/non-utf8-content/SKILL.md binary

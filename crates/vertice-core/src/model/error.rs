@@ -8,8 +8,8 @@
 //!
 //! **Invariant**: every variant payload here MUST be owned, serializable
 //! data (`String`, `PathBuf`, a model enum) — never a foreign error type.
-//! Foreign errors (e.g. `serde_norway::Error`, `std::io::Error`) are not
-//! `Serialize`; they are converted with `.to_string()` at the boundary
+//! Foreign errors (e.g. the YAML crate's error type, `std::io::Error`) are
+//! not `Serialize`; they are converted with `.to_string()` at the boundary
 //! before reaching a `ScanError` variant, not wrapped with `#[from]`.
 //! `Deserialize` is deliberately not derived: the frontend never constructs
 //! a `ScanError`, only receives one.
