@@ -6,6 +6,7 @@
 
 pub mod agents;
 pub mod frontmatter;
+pub mod jsonc;
 pub mod model;
 pub mod roots;
 pub mod skills;
