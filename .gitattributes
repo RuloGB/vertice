@@ -3,3 +3,4 @@ crates/vertice-core/tests/fixtures/** -text
 
 # The non-UTF-8 fixture is binary content: also suppress diff/merge attempts.
 crates/vertice-core/tests/fixtures/frontmatter/non-utf8-content/SKILL.md binary
+crates/vertice-core/tests/fixtures/installations/package-json-unreadable/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/package.json binary
