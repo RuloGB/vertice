@@ -80,7 +80,7 @@ Two seams inside the core deserve care:
 ## Versions and CI
 
 - MSRV floor is declared in three places that must agree: `Cargo.toml` `rust-version`, the `MSRV` env in `.github/workflows/ci.yml`, and `rust-toolchain.toml` `channel` (which pins a *newer* exact toolchain — MSRV is a floor, not a pin). A CI step fails the build if they drift, so update them together.
-- CI jobs: `quality` (fmt, MSRV consistency, `cargo deny`, bindings-in-sync), `frontend` (lint/check/test/build, uploads `dist`), `rust` (clippy/test/release build on Linux + Windows + macOS), `msrv` (`cargo check` at the floor). The Rust jobs download the frontend artifact rather than rebuilding it.
+- CI jobs: `quality` (fmt, MSRV consistency, `cargo deny`, bindings-in-sync), `frontend` (lint/check/test/build, uploads `dist`), `rust` (clippy/test/release build — Linux only on pull requests; Linux + Windows + macOS on push to `main` and on `workflow_dispatch`, which is where CA-17 is enforced), `msrv` (`cargo check` at the floor). The Rust jobs download the frontend artifact rather than rebuilding it. `paths-ignore` (`internal-docs/**`, `openspec/**`, `CLAUDE.md`) means a documentation-only change produces no run at all, and pull requests not targeting `main` are not validated.
 - `cargo deny check advisories` is deliberately **not** a PR gate — it is time-dependent and would red-flag unrelated PRs. `licenses` is deterministic and is gated.
 
 ## Working conventions

@@ -1,13 +1,35 @@
 name: CI
 
 on:
+  # NOTE: the two `paths-ignore` lists below are duplicated on purpose --
+  # GitHub Actions does not support YAML anchors/aliases, so they must be kept
+  # in sync by hand. Documentation-only trees are listed explicitly rather than
+  # matched with a `**/*.md` glob: the core test fixtures under
+  # `crates/vertice-core/tests/fixtures/` ARE Markdown files, and skipping CI
+  # when those change would skip the very tests they pin.
   pull_request:
+    branches: [main]
+    paths-ignore:
+      - "internal-docs/**"
+      - "openspec/**"
+      - "CLAUDE.md"
   push:
     branches: [main]
+    paths-ignore:
+      - "internal-docs/**"
+      - "openspec/**"
+      - "CLAUDE.md"
+  # Manual escape hatch: runs the full cross-OS matrix on any branch, e.g. to
+  # validate a Windows/macOS-sensitive change before it reaches main.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Pull requests cancel superseded runs: money saved, no guarantee lost.
+  # Pushes to `main` and manual dispatches never cancel -- `main` is now the
+  # sole carrier of the CA-17 three-platform guarantee, and a cancelled run
+  # would silently leave a merge commit unvalidated on Windows and macOS.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -121,7 +143,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-14]
+        # Windows bills at 2x and macOS at 10x the Linux minute rate, which
+        # made a single pull request cost more in runner minutes than the
+        # Linux jobs combined. Pull requests validate on Linux only; the full
+        # matrix runs on push to `main` and on `workflow_dispatch`, so a
+        # platform-specific regression is still caught before release — just
+        # after merge rather than before it.
+        # This `&&`/`||` idiom only yields a real array because both operands
+        # are non-empty JSON arrays. A future "run nothing" variant MUST use a
+        # job-level `if:` instead -- `fromJSON('[]')` is not reliably truthy.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-24.04"]') || fromJSON('["ubuntu-24.04", "windows-2022", "macos-14"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -187,6 +218,14 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.MSRV }}
+
+      # This job had no cache and so rebuilt the entire `tauri` dependency
+      # tree from scratch on every run (~37 min observed) — the longest job in
+      # the workflow. A separate cache key keeps it from colliding with the
+      # `rust` job, which uses a different toolchain.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: msrv-${{ env.MSRV }}
 
       - name: Download frontend/dist
         uses: actions/download-artifact@v4
