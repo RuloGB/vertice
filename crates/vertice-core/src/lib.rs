@@ -6,6 +6,7 @@
 
 pub mod agents;
 pub mod frontmatter;
+pub mod installations;
 pub mod jsonc;
 pub mod model;
 pub mod opencode_agents;
