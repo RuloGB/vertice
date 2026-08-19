@@ -5,6 +5,7 @@
 //! a future CLI binary can reuse the same logic as the desktop app.
 
 pub mod agents;
+pub mod consolidate;
 pub mod frontmatter;
 pub mod installations;
 pub mod jsonc;
