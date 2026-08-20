@@ -37,7 +37,7 @@ impl HostPlatform {
     /// `windows_install_probes` would not be compiled on the Linux/macOS CI
     /// legs, and the unconditional call to it from `scan`/`scan_for` would
     /// fail to compile there — a hard build break, not a coverage gap.
-    fn current() -> Self {
+    pub(crate) fn current() -> Self {
         if cfg!(target_os = "windows") {
             HostPlatform::Windows
         } else {
