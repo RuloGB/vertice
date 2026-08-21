@@ -1,4 +1,4 @@
 {
-  "docsDir": ["docs", "internal-docs"],
+  "docsDir": ["docs", "internal-docs", "openspec"],
   "exclude": ["INDEX.md"]
 }
