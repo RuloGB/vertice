@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { Location } from "../bindings/Location";
+  import { useI18n } from "./i18n/locale.svelte";
+
+  const i18n = useI18n();
 
   let { locations }: { locations: Location[] } = $props();
 </script>
@@ -14,7 +17,7 @@
       {#if location.path !== null}
         {location.path}
       {:else}
-        <span class="italic text-slate-500">(no path on disk)</span>
+        <span class="italic text-slate-500">{i18n.t("location.noPath")}</span>
       {/if}
     </li>
   {/each}

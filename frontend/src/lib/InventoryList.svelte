@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { Component } from "../bindings/Component";
+  import { useI18n } from "./i18n/locale.svelte";
   import InventoryRow from "./InventoryRow.svelte";
+
+  const i18n = useI18n();
 
   let { components }: { components: Component[] } = $props();
 </script>
@@ -10,7 +13,7 @@
     role="status"
     class="rounded-lg border border-dashed border-slate-700 p-10 text-center text-sm text-slate-400"
   >
-    No components to show.
+    {i18n.t("inventory.empty")}
   </div>
 {:else}
   <ul class="flex flex-col gap-3">

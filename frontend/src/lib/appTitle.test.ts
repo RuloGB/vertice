@@ -6,7 +6,7 @@ describe("appTitle", () => {
     expect(appTitle("Vertice", "0.1.0")).toBe("Vertice v0.1.0");
   });
 
-  it("reflects a different product name and version (triangulation)", () => {
-    expect(appTitle("Vertice PoC", "2.3.1")).toBe("Vertice PoC v2.3.1");
+  it("adds a localized area label when provided", () => {
+    expect(appTitle("Vertice", "0.1.0", "Inventario")).toBe("Vertice v0.1.0 — Inventario");
   });
 });
