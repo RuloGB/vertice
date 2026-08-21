@@ -7,6 +7,9 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
+  resolve: {
+    conditions: ["browser"],
+  },
 
   // Vite options tailored for Tauri development.
   clearScreen: false,
