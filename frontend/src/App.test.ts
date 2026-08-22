@@ -206,6 +206,30 @@ describe("App locale switching", () => {
     unmount(app);
   });
 
+  it("starts in English even when the browser locale is Spanish, while allowing a switch to Spanish", async () => {
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["es-ES"],
+    });
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    expect(document.documentElement.lang).toBe("en");
+    expect(visibleText()).toContain("Welcome to Vertice");
+    expect(languageSelector().value).toBe("en");
+
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
+    expect(document.documentElement.lang).toBe("es");
+    expect(visibleText()).toContain("Bienvenido a Vertice");
+
+    unmount(app);
+  });
+
   it("renders localized scan failure chrome with the raw internal reason after loading settles", async () => {
     const rawReason = "ENOENT: raw core diagnostic";
     Object.defineProperty(window.navigator, "languages", {
@@ -215,6 +239,10 @@ describe("App locale switching", () => {
     mockedScan.mockRejectedValue({ kind: "internal", detail: { reason: rawReason } });
 
     const app = mount(App, { target: document.body });
+    await flushApp();
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
     await flushApp();
     navigateTo("Agentes");
     await flushApp();
@@ -493,7 +521,9 @@ describe("App scan route", () => {
     expect(visibleText()).toContain("Scan completed with no incidents.");
     expect(visibleText()).toContain("C:/roots/claude");
     expect(visibleText()).toContain("claudeCode");
-    expect(visibleText()).toContain("42 ms");
+    const duration = document.querySelector('[data-testid="scan-duration"]');
+    expect(duration?.textContent).toContain("Duration");
+    expect(duration?.textContent).toContain("42 ms");
 
     unmount(app);
   });
@@ -514,6 +544,20 @@ describe("App scan route", () => {
     expect(diagnostics?.textContent?.match(/search root claude-skills was not found/g)).toBeNull();
     expect(visibleText()).toContain("C:/roots/claude");
     expect(visibleText()).toContain("Not found");
+
+    unmount(app);
+  });
+
+  it("does not render a fake duration before a scan report is available", async () => {
+    mockedScan.mockRejectedValue({ kind: "internal", detail: { reason: "boom" } });
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    expect(document.querySelector('[data-testid="scan-duration"]')).toBeNull();
+    expect(visibleText()).not.toContain("0 ms");
 
     unmount(app);
   });
@@ -550,6 +594,12 @@ describe("App shell navigation", () => {
       "AI Subscriptions",
     ]);
     expect(visibleText()).toContain("Welcome to Vertice");
+    const brandMarks = document.querySelectorAll('[data-testid="brand-mark"]');
+    expect(brandMarks).toHaveLength(2);
+    expect(sidebar?.querySelector('[data-testid="brand-mark"]')?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+    expect(sidebar?.querySelector(".brand-gradient")?.textContent?.trim()).not.toBe("V");
     expect(sidebar?.querySelector('[aria-current="page"]')?.textContent?.trim()).toBe("Home");
     expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
     expect(document.querySelector('input[type="search"]')).toBeNull();
@@ -576,6 +626,31 @@ describe("App shell navigation", () => {
 
     expect(mockedScan).toHaveBeenCalledTimes(1);
     expect(mockedRescan).not.toHaveBeenCalled();
+
+    unmount(app);
+  });
+
+  it("navigates from every Home metric tile to its matching destination", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    for (const [key, title] of [
+      ["skills", "Skills"],
+      ["agents", "Agents"],
+      ["components", "Scan"],
+      ["roots", "Scan"],
+    ] as const) {
+      const tile = document.querySelector<HTMLButtonElement>(`[data-testid="home-stat-${key}"]`);
+      expect(tile, key).not.toBeNull();
+      tile?.click();
+      await flushApp();
+      expect(document.title, key).toBe(`Vertice v0.1.0 — ${title}`);
+
+      navigateTo("Home");
+      await flushApp();
+    }
 
     unmount(app);
   });

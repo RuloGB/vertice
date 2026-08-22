@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import type { ScanReport } from "./bindings/ScanReport";
   import { appTitle, APP_VERSION, PRODUCT_NAME } from "./lib/appTitle";
-  import { createI18n, provideI18n, resolveLocale } from "./lib/i18n/locale.svelte";
+  import { createI18n, provideI18n } from "./lib/i18n/locale.svelte";
   import { areaLabelKey, DEFAULT_ROUTE, hasContent, type RouteId } from "./lib/navigation";
   import AgentsPage from "./lib/pages/AgentsPage.svelte";
   import HomePage from "./lib/pages/HomePage.svelte";
@@ -21,7 +21,7 @@
     | { kind: "internal"; reason: string }
     | { kind: "unexpected" };
 
-  const i18n = provideI18n(createI18n(resolveLocale(browserLanguages())));
+  const i18n = provideI18n(createI18n("en"));
 
   let route: RouteId = $state(DEFAULT_ROUTE);
   let status: Status = $state("idle");
@@ -47,14 +47,6 @@
       document.title = title;
     }
   });
-
-  function browserLanguages(): readonly string[] | string | null {
-    if (typeof navigator === "undefined") {
-      return null;
-    }
-
-    return navigator.languages.length > 0 ? navigator.languages : navigator.language;
-  }
 
   function toScanFailure(error: unknown): ScanFailure {
     if (isScanError(error)) {
@@ -94,11 +86,11 @@
   });
 </script>
 
-<div class="flex h-screen overflow-hidden bg-ink-950 text-mist-200">
+<div class="flex h-screen overflow-hidden bg-canvas text-mist-200">
   <Sidebar current={route} onNavigate={(next) => (route = next)} />
 
-  <main class="flex-1 overflow-y-auto">
-    <div class="mx-auto w-full max-w-5xl px-8 py-8">
+  <main class="flex-1 overflow-y-auto app-canvas-gradient">
+    <div class={route === "home" ? "w-full px-8 py-8 2xl:px-10" : "mx-auto w-full max-w-6xl px-8 py-8"}>
       {#if route === "home"}
         <HomePage
           {report}

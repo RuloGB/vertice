@@ -11,12 +11,12 @@
 {#if components.length === 0}
   <div
     role="status"
-    class="rounded-xl border border-dashed border-line-strong p-12 text-center text-sm text-mist-400"
+    class="rounded-panel border border-dashed border-stroke-strong bg-surface/60 p-12 text-center text-sm text-content-subtle"
   >
     {i18n.t("components.empty")}
   </div>
 {:else}
-  <ul class="flex flex-col gap-3">
+  <ul class="flex flex-col gap-4">
     {#each components as component (component.id)}
       <li>
         <ComponentRow {component} />

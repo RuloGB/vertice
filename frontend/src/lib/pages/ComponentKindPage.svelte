@@ -45,9 +45,9 @@
   const visible = $derived(filterComponents(report?.components ?? [], { kind, query }));
 </script>
 
-<section class="flex flex-col gap-5">
+<section class="flex flex-col gap-6">
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-xl font-semibold tracking-tight text-mist-100">
+    <h1 class="text-2xl font-semibold tracking-tight text-content">
       {i18n.t(areaLabelKey(KIND_ROUTE[kind]))}
     </h1>
     <IncidentIndicator {incidents} onclick={() => onNavigate("scan")} />
@@ -58,18 +58,18 @@
   {#if status === "idle" || status === "loading"}
     <div
       role="status"
-      class="rounded-xl border border-line bg-ink-900/40 p-12 text-center text-sm text-mist-400"
+      class="rounded-panel border border-stroke bg-surface/60 p-12 text-center text-sm text-content-subtle"
     >
       {i18n.t("components.loading")}
     </div>
   {:else if status === "failed"}
     <div
       role="alert"
-      class="rounded-xl border border-red-900/60 bg-red-950/30 p-6 text-sm text-red-200"
+      class="rounded-panel border border-danger/45 bg-danger/10 p-6 text-sm text-danger"
     >
       <p class="font-medium">{i18n.t("failure.title")}</p>
       {#if failureMessage}
-        <p class="mt-1 text-red-300/80">{failureMessage}</p>
+        <p class="mt-1 text-danger/80">{failureMessage}</p>
       {/if}
     </div>
   {:else}
