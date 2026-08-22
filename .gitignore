@@ -4,6 +4,9 @@ internal-docs/
 #AI
 .atl/
 .codegraph/
+.agents/
+.claude/
+.opencode/
 
 #Rust
 /target
