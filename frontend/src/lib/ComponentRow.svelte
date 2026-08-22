@@ -23,15 +23,15 @@
         data-testid="embedded-status"
         class="rounded bg-accent-500/15 px-1.5 py-0.5 text-xs font-medium text-accent-300"
       >
-        {i18n.t("inventory.embedded")}
+        {i18n.t("components.embedded")}
       </span>
     {/if}
     {#if duplicate}
       <span
         class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-300"
-        title={i18n.t("inventory.duplicateTitle", { count: component.locations.length })}
+        title={i18n.t("components.duplicateTitle", { count: component.locations.length })}
       >
-        {i18n.t("inventory.duplicate")}
+        {i18n.t("components.duplicate")}
       </span>
     {/if}
   </header>

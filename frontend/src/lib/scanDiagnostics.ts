@@ -47,3 +47,18 @@ export function partitionDiagnostics(
 
   return { unavailableRoots, missingClientIssues, remainingRecoverableIssues };
 }
+
+/**
+ * Total incident count for the incident indicator and Home's issue count.
+ * The three partition arrays are exactly "issues plus not-found roots,
+ * de-duplicated" — summing their lengths never double-counts because
+ * `partitionDiagnostics` already drops the matching "search root {id} was
+ * not found" warning for each `notFound` root.
+ */
+export function incidentCount(diagnostics: Diagnostics): number {
+  return (
+    diagnostics.unavailableRoots.length +
+    diagnostics.missingClientIssues.length +
+    diagnostics.remainingRecoverableIssues.length
+  );
+}

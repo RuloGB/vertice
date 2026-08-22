@@ -2,14 +2,16 @@
   import { onMount } from "svelte";
   import type { ScanReport } from "./bindings/ScanReport";
   import { appTitle, APP_VERSION, PRODUCT_NAME } from "./lib/appTitle";
-  import type { ComponentFilter } from "./lib/filterComponents";
   import { createI18n, provideI18n, resolveLocale } from "./lib/i18n/locale.svelte";
   import { areaLabelKey, DEFAULT_ROUTE, hasContent, type RouteId } from "./lib/navigation";
+  import AgentsPage from "./lib/pages/AgentsPage.svelte";
   import HomePage from "./lib/pages/HomePage.svelte";
-  import InventoryPage from "./lib/pages/InventoryPage.svelte";
   import PlaceholderPage from "./lib/pages/PlaceholderPage.svelte";
+  import ScanPage from "./lib/pages/ScanPage.svelte";
+  import SkillsPage from "./lib/pages/SkillsPage.svelte";
   import SubscriptionsPage from "./lib/pages/SubscriptionsPage.svelte";
   import { isScanError, rescan, scan } from "./lib/scan";
+  import { incidentCount, partitionDiagnostics } from "./lib/scanDiagnostics";
   import Sidebar from "./lib/Sidebar.svelte";
   import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
@@ -25,13 +27,19 @@
   let status: Status = $state("idle");
   let report = $state<ScanReport | null>(null);
   let failure = $state<ScanFailure | null>(null);
-  let kind: ComponentFilter["kind"] = $state("all");
-  let query = $state("");
+  // Never shared, never reset on navigation — a shared query would silently
+  // pre-filter the other page.
+  let agentsQuery = $state("");
+  let skillsQuery = $state("");
   // Read once at startup: renewal countdowns must not shift mid-session.
   const today = new Date();
 
   const title = $derived(appTitle(PRODUCT_NAME, APP_VERSION, i18n.t(areaLabelKey(route))));
   const failureMessage = $derived(failure === null ? null : scanFailureMessage(failure));
+  const diagnostics = $derived(
+    partitionDiagnostics(report?.rootsScanned ?? [], report?.issues ?? []),
+  );
+  const incidents = $derived(report === null ? 0 : incidentCount(diagnostics));
 
   $effect(() => {
     if (typeof document !== "undefined") {
@@ -67,7 +75,7 @@
     return i18n.t("failure.unexpected");
   }
 
-  async function loadInventory(source: "startup" | "reload"): Promise<void> {
+  async function runScan(source: "startup" | "reload"): Promise<void> {
     status = "loading";
     failure = null;
     try {
@@ -82,7 +90,7 @@
   }
 
   onMount(() => {
-    void loadInventory("startup");
+    void runScan("startup");
   });
 </script>
 
@@ -92,18 +100,38 @@
   <main class="flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-5xl px-8 py-8">
       {#if route === "home"}
-        <HomePage {report} onNavigate={(next) => (route = next)} />
-      {:else if route === "inventory"}
-        <InventoryPage
+        <HomePage
+          {report}
+          {status}
+          {failureMessage}
+          {incidents}
+          onNavigate={(next) => (route = next)}
+          onRetry={() => void runScan("reload")}
+        />
+      {:else if route === "agents"}
+        <AgentsPage
           {status}
           {report}
           {failureMessage}
-          {query}
-          {kind}
-          onQueryChange={(value) => (query = value)}
-          onKindChange={(value) => (kind = value)}
-          onReload={() => void loadInventory("reload")}
+          query={agentsQuery}
+          {incidents}
+          onQueryChange={(value) => (agentsQuery = value)}
+          onReload={() => void runScan("reload")}
+          onNavigate={(next) => (route = next)}
         />
+      {:else if route === "skills"}
+        <SkillsPage
+          {status}
+          {report}
+          {failureMessage}
+          query={skillsQuery}
+          {incidents}
+          onQueryChange={(value) => (skillsQuery = value)}
+          onReload={() => void runScan("reload")}
+          onNavigate={(next) => (route = next)}
+        />
+      {:else if route === "scan"}
+        <ScanPage {status} {report} {failureMessage} {diagnostics} {incidents} />
       {:else if route === "subscriptions"}
         <SubscriptionsPage subscriptions={SAMPLE_SUBSCRIPTIONS} {today} />
       {:else if !hasContent(route)}

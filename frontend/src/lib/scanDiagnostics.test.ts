@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ScanIssue } from "../bindings/ScanIssue";
 import type { SearchRoot } from "../bindings/SearchRoot";
-import { isMissingClientIssue, partitionDiagnostics } from "./scanDiagnostics";
+import { incidentCount, isMissingClientIssue, partitionDiagnostics } from "./scanDiagnostics";
 
 const clientReasons = [
   "Claude Code (npm) not detected",
@@ -71,5 +71,38 @@ describe("partitionDiagnostics", () => {
       missingClientIssues: [],
       remainingRecoverableIssues: [unrelatedWarning],
     });
+  });
+});
+
+describe("incidentCount", () => {
+  it("counts zero for a fully clean report", () => {
+    expect(incidentCount(partitionDiagnostics([root("claude-skills", "found")], []))).toBe(0);
+  });
+
+  it("counts one for zero issues plus one not-found root (correctness-critical)", () => {
+    const roots = [root("claude-skills", "notFound")];
+
+    expect(incidentCount(partitionDiagnostics(roots, []))).toBe(1);
+  });
+
+  it("counts one not-found root plus its de-duplicated warning plus one real issue as two, not three", () => {
+    const roots = [root("claude-skills", "notFound")];
+    const rootWarning = issue({
+      path: null,
+      reason: "search root claude-skills was not found",
+    });
+    const realIssue = issue({
+      severity: "error",
+      path: "C:/fixtures/broken-skill/SKILL.md",
+      reason: "Malformed frontmatter",
+    });
+
+    expect(incidentCount(partitionDiagnostics(roots, [rootWarning, realIssue]))).toBe(2);
+  });
+
+  it("counts one for a missing-client issue alone", () => {
+    const missingClient = issue({ reason: clientReasons[2] });
+
+    expect(incidentCount(partitionDiagnostics([root("claude-skills", "found")], [missingClient]))).toBe(1);
   });
 });

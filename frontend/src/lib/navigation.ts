@@ -11,7 +11,7 @@ export const ROUTE_IDS = [
   "skills",
   "mcp",
   "prompts",
-  "inventory",
+  "scan",
   "subscriptions",
 ] as const;
 
@@ -31,18 +31,21 @@ export interface NavGroup {
 export const NAV_GROUPS: readonly NavGroup[] = [
   { id: "overview", routes: ["home"] },
   { id: "library", routes: ["agents", "skills", "mcp", "prompts"] },
-  { id: "data", routes: ["inventory", "subscriptions"] },
+  { id: "data", routes: ["scan", "subscriptions"] },
 ];
 
 /**
  * Routes that render content of their own. Everything else renders an explicit
  * empty state instead of pretending to have data. Note that content is not the
- * same as a live backend read: `inventory` reflects a real scan, while
- * `subscriptions` is populated from a local sample until a billing source exists.
+ * same as a live backend read: `agents`, `skills`, and `scan` all reflect the
+ * same startup scan, while `subscriptions` is populated from a local sample
+ * until a billing source exists.
  */
 const ROUTES_WITH_CONTENT: ReadonlySet<RouteId> = new Set<RouteId>([
   "home",
-  "inventory",
+  "agents",
+  "skills",
+  "scan",
   "subscriptions",
 ]);
 
