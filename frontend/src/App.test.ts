@@ -158,3 +158,180 @@ describe("App locale switching", () => {
     unmount(app);
   });
 });
+function mixedReportFixture(): ScanReport {
+  return {
+    ...reportFixture(),
+    rootsScanned: [
+      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound" },
+    ],
+    issues: [
+      { severity: "warning", path: null, reason: "search root claude-skills was not found" },
+      {
+        severity: "warning",
+        path: "C:/Users/example/AppData/Roaming/npm",
+        reason: "Claude Code (npm) not detected",
+      },
+      {
+        severity: "error",
+        path: "C:/fixtures/broken-skill/SKILL.md",
+        reason: "Malformed frontmatter",
+      },
+    ],
+  };
+}
+
+describe("App successful scan diagnostics", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["en-US"],
+    });
+    document.body.innerHTML = "";
+  });
+
+  it("keeps inventory visible and renders each mixed-report diagnostic exactly once", async () => {
+    mockedScan.mockResolvedValue(mixedReportFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const diagnostics = document.querySelector('[data-testid="scan-diagnostics"]');
+    expect(visibleText()).toContain("Formatter");
+    expect(diagnostics?.textContent).toContain("Unavailable scan roots");
+    expect(diagnostics?.textContent).toContain("C:/roots/claude");
+    expect(diagnostics?.textContent).toContain("Claude Code (npm) not detected");
+    expect(diagnostics?.textContent).toContain("C:/Users/example/AppData/Roaming/npm");
+    expect(diagnostics?.textContent).toContain("Malformed frontmatter");
+    expect(diagnostics?.textContent).toContain("C:/fixtures/broken-skill/SKILL.md");
+    expect(diagnostics?.textContent?.match(/search root claude-skills was not found/g)).toBeNull();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+
+    unmount(app);
+  });
+
+  it("updates diagnostic chrome after switching to Spanish while keeping issue payloads verbatim", async () => {
+    const missingClientReason = "Claude Code (npm) not detected";
+    const missingClientPath = "C:/Users/example/AppData/Roaming/npm";
+    const recoverableReason = "Malformed frontmatter";
+    const recoverablePath = "C:/fixtures/broken-skill/SKILL.md";
+    mockedScan.mockResolvedValue(mixedReportFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const diagnostics = document.querySelector('[data-testid="scan-diagnostics"]');
+    expect(diagnostics?.textContent).toContain("Unavailable scan roots");
+    expect(diagnostics?.textContent).toContain("Supported client unavailable");
+    expect(diagnostics?.textContent).toContain("Recoverable scan issues");
+
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
+    expect(diagnostics?.textContent).toContain("Raíces de escaneo no disponibles");
+    expect(diagnostics?.textContent).toContain("Cliente compatible no disponible");
+    expect(diagnostics?.textContent).toContain("Problemas recuperables del escaneo");
+    expect(diagnostics?.textContent).toContain(missingClientReason);
+    expect(diagnostics?.textContent).toContain(missingClientPath);
+    expect(diagnostics?.textContent).toContain(recoverableReason);
+    expect(diagnostics?.textContent).toContain(recoverablePath);
+
+    unmount(app);
+  });
+
+  it("renders no diagnostics for a clean report", async () => {
+    mockedScan.mockResolvedValue(reportFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    expect(document.querySelector('[data-testid="scan-diagnostics"]')).toBeNull();
+
+    unmount(app);
+  });
+
+  it("marks an embedded location without mistaking a null file path for embedded and localizes chrome", async () => {
+    const nullPathFileComponent: Component = {
+      ...componentFixture(),
+      id: "agent:null-path",
+      name: "Null Path Agent",
+      kind: "agent",
+      locations: [{ path: null, root: "claude-agents", origin: "file" }],
+    };
+    mockedScan.mockResolvedValue(reportFixture([componentFixture(), nullPathFileComponent]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    expect(visibleText()).toContain("Embedded (non-actionable)");
+    expect(document.querySelectorAll('[data-testid="embedded-status"]')).toHaveLength(1);
+    expect(visibleText()).toContain("Null Path Agent");
+
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
+    expect(visibleText()).toContain("Integrado (sin acciones disponibles)");
+    expect(visibleText()).toContain("Null Path Agent");
+
+    unmount(app);
+  });
+
+  it("marks an embedded location with a non-null path as non-actionable without rendering an action control", async () => {
+    const embeddedPath = "C:/fixtures/embedded/README.md";
+    const embeddedComponent: Component = {
+      ...componentFixture(),
+      id: "skill:embedded-path",
+      name: "Embedded Path Skill",
+      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded" }],
+    };
+    mockedScan.mockResolvedValue(reportFixture([embeddedComponent]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("article")).find((candidate) =>
+      candidate.textContent?.includes(embeddedComponent.name),
+    );
+    expect(row?.textContent).toContain(embeddedComponent.name);
+    expect(row?.textContent).toContain(embeddedPath);
+    expect(row?.textContent).toContain("Embedded (non-actionable)");
+    expect(row?.querySelector('[data-testid="embedded-status"]')).not.toBeNull();
+    expect(row?.querySelectorAll('button, [role="button"], a[href], input[type="button"], input[type="submit"]'))
+      .toHaveLength(0);
+
+    unmount(app);
+  });
+
+  it("keeps every embedded row non-actionable when embedded and file locations coexist", async () => {
+    const embeddedAndFileComponent: Component = {
+      ...componentFixture(),
+      id: "agent:embedded-and-file",
+      name: "Embedded and File Agent",
+      kind: "agent",
+      locations: [
+        { path: "C:/fixtures/agent/AGENT.md", root: "claude-agents", origin: "file" },
+        { path: "C:/fixtures/agent/default.md", root: "builtin-agents", origin: "embedded" },
+      ],
+    };
+    mockedScan.mockResolvedValue(reportFixture([embeddedAndFileComponent]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("article")).find((candidate) =>
+      candidate.textContent?.includes(embeddedAndFileComponent.name),
+    );
+    expect(row?.textContent).toContain("Embedded (non-actionable)");
+    expect(row?.querySelector('[data-testid="embedded-status"]')?.textContent).toContain(
+      "Embedded (non-actionable)",
+    );
+    expect(row?.querySelectorAll('button, [role="button"], a[href], input[type="button"], input[type="submit"]'))
+      .toHaveLength(0);
+
+    unmount(app);
+  });
+});

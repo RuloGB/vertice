@@ -24,6 +24,13 @@ export type Catalog = {
     empty: string;
     duplicate: string;
     duplicateTitle: string;
+    embedded: string;
+  };
+  diagnostics: {
+    title: string;
+    unavailableRoots: string;
+    missingClient: string;
+    recoverableIssues: string;
   };
   failure: {
     title: string;
@@ -63,6 +70,13 @@ export const catalogs = {
       empty: "No components to show.",
       duplicate: "Duplicate",
       duplicateTitle: "Found at {count} locations",
+      embedded: "Embedded (non-actionable)",
+    },
+    diagnostics: {
+      title: "Scan diagnostics",
+      unavailableRoots: "Unavailable scan roots",
+      missingClient: "Supported client unavailable",
+      recoverableIssues: "Recoverable scan issues",
     },
     failure: {
       title: "Inventory scan failed.",
@@ -98,6 +112,13 @@ export const catalogs = {
       empty: "No hay componentes para mostrar.",
       duplicate: "Duplicado",
       duplicateTitle: "Encontrado en {count} ubicaciones",
+      embedded: "Integrado (sin acciones disponibles)",
+    },
+    diagnostics: {
+      title: "Diagnósticos del escaneo",
+      unavailableRoots: "Raíces de escaneo no disponibles",
+      missingClient: "Cliente compatible no disponible",
+      recoverableIssues: "Problemas recuperables del escaneo",
     },
     failure: {
       title: "Falló el escaneo del inventario.",

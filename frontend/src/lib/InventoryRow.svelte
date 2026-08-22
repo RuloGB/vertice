@@ -9,6 +9,7 @@
   let { component }: { component: Component } = $props();
 
   const duplicate = $derived(isDuplicate(component));
+  const embedded = $derived(component.locations.some(({ origin }) => origin === "embedded"));
 </script>
 
 <article class="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
@@ -17,6 +18,14 @@
     <span class="rounded bg-slate-800 px-1.5 py-0.5 text-xs uppercase tracking-wide text-slate-300"
       >{component.kind === "skill" ? i18n.t("kind.skill") : i18n.t("kind.agent")}</span
     >
+    {#if embedded}
+      <span
+        data-testid="embedded-status"
+        class="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs font-medium text-sky-300"
+      >
+        {i18n.t("inventory.embedded")}
+      </span>
+    {/if}
     {#if duplicate}
       <span
         class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-300"

@@ -9,8 +9,10 @@
     type SupportedLocale,
   } from "./lib/i18n/locale.svelte";
   import InventoryList from "./lib/InventoryList.svelte";
+  import ScanDiagnostics from "./lib/ScanDiagnostics.svelte";
   import InventoryToolbar from "./lib/InventoryToolbar.svelte";
   import { isScanError, rescan, scan } from "./lib/scan";
+  import { partitionDiagnostics } from "./lib/scanDiagnostics";
 
   type Status = "idle" | "loading" | "ready" | "failed";
   type ScanFailure =
@@ -27,6 +29,7 @@
   let query = $state("");
 
   const visibleComponents = $derived(filterComponents(report?.components ?? [], { kind, query }));
+  const diagnostics = $derived(partitionDiagnostics(report?.rootsScanned ?? [], report?.issues ?? []));
   const title = $derived(i18n.t("app.title"));
   const failureMessage = $derived(failure === null ? null : scanFailureMessage(failure));
 
@@ -121,6 +124,7 @@
         {/if}
       </div>
     {:else}
+      <ScanDiagnostics {diagnostics} />
       <InventoryList components={visibleComponents} />
     {/if}
   </div>
