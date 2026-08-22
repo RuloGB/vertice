@@ -9,8 +9,8 @@ export type Diagnostics = {
 
 // These exact warning strings are emitted by the closed Windows client-probe table.
 const MISSING_CLIENT_REASONS = new Set([
-  "Claude Code (npm) not detected",
-  "Claude Code (desktop) not detected",
+  "Claude Code CLI (npm) not detected",
+  "Claude Code (bundled in Claude Desktop) not detected",
   "OpenCode (npm) not detected",
 ]);
 

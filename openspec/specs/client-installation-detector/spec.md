@@ -8,23 +8,36 @@ Defines the contract for detecting which AI clients are installed on the user's 
 
 ### Requirement: Windows Probe Paths Are Hardcoded, Never OS-Convention-Derived
 
-The scanner MUST probe exactly three fixed, hardcoded paths relative to a passed-in `home: &Path`: the Claude Code npm install (`AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/`), the Claude Code desktop install (`AppData/Roaming/Claude/claude-code/<version>/`), and the OpenCode npm install (`AppData/Roaming/npm/node_modules/opencode-ai/`). No probed path MAY be produced by a `dirs`/`directories` crate or by reading an environment variable; every path MUST be composed from `home` plus a hardcoded relative segment, mirroring `roots.rs`'s existing convention.
+The scanner MUST probe three slots under `home: &Path`: Claude Code npm
+(`AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/`), OpenCode npm
+(`AppData/Roaming/npm/node_modules/opencode-ai/`), and the Claude Code
+runtime bundled in Claude Desktop. The npm slots MUST be `home` plus
+hardcoded segments only, no `dirs`/`directories` crate, no environment read.
+The bundled slot is the sole exception: its candidate roots MAY come from a
+bounded, read-only, one-level-deep, `Claude_*`-prefix-filtered listing of
+`home/AppData/Local/Packages`, plus the hardcoded legacy path
+`home/AppData/Roaming/Claude/claude-code/`. No publisher hash MAY be
+hardcoded anywhere.
 
-#### Scenario: All three probe paths resolve under the passed-in home
+#### Scenario: The two npm slots resolve with no enumeration
 
-- GIVEN a scanner invocation with a fixture `home` path
-- WHEN the three slots are probed
-- THEN each probed path is `home` concatenated with its fixed relative segment, computed with no `dirs`/`directories` import and no environment variable read
+- GIVEN a fixture `home`
+- WHEN the npm slots are probed
+- THEN each path is `home` plus its fixed segments, no enumeration involved
 
-### Requirement: Claude Code npm And Desktop Are Never Merged
+### Requirement: Claude Code npm And Bundled Are Never Merged
 
-A home carrying both the Claude Code npm installation and the Claude Code desktop installation MUST produce two separate `ClientInstallation` values with `client: ClaudeCode`, each carrying its own `version` and its own `path`. The scanner MUST NOT collapse them into one entry on account of sharing the same client kind (CA-7).
+A home carrying both a Claude Code npm install and one or more bundled
+Claude Code installs MUST produce separate `ClientInstallation` values with
+`client: ClaudeCode`, never collapsed on account of shared client kind (CA-7).
 
-#### Scenario: Both Claude Code installs with different versions yield two entries
+#### Scenario: npm and bundled installs with different versions never merge
 
-- GIVEN a fixture home with a Claude Code npm install at version `1.2.0` and a Claude Code desktop install at version `1.3.0`
+- GIVEN a fixture home with a Claude Code npm install (`1.2.0`) and a
+  bundled install (`1.3.0`)
 - WHEN the scanner runs
-- THEN the result contains exactly two `ClientInstallation` values with `client: ClaudeCode`, one with `version: "1.2.0"` and one with `version: "1.3.0"`, and neither is merged into the other
+- THEN two `ClientInstallation` values are produced, versions `1.2.0` and
+  `1.3.0`, neither merged
 
 #### Scenario: A present OpenCode npm install is reported alongside Claude Code
 
@@ -50,19 +63,34 @@ For the two npm slots, the scanner MUST extract `version` from the `"version"` k
 
 ### Requirement: An Absent Slot Is Reported As An Explicit "Not Detected" Signal
 
-When a slot's probed path does not exist on disk, the scanner MUST produce zero `ClientInstallation` for that slot and MUST emit an explicit signal that names the client, the install kind, and the concrete probed path. This signal MUST be observably distinguishable from a parse-failure signal for the same slot and MUST NOT be represented as a silent omission from the result (CA-11). The carrier for this signal is a `ScanIssue`, closed in `sdd-design` (design §2) together with its severity and `reason` format; this spec asserts the naming and distinguishability guarantees above, and does not restate that carrier's concrete severity or string format.
+A slot yielding zero `ClientInstallation` MUST emit exactly one `Warning`
+`ScanIssue` with `reason` per the vocabulary table below. For the bundled
+slot this fires once even after multiple candidate roots were probed and all
+failed, with `path` set to the legacy fallback path.
 
-#### Scenario: An absent slot yields no installation and a signal naming the probed path
+**Reason vocabulary** (exact strings, used throughout):
 
-- GIVEN a fixture home where the OpenCode npm path does not exist
+| Slot | `reason` when not detected |
+|------|------|
+| Claude Code npm | `"Claude Code CLI (npm) not detected"` |
+| OpenCode npm | `"OpenCode (npm) not detected"` (unchanged) |
+| Claude Code bundled | `"Claude Code (bundled in Claude Desktop) not detected"` |
+
+#### Scenario: No Packages directory and no legacy path yields one signal
+
+- GIVEN a fixture home with neither `AppData/Local/Packages` nor the legacy
+  Claude path
 - WHEN the scanner runs
-- THEN no `ClientInstallation` with `client: OpenCode` is produced, and a signal is emitted that names the OpenCode client, its npm install kind, and the exact path that was probed
+- THEN exactly one `ScanIssue` with reason
+  `"Claude Code (bundled in Claude Desktop) not detected"` is produced
 
-#### Scenario: A not-detected signal is distinguishable from a parse-error signal
+#### Scenario: An unreadable Packages directory errors but does not block the legacy fallback
 
-- GIVEN one fixture home where a slot's path does not exist and another where the same slot's path exists but its `package.json` is malformed
-- WHEN the scanner runs over each home
-- THEN the two runs produce signals that can be told apart as "not detected" versus "parse error", never the same shape
+- GIVEN a fixture home where `Packages` exists but cannot be listed, and a
+  legacy install is present
+- WHEN the scanner runs
+- THEN one `Error` `ScanIssue` naming the `Packages` path is produced, and
+  the legacy install is still reported
 
 ### Requirement: A Malformed Or Unreadable package.json Produces An Error, Never A Phantom Installation
 
@@ -80,21 +108,43 @@ A slot whose `package.json` fails to parse MUST produce exactly one `ScanIssue` 
 - WHEN the scanner runs
 - THEN no `ClientInstallation` is produced for that slot, and one `ScanIssue` references it — never an entry with an empty `version`
 
-### Requirement: Each Desktop Version Directory Is Its Own Installation
+### Requirement: Each Bundled-Slot Version Directory Is Its Own Installation
 
-A desktop install directory present with zero versioned subdirectories MUST produce no `ClientInstallation` and one `ScanIssue`. A desktop install directory carrying one or more versioned subdirectories MUST produce one `ClientInstallation` per versioned subdirectory, each with the directory name as `version` and the subdirectory itself as `path`. These installations MUST NOT be merged into one entry and MUST NOT be reported as a `ScanIssue` anomaly on account of there being more than one — a client installed twice is reported as two `ClientInstallation` values, mirroring `ClientInstallation`'s own contract for a client installed twice (`crates/vertice-core/src/model/installation.rs:8-10`).
+Every versioned subdirectory under any resolved candidate root (an MSIX
+package's cache path, or the legacy path) MUST produce its own
+`ClientInstallation`, named by directory name. Directories MUST NOT merge
+across candidate roots even on matching version strings. A `Claude_*` package
+with no `claude-code` directory inside is not a candidate root at all: it
+contributes zero installations and no issue. A candidate root that DOES exist
+but holds zero versioned subdirectories is present-but-broken and MUST emit
+its own `Error` `ScanIssue`, preserving the existing empty-directory
+behaviour. The overall not-detected `Warning` fires only when no candidate
+root exists at all.
 
-#### Scenario: A desktop directory with no versioned subdirectory yields no installation
+#### Scenario: One MSIX package and the legacy path both present, both counted
 
-- GIVEN a fixture Claude Code desktop directory containing no versioned subdirectory
+- GIVEN a fixture home with a `Claude_<hash>` package at version `1.5.0` and
+  a legacy install at `1.4.0`
 - WHEN the scanner runs
-- THEN no `ClientInstallation` is produced for the desktop slot, and one `ScanIssue` references it
+- THEN two `ClientInstallation` values are produced (`1.4.0`, `1.5.0`),
+  neither merged
 
-#### Scenario: A desktop directory with two versioned subdirectories yields two installations, never merged
+#### Scenario: Multiple packages, and a package missing claude-code, each isolated
 
-- GIVEN a fixture Claude Code desktop directory containing two versioned subdirectories with different names
+- GIVEN a fixture home with two `Claude_*` packages holding distinct
+  versions, and a third `Claude_*` package with no `claude-code` directory
 - WHEN the scanner runs
-- THEN exactly two `ClientInstallation` values are produced, both `client: ClaudeCode`, one per subdirectory with its own `version` and `path`, no `ScanIssue` is produced for the desktop slot on account of the count, and neither installation is merged into the other
+- THEN one `ClientInstallation` per versioned subdirectory is produced, and
+  the third package contributes nothing and no issue of its own
+
+#### Scenario: An existing candidate root holding no version directory is an error, not an absence
+
+- GIVEN a fixture home with a `Claude_*` package whose `claude-code/`
+  directory exists but is empty
+- WHEN the scanner runs
+- THEN one `Error` `ScanIssue` naming that candidate root is produced
+- AND no `"Claude Code (bundled in Claude Desktop) not detected"` `Warning`
+  is produced for it
 
 ### Requirement: Each Slot Fails Independently
 
@@ -138,10 +188,30 @@ The scanner MUST emit `ClientInstallation` and `ScanIssue` values in a determini
 
 ### Requirement: Every Case Is Traceable To A Repository Fixture In A New, Non-Reused Tree
 
-Each requirement above MUST be exercised by a fixture committed under `crates/vertice-core/tests/fixtures/installations/`, a tree distinct from and never reused from any T4/T5/T6 fixture tree. At minimum, the fixture set MUST cover: both Claude Code installs present with different versions (CA-7); OpenCode npm present; a slot whose path does not exist (CA-11); a malformed `package.json`; a `package.json` missing `"version"`; a desktop directory with no versioned subdirectory; a desktop directory with more than one versioned subdirectory, yielding one installation per subdirectory; and per-slot failure isolation. No test MAY read the author's machine, set an environment variable, or invoke `claude`/`opencode`.
+Fixtures MUST live under a new `crates/vertice-core/tests/fixtures/client-installations/`
+tree. The existing `fixtures/installations/` tree encodes the superseded path
+table and MUST be deleted, not edited in place, so non-reuse (CA-17) is
+verifiable in review. Minimum coverage: zero
+packages and no legacy path; one package with a versioned directory; a
+package with no `claude-code` directory; multiple packages; MSIX and legacy
+both present; an absent or unreadable `Packages` directory; plus pre-existing
+npm-slot and malformed-`package.json` cases.
 
-#### Scenario: Fixture set covers every documented case
+#### Scenario: Fixture set covers every bundled-slot case
 
-- GIVEN this spec's full list of requirements
-- WHEN the `crates/vertice-core/tests/fixtures/installations/` directory is enumerated
-- THEN each requirement above has at least one fixture proving its behavior
+- GIVEN this spec's bundled-slot requirements
+- WHEN the fixture tree is enumerated
+- THEN each case above has at least one dedicated fixture
+
+### Requirement: Frontend Reason-String Matching Tracks The New Label Vocabulary (TypeScript)
+
+`frontend/src/lib/scanDiagnostics.ts`'s `MISSING_CLIENT_REASONS` MUST contain
+exactly the three strings in the vocabulary table above, replacing the old
+`"Claude Code (desktop) not detected"` entry.
+
+#### Scenario: A bundled-slot not-detected issue is classified as missing-client
+
+- GIVEN a `ScanIssue` with `severity: "warning"`, non-null `path`, and
+  `reason: "Claude Code (bundled in Claude Desktop) not detected"`
+- WHEN `isMissingClientIssue` is called with it
+- THEN it returns `true`
