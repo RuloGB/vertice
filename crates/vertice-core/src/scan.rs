@@ -68,7 +68,10 @@ fn append_missing_root_issues(roots: &[SearchRoot], issues: &mut Vec<ScanIssue>)
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::io::Read;
     use std::path::{Path, PathBuf};
+    use std::time::SystemTime;
 
     use super::*;
     use crate::installations::HostPlatform;
@@ -153,27 +156,211 @@ mod tests {
     #[test]
     fn reference_fixture_is_fast_and_read_only() {
         let home = fixture_home("reference-volume");
-        let before = fixture_tree_bytes(&home);
+        let before = fixture_tree_snapshot(&home);
 
         let report = scan_for(&home, HostPlatform::Windows);
 
         assert!(report.duration_ms < 2_000);
         assert!(!report.components.is_empty());
-        assert_eq!(before, fixture_tree_bytes(&home));
+        assert_eq!(before, fixture_tree_snapshot(&home));
     }
 
-    fn fixture_tree_bytes(root: &Path) -> Vec<(PathBuf, Vec<u8>)> {
-        let mut out = Vec::new();
+    #[test]
+    fn reference_fixture_snapshot_tracks_files_directories_and_metadata() {
+        let home = fixture_home("reference-volume");
+
+        let snapshot = fixture_tree_snapshot(&home);
+
+        assert!(snapshot
+            .iter()
+            .any(|entry| matches!(entry.kind, FixtureEntryKind::Directory)));
+        assert!(snapshot
+            .iter()
+            .any(|entry| matches!(entry.kind, FixtureEntryKind::File)));
+        assert!(snapshot.iter().all(|entry| entry.path.is_relative()));
+        assert_snapshot_captures_platform_permission_evidence(&home, &snapshot);
+        assert!(
+            snapshot
+                .iter()
+                .filter(|entry| entry.file_hash.is_some())
+                .count()
+                >= 2
+        );
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct FixtureEntrySnapshot {
+        path: PathBuf,
+        kind: FixtureEntryKind,
+        file_len: Option<u64>,
+        file_hash: Option<u64>,
+        permissions: PermissionEvidence,
+        modified: SystemTime,
+        symlink_target: Option<PathBuf>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum FixtureEntryKind {
+        Directory,
+        File,
+        Symlink,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum PermissionEvidence {
+        #[cfg(unix)]
+        UnixMode(u32),
+        #[cfg(windows)]
+        WindowsAttributes(u32),
+        #[cfg(not(any(unix, windows)))]
+        Readonly(bool),
+    }
+
+    #[cfg(unix)]
+    fn assert_snapshot_captures_platform_permission_evidence(
+        root: &Path,
+        snapshot: &[FixtureEntrySnapshot],
+    ) {
+        use std::os::unix::fs::PermissionsExt;
+
+        let entry = snapshot
+            .iter()
+            .find(|entry| matches!(entry.kind, FixtureEntryKind::File))
+            .expect("fixture snapshot must include at least one file");
+        let metadata = fs::symlink_metadata(root.join(&entry.path))
+            .expect("fixture metadata must be readable for permission evidence");
+        let PermissionEvidence::UnixMode(mode) = entry.permissions;
+
+        assert_eq!(mode, metadata.permissions().mode());
+        assert_ne!(
+            mode & 0o400,
+            0,
+            "fixture file must retain owner-read evidence"
+        );
+    }
+
+    #[cfg(windows)]
+    fn assert_snapshot_captures_platform_permission_evidence(
+        root: &Path,
+        snapshot: &[FixtureEntrySnapshot],
+    ) {
+        use std::os::windows::fs::MetadataExt;
+
+        let entry = snapshot
+            .iter()
+            .find(|entry| matches!(entry.kind, FixtureEntryKind::Directory))
+            .expect("fixture snapshot must include at least one directory");
+        let metadata = fs::symlink_metadata(root.join(&entry.path))
+            .expect("fixture metadata must be readable for permission evidence");
+        let PermissionEvidence::WindowsAttributes(attributes) = entry.permissions;
+
+        assert_eq!(attributes, metadata.file_attributes());
+        assert_ne!(
+            attributes & 0x10,
+            0,
+            "directory evidence must retain FILE_ATTRIBUTE_DIRECTORY"
+        );
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    fn assert_snapshot_captures_platform_permission_evidence(
+        root: &Path,
+        snapshot: &[FixtureEntrySnapshot],
+    ) {
+        let entry = snapshot
+            .iter()
+            .find(|entry| matches!(entry.kind, FixtureEntryKind::File))
+            .expect("fixture snapshot must include at least one file");
+        let metadata = fs::symlink_metadata(root.join(&entry.path))
+            .expect("fixture metadata must be readable for permission evidence");
+        let PermissionEvidence::Readonly(readonly) = entry.permissions;
+
+        assert_eq!(readonly, metadata.permissions().readonly());
+    }
+    fn fixture_tree_snapshot(root: &Path) -> Vec<FixtureEntrySnapshot> {
+        let mut entries = Vec::new();
         for entry in walkdir::WalkDir::new(root)
             .follow_links(false)
             .sort_by_file_name()
         {
             let entry = entry.expect("fixture tree must be fully readable");
-            if entry.file_type().is_file() {
-                let bytes = std::fs::read(entry.path()).expect("fixture file must be readable");
-                out.push((entry.into_path(), bytes));
+            let path = entry.path();
+            let metadata = fs::symlink_metadata(path).expect("fixture metadata must be readable");
+            let file_type = metadata.file_type();
+            let kind = if file_type.is_symlink() {
+                FixtureEntryKind::Symlink
+            } else if file_type.is_dir() {
+                FixtureEntryKind::Directory
+            } else {
+                FixtureEntryKind::File
+            };
+            let relative_path = path
+                .strip_prefix(root)
+                .expect("fixture entry must be inside the fixture root")
+                .to_path_buf();
+            let (file_len, file_hash) = if file_type.is_file() {
+                (Some(metadata.len()), Some(stable_file_hash(path)))
+            } else {
+                (None, None)
+            };
+            let symlink_target = if file_type.is_symlink() {
+                Some(fs::read_link(path).expect("fixture symlink target must be readable"))
+            } else {
+                None
+            };
+
+            entries.push(FixtureEntrySnapshot {
+                path: relative_path,
+                kind,
+                file_len,
+                file_hash,
+                permissions: permission_evidence(&metadata),
+                modified: metadata
+                    .modified()
+                    .expect("fixture modified timestamp must be available for CA-16 evidence"),
+                symlink_target,
+            });
+        }
+        entries
+    }
+
+    #[cfg(unix)]
+    fn permission_evidence(metadata: &fs::Metadata) -> PermissionEvidence {
+        use std::os::unix::fs::PermissionsExt;
+
+        PermissionEvidence::UnixMode(metadata.permissions().mode())
+    }
+
+    #[cfg(windows)]
+    fn permission_evidence(metadata: &fs::Metadata) -> PermissionEvidence {
+        use std::os::windows::fs::MetadataExt;
+
+        PermissionEvidence::WindowsAttributes(metadata.file_attributes())
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    fn permission_evidence(metadata: &fs::Metadata) -> PermissionEvidence {
+        PermissionEvidence::Readonly(metadata.permissions().readonly())
+    }
+
+    fn stable_file_hash(path: &Path) -> u64 {
+        const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+        const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+        let mut file = fs::File::open(path).expect("fixture file must be readable");
+        let mut hash = FNV_OFFSET;
+        let mut buffer = [0; 8 * 1024];
+        loop {
+            let read = file
+                .read(&mut buffer)
+                .expect("fixture file bytes must be readable");
+            if read == 0 {
+                return hash;
+            }
+            for byte in &buffer[..read] {
+                hash ^= u64::from(*byte);
+                hash = hash.wrapping_mul(FNV_PRIME);
             }
         }
-        out
     }
 }
