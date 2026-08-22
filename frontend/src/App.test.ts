@@ -7,6 +7,7 @@ import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
 import { rescan, scan } from "./lib/scan";
+import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
 vi.mock("./lib/scan", () => ({
   isScanError: (error: unknown) =>
@@ -48,6 +49,8 @@ async function flushApp(): Promise<void> {
   await Promise.resolve();
   await tick();
 }
+
+const nonBreakingSpace = String.fromCharCode(160);
 
 function visibleText(): string {
   return document.body.textContent ?? "";
@@ -389,7 +392,15 @@ describe("App shell navigation", () => {
       entry.textContent?.trim(),
     );
 
-    expect(labels).toEqual(["Home", "Agents", "Skills", "MCP", "Prompts", "Inventory"]);
+    expect(labels).toEqual([
+      "Home",
+      "Agents",
+      "Skills",
+      "MCP",
+      "Prompts",
+      "Inventory",
+      "AI Subscriptions",
+    ]);
     expect(visibleText()).toContain("Welcome to Vertice");
     expect(sidebar?.querySelector('[aria-current="page"]')?.textContent?.trim()).toBe("Home");
     expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
@@ -465,6 +476,83 @@ describe("App shell navigation", () => {
 
     expect(document.title).toBe("Vertice v0.1.0 — Inventory");
     expect(visibleText()).toContain("Formatter");
+
+    unmount(app);
+  });
+});
+
+describe("App subscriptions page", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["en-US"],
+    });
+    document.title = "";
+    document.body.innerHTML = "";
+    mockedScan.mockResolvedValue(reportFixture());
+  });
+
+  it("renders one card per active subscription with plan, amount and renewal date", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("AI Subscriptions");
+    await flushApp();
+
+    const cards = document.querySelectorAll('[data-testid="subscription-card"]');
+
+    expect(document.title).toBe("Vertice v0.1.0 — AI Subscriptions");
+    expect(cards).toHaveLength(SAMPLE_SUBSCRIPTIONS.length);
+    expect(visibleText()).toContain("Sample data");
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+
+    const claude = Array.from(cards).find((card) => card.textContent?.includes("Claude Pro"));
+    expect(claude?.textContent).toContain("Plan: Pro");
+    expect(claude?.textContent).toContain("€18.99");
+    expect(claude?.textContent).toContain("Monthly");
+    expect(claude?.textContent).toContain("/month");
+    expect(claude?.textContent).toMatch(/20[0-9]{2}/);
+
+    const copilot = Array.from(cards).find((card) => card.textContent?.includes("GitHub Copilot"));
+    expect(copilot?.textContent).toContain("Yearly");
+    expect(copilot?.textContent).toContain("/year");
+
+    unmount(app);
+  });
+
+  it("orders cards by soonest renewal and never triggers a scan", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("AI Subscriptions");
+    await flushApp();
+
+    const headings = Array.from(
+      document.querySelectorAll('[data-testid="subscription-card"] h2'),
+    ).map((heading) => heading.textContent?.trim());
+
+    expect(new Set(headings).size).toBe(SAMPLE_SUBSCRIPTIONS.length);
+    expect(mockedScan).toHaveBeenCalledTimes(1);
+    expect(mockedRescan).not.toHaveBeenCalled();
+
+    unmount(app);
+  });
+
+  it("localizes the subscription chrome and currency format", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("AI Subscriptions");
+    await flushApp();
+
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
+    expect(document.title).toBe("Vertice v0.1.0 — Suscripciones de IA");
+    expect(visibleText()).toContain("Datos de ejemplo");
+    expect(visibleText()).toContain("Gasto mensual");
+    expect(visibleText()).toContain("Mensual");
+    expect(visibleText().split(nonBreakingSpace).join(" ")).toContain("18,99 €");
 
     unmount(app);
   });

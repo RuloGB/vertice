@@ -5,7 +5,15 @@
  */
 
 /** Every destination reachable from the sidebar, in declaration order. */
-export const ROUTE_IDS = ["home", "agents", "skills", "mcp", "prompts", "inventory"] as const;
+export const ROUTE_IDS = [
+  "home",
+  "agents",
+  "skills",
+  "mcp",
+  "prompts",
+  "inventory",
+  "subscriptions",
+] as const;
 
 export type RouteId = (typeof ROUTE_IDS)[number];
 
@@ -23,14 +31,20 @@ export interface NavGroup {
 export const NAV_GROUPS: readonly NavGroup[] = [
   { id: "overview", routes: ["home"] },
   { id: "library", routes: ["agents", "skills", "mcp", "prompts"] },
-  { id: "data", routes: ["inventory"] },
+  { id: "data", routes: ["inventory", "subscriptions"] },
 ];
 
 /**
  * Routes that render content of their own. Everything else renders an explicit
- * empty state instead of pretending to have data.
+ * empty state instead of pretending to have data. Note that content is not the
+ * same as a live backend read: `inventory` reflects a real scan, while
+ * `subscriptions` is populated from a local sample until a billing source exists.
  */
-const ROUTES_WITH_CONTENT: ReadonlySet<RouteId> = new Set<RouteId>(["home", "inventory"]);
+const ROUTES_WITH_CONTENT: ReadonlySet<RouteId> = new Set<RouteId>([
+  "home",
+  "inventory",
+  "subscriptions",
+]);
 
 export function isRouteId(value: string): value is RouteId {
   return (ROUTE_IDS as readonly string[]).includes(value);

@@ -31,6 +31,23 @@ export type Catalog = {
     title: string;
     body: string;
   };
+  subscriptions: {
+    sampleBadge: string;
+    intro: string;
+    summaryActive: string;
+    summaryMonthly: string;
+    empty: string;
+    planLabel: string;
+    amountLabel: string;
+    renewalLabel: string;
+    cycleMonthly: string;
+    cycleYearly: string;
+    perMonth: string;
+    perYear: string;
+    renewsToday: string;
+    renewsTomorrow: string;
+    renewsInDays: string;
+  };
   toolbar: {
     searchPlaceholder: string;
     searchAriaLabel: string;
@@ -84,6 +101,7 @@ export const catalogs = {
       mcp: "MCP",
       prompts: "Prompts",
       inventory: "Inventory",
+      subscriptions: "AI Subscriptions",
     },
     navGroup: {
       overview: "Overview",
@@ -97,6 +115,7 @@ export const catalogs = {
       mcp: "MCP",
       prompts: "Prompts",
       inventory: "Inventory",
+      subscriptions: "AI Subscriptions",
     },
     home: {
       greeting: "Welcome to Vertice",
@@ -115,6 +134,23 @@ export const catalogs = {
       badge: "No data source yet",
       title: "Nothing to show here yet",
       body: "This section has no backend source wired up. It will fill in once its scanner lands.",
+    },
+    subscriptions: {
+      sampleBadge: "Sample data",
+      intro: "Active AI subscriptions, ordered by the next renewal.",
+      summaryActive: "Active subscriptions",
+      summaryMonthly: "Monthly spend",
+      empty: "No active subscriptions.",
+      planLabel: "Plan",
+      amountLabel: "Amount",
+      renewalLabel: "Renews on",
+      cycleMonthly: "Monthly",
+      cycleYearly: "Yearly",
+      perMonth: "/month",
+      perYear: "/year",
+      renewsToday: "Renews today",
+      renewsTomorrow: "Renews tomorrow",
+      renewsInDays: "In {days} days",
     },
     toolbar: {
       searchPlaceholder: "Search by name",
@@ -165,6 +201,7 @@ export const catalogs = {
       mcp: "MCP",
       prompts: "Prompts",
       inventory: "Inventario",
+      subscriptions: "Suscripciones de IA",
     },
     navGroup: {
       overview: "General",
@@ -178,6 +215,7 @@ export const catalogs = {
       mcp: "MCP",
       prompts: "Prompts",
       inventory: "Inventario",
+      subscriptions: "Suscripciones de IA",
     },
     home: {
       greeting: "Bienvenido a Vertice",
@@ -196,6 +234,23 @@ export const catalogs = {
       badge: "Sin fuente de datos",
       title: "Todavía no hay nada que mostrar",
       body: "Esta sección aún no tiene una fuente en el backend. Se rellenará cuando llegue su escáner.",
+    },
+    subscriptions: {
+      sampleBadge: "Datos de ejemplo",
+      intro: "Suscripciones de IA activas, ordenadas por próxima renovación.",
+      summaryActive: "Suscripciones activas",
+      summaryMonthly: "Gasto mensual",
+      empty: "No hay suscripciones activas.",
+      planLabel: "Plan",
+      amountLabel: "Importe",
+      renewalLabel: "Renovación",
+      cycleMonthly: "Mensual",
+      cycleYearly: "Anual",
+      perMonth: "/mes",
+      perYear: "/año",
+      renewsToday: "Renueva hoy",
+      renewsTomorrow: "Renueva mañana",
+      renewsInDays: "En {days} días",
     },
     toolbar: {
       searchPlaceholder: "Buscar por nombre",

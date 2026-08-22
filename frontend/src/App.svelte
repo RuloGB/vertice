@@ -8,8 +8,10 @@
   import HomePage from "./lib/pages/HomePage.svelte";
   import InventoryPage from "./lib/pages/InventoryPage.svelte";
   import PlaceholderPage from "./lib/pages/PlaceholderPage.svelte";
+  import SubscriptionsPage from "./lib/pages/SubscriptionsPage.svelte";
   import { isScanError, rescan, scan } from "./lib/scan";
   import Sidebar from "./lib/Sidebar.svelte";
+  import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
   type Status = "idle" | "loading" | "ready" | "failed";
   type ScanFailure =
@@ -25,6 +27,8 @@
   let failure = $state<ScanFailure | null>(null);
   let kind: ComponentFilter["kind"] = $state("all");
   let query = $state("");
+  // Read once at startup: renewal countdowns must not shift mid-session.
+  const today = new Date();
 
   const title = $derived(appTitle(PRODUCT_NAME, APP_VERSION, i18n.t(areaLabelKey(route))));
   const failureMessage = $derived(failure === null ? null : scanFailureMessage(failure));
@@ -100,6 +104,8 @@
           onKindChange={(value) => (kind = value)}
           onReload={() => void loadInventory("reload")}
         />
+      {:else if route === "subscriptions"}
+        <SubscriptionsPage subscriptions={SAMPLE_SUBSCRIPTIONS} {today} />
       {:else if !hasContent(route)}
         <PlaceholderPage {route} />
       {/if}

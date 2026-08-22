@@ -30,8 +30,11 @@
   {:else if route === "prompts"}
     <path d="M21 14a3 3 0 0 1-3 3H9l-5 4V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z" />
     <path d="M8.5 10h7M8.5 13h4" />
-  {:else}
+  {:else if route === "inventory"}
     <path d="m12 3 8.5 4.5L12 12 3.5 7.5z" />
     <path d="M3.5 12 12 16.5 20.5 12M3.5 16.5 12 21l8.5-4.5" />
+  {:else}
+    <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+    <path d="M2.5 10h19M6 14.5h4" />
   {/if}
 </svg>
