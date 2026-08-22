@@ -59,7 +59,7 @@ Commands MUST return `Result<ScanReport, ScanError>` directly, using the T2-gene
 
 ### Requirement: Minimal Capability Grant
 
-The shell capability declaration SHALL grant `core:default` only: no filesystem plugin, no filesystem scopes, no shell or dialog permissions. Rationale: all disk access lives in `vertice-core` Rust code against compile-time-fixed roots; the Tauri 2 ACL gates webview-to-plugin IPC, so the webview holds zero filesystem capability. This satisfies the plan's "disk access restricted by scope" by construction (least privilege), and T14 will audit this declaration against CA-16.
+The shell capability declaration SHALL grant `core:default` only: no filesystem plugin, no filesystem scopes, no shell or dialog permissions. The audited desktop surface MUST show that the webview has zero filesystem mutation capability over scanned roots, including content writes, truncation, creation, deletion, rename/link creation, permission changes, and equivalent indirect mutation paths. The audit policy MUST cover the capability file plus the command-exposed desktop surface and MUST avoid claiming that text inspection alone proves all transitive write absence. Verification evidence MUST name the audited capability and command surfaces used to support CA-16.
 
 #### Scenario: Capabilities grant nothing beyond core default
 
@@ -67,6 +67,13 @@ The shell capability declaration SHALL grant `core:default` only: no filesystem 
 - WHEN it is reviewed or audited
 - THEN it grants only `core:default`
 - AND it contains no filesystem, shell, or dialog permission or scope
+
+#### Scenario: Webview has no filesystem mutation surface over scanned roots
+
+- GIVEN the audited capability declaration and scan command surface
+- WHEN the desktop shell read-only audit runs
+- THEN no webview-exposed filesystem mutation capability exists over scanned roots
+- AND the audit records the capability and command surfaces it reviewed
 
 ### Requirement: Hardened Content Security Policy
 
