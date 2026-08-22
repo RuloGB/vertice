@@ -4,8 +4,8 @@ import type { SearchRoot } from "../bindings/SearchRoot";
 import { incidentCount, isMissingClientIssue, partitionDiagnostics } from "./scanDiagnostics";
 
 const clientReasons = [
-  "Claude Code (npm) not detected",
-  "Claude Code (desktop) not detected",
+  "Claude Code CLI (npm) not detected",
+  "Claude Code (bundled in Claude Desktop) not detected",
   "OpenCode (npm) not detected",
 ] as const;
 
@@ -33,6 +33,16 @@ describe("isMissingClientIssue", () => {
     issue({ path: null }),
   ])("rejects collision outside the closed predicate", (candidate) => {
     expect(isMissingClientIssue(candidate)).toBe(false);
+  });
+
+  it("classifies a bundled-slot not-detected issue as missing-client", () => {
+    const bundledIssue = issue({
+      severity: "warning",
+      path: "C:/Users/example/AppData/Roaming/Claude/claude-code",
+      reason: "Claude Code (bundled in Claude Desktop) not detected",
+    });
+
+    expect(isMissingClientIssue(bundledIssue)).toBe(true);
   });
 });
 
