@@ -11,7 +11,7 @@
 {#if components.length === 0}
   <div
     role="status"
-    class="rounded-lg border border-dashed border-slate-700 p-10 text-center text-sm text-slate-400"
+    class="rounded-xl border border-dashed border-line-strong p-12 text-center text-sm text-mist-400"
   >
     {i18n.t("inventory.empty")}
   </div>

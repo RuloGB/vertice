@@ -53,6 +53,16 @@ function visibleText(): string {
   return document.body.textContent ?? "";
 }
 
+function navigateTo(label: string): void {
+  const entry = Array.from(document.querySelectorAll("aside button")).find(
+    (candidate) => candidate.textContent?.trim() === label,
+  );
+  if (entry === undefined) {
+    throw new Error(`Sidebar entry was not rendered: ${label}`);
+  }
+  (entry as HTMLButtonElement).click();
+}
+
 function languageSelector(): HTMLSelectElement {
   const selector = document.querySelector<HTMLSelectElement>('select[aria-label="Language"]');
   if (selector === null) {
@@ -81,6 +91,12 @@ describe("App locale switching", () => {
     expect(mockedScan).toHaveBeenCalledTimes(1);
     expect(mockedRescan).not.toHaveBeenCalled();
     expect(document.documentElement.lang).toBe("en");
+    expect(document.title).toBe("Vertice v0.1.0 — Home");
+    expect(visibleText()).toContain("Welcome to Vertice");
+
+    navigateTo("Inventory");
+    await flushApp();
+
     expect(document.title).toBe("Vertice v0.1.0 — Inventory");
     expect(visibleText()).toContain("Language");
     expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.placeholder).toBe(
@@ -127,6 +143,8 @@ describe("App locale switching", () => {
 
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Inventario");
+    await flushApp();
 
     const alert = document.querySelector('[role="alert"]');
     expect(mockedScan).toHaveBeenCalledTimes(1);
@@ -145,6 +163,8 @@ describe("App locale switching", () => {
     mockedScan.mockResolvedValue(reportFixture([]));
 
     const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Inventory");
     await flushApp();
 
     const status = document.querySelector('[role="status"]');
@@ -195,6 +215,8 @@ describe("App successful scan diagnostics", () => {
 
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Inventory");
+    await flushApp();
 
     const diagnostics = document.querySelector('[data-testid="scan-diagnostics"]');
     expect(visibleText()).toContain("Formatter");
@@ -218,6 +240,8 @@ describe("App successful scan diagnostics", () => {
     mockedScan.mockResolvedValue(mixedReportFixture());
 
     const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Inventory");
     await flushApp();
 
     const diagnostics = document.querySelector('[data-testid="scan-diagnostics"]');
@@ -246,6 +270,8 @@ describe("App successful scan diagnostics", () => {
 
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Inventory");
+    await flushApp();
 
     expect(document.querySelector('[data-testid="scan-diagnostics"]')).toBeNull();
 
@@ -263,6 +289,8 @@ describe("App successful scan diagnostics", () => {
     mockedScan.mockResolvedValue(reportFixture([componentFixture(), nullPathFileComponent]));
 
     const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Inventory");
     await flushApp();
 
     expect(visibleText()).toContain("Embedded (non-actionable)");
@@ -291,6 +319,8 @@ describe("App successful scan diagnostics", () => {
     mockedScan.mockResolvedValue(reportFixture([embeddedComponent]));
 
     const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Inventory");
     await flushApp();
 
     const row = Array.from(document.querySelectorAll("article")).find((candidate) =>
@@ -321,6 +351,8 @@ describe("App successful scan diagnostics", () => {
 
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Inventory");
+    await flushApp();
 
     const row = Array.from(document.querySelectorAll("article")).find((candidate) =>
       candidate.textContent?.includes(embeddedAndFileComponent.name),
@@ -331,6 +363,108 @@ describe("App successful scan diagnostics", () => {
     );
     expect(row?.querySelectorAll('button, [role="button"], a[href], input[type="button"], input[type="submit"]'))
       .toHaveLength(0);
+
+    unmount(app);
+  });
+});
+
+describe("App shell navigation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["en-US"],
+    });
+    document.title = "";
+    document.body.innerHTML = "";
+    mockedScan.mockResolvedValue(reportFixture());
+  });
+
+  it("lands on the greeting page with live counts and every sidebar destination", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const sidebar = document.querySelector("aside");
+    const labels = Array.from(sidebar?.querySelectorAll("button") ?? []).map((entry) =>
+      entry.textContent?.trim(),
+    );
+
+    expect(labels).toEqual(["Home", "Agents", "Skills", "MCP", "Prompts", "Inventory"]);
+    expect(visibleText()).toContain("Welcome to Vertice");
+    expect(sidebar?.querySelector('[aria-current="page"]')?.textContent?.trim()).toBe("Home");
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+    expect(document.querySelector('input[type="search"]')).toBeNull();
+
+    unmount(app);
+  });
+
+  it("renders an explicit empty state for each section with no backend source", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    for (const section of ["Agents", "Skills", "MCP", "Prompts"]) {
+      navigateTo(section);
+      await flushApp();
+
+      const placeholder = document.querySelector('[data-testid="placeholder-page"]');
+      expect(placeholder, section).not.toBeNull();
+      expect(placeholder?.textContent, section).toContain(section);
+      expect(placeholder?.textContent, section).toContain("Nothing to show here yet");
+      expect(document.title, section).toBe(`Vertice v0.1.0 — ${section}`);
+      expect(document.querySelector('input[type="search"]'), section).toBeNull();
+      expect(visibleText(), section).not.toContain("Formatter");
+    }
+
+    expect(mockedScan).toHaveBeenCalledTimes(1);
+    expect(mockedRescan).not.toHaveBeenCalled();
+
+    unmount(app);
+  });
+
+  it("keeps the inventory filter when navigating away and back", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Inventory");
+    await flushApp();
+
+    const search = document.querySelector<HTMLInputElement>('input[type="search"]');
+    if (search === null) {
+      throw new Error("Search input was not rendered");
+    }
+    search.value = "nothing-matches";
+    search.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flushApp();
+
+    expect(visibleText()).not.toContain("Formatter");
+
+    navigateTo("Home");
+    await flushApp();
+    navigateTo("Inventory");
+    await flushApp();
+
+    expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe(
+      "nothing-matches",
+    );
+    expect(visibleText()).not.toContain("Formatter");
+
+    unmount(app);
+  });
+
+  it("opens the inventory from the greeting page call to action", async () => {
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const cta = Array.from(document.querySelectorAll("main button")).find(
+      (candidate) => candidate.textContent?.trim() === "Open inventory",
+    );
+    if (cta === undefined) {
+      throw new Error("Greeting call to action was not rendered");
+    }
+    (cta as HTMLButtonElement).click();
+    await flushApp();
+
+    expect(document.title).toBe("Vertice v0.1.0 — Inventory");
+    expect(visibleText()).toContain("Formatter");
 
     unmount(app);
   });

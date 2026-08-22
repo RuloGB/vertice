@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appTitle } from "./appTitle";
+import { appTitle, APP_VERSION, PRODUCT_NAME } from "./appTitle";
 
 describe("appTitle", () => {
   it("joins the product name and version with a v-prefixed tag", () => {
@@ -8,5 +8,11 @@ describe("appTitle", () => {
 
   it("adds a localized area label when provided", () => {
     expect(appTitle("Vertice", "0.1.0", "Inventario")).toBe("Vertice v0.1.0 — Inventario");
+  });
+});
+
+describe("product constants", () => {
+  it("exposes the product name and version used by the shell", () => {
+    expect(appTitle(PRODUCT_NAME, APP_VERSION)).toBe("Vertice v0.1.0");
   });
 });
