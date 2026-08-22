@@ -55,6 +55,59 @@ describe("catalogs", () => {
     expect(catalogs.en.location.noPath).toBe("(no path on disk)");
     expect(catalogs.es.location.noPath).toBe("(sin ruta en disco)");
   });
+
+  it("retires the keys scoped only to the removed combined inventory route", () => {
+    for (const locale of ["en", "es"] as const) {
+      const keys = flattenKeys(catalogs[locale]);
+
+      expect(keys).not.toContain("nav.inventory");
+      expect(keys).not.toContain("area.inventory");
+      expect(keys).not.toContain("toolbar.allKinds");
+      expect(keys).not.toContain("toolbar.kindAriaLabel");
+      expect(keys).not.toContain("diagnostics.unavailableRoots");
+      expect(keys.some((key) => key.startsWith("inventory."))).toBe(false);
+    }
+  });
+
+  it("adds the components namespace replacing the retired inventory keys", () => {
+    for (const locale of ["en", "es"] as const) {
+      const catalog = catalogs[locale] as unknown as Record<string, Record<string, string>>;
+
+      expect(catalog.components.loading).toBeTruthy();
+      expect(catalog.components.empty).toBeTruthy();
+      expect(catalog.components.duplicate).toBeTruthy();
+      expect(catalog.components.duplicateTitle).toBeTruthy();
+      expect(catalog.components.embedded).toBeTruthy();
+    }
+  });
+
+  it("adds scan-route, incident, and Home scan-status keys in both locales", () => {
+    for (const locale of ["en", "es"] as const) {
+      const catalog = catalogs[locale] as unknown as Record<string, Record<string, string>>;
+
+      expect(catalog.nav.scan).toBeTruthy();
+      expect(catalog.area.scan).toBeTruthy();
+      expect(catalog.scan.verdictHealthy).toBeTruthy();
+      expect(catalog.scan.verdictIssues).toBeTruthy();
+      expect(catalog.scan.rootsTitle).toBeTruthy();
+      expect(catalog.scan.rootFound).toBeTruthy();
+      expect(catalog.scan.rootNotFound).toBeTruthy();
+      expect(catalog.scan.installationsTitle).toBeTruthy();
+      expect(catalog.scan.installationsEmpty).toBeTruthy();
+      expect(catalog.scan.durationLabel).toBeTruthy();
+      expect(catalog.scan.durationValue).toBeTruthy();
+      expect(catalog.incident.label).toBeTruthy();
+      expect(catalog.incident.count).toBeTruthy();
+      expect(catalog.incident.action).toBeTruthy();
+      expect(catalog.home.scanTitle).toBeTruthy();
+      expect(catalog.home.scanHealthy).toBeTruthy();
+      expect(catalog.home.scanIssues).toBeTruthy();
+      expect(catalog.home.scanFailed).toBeTruthy();
+      expect(catalog.home.scanRetry).toBeTruthy();
+      expect(catalog.home.scanOpen).toBeTruthy();
+      expect(catalog.home.scanPending).toBeTruthy();
+    }
+  });
 });
 
 describe("formatMessage", () => {
@@ -70,10 +123,10 @@ describe("formatMessage", () => {
   });
 
   it("interpolates duplicate location counts in both catalogs", () => {
-    expect(formatMessage(catalogs.en.inventory.duplicateTitle, { count: 3 })).toBe(
+    expect(formatMessage(catalogs.en.components.duplicateTitle, { count: 3 })).toBe(
       "Found at 3 locations",
     );
-    expect(formatMessage(catalogs.es.inventory.duplicateTitle, { count: 3 })).toBe(
+    expect(formatMessage(catalogs.es.components.duplicateTitle, { count: 3 })).toBe(
       "Encontrado en 3 ubicaciones",
     );
   });

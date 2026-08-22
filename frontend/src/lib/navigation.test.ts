@@ -25,16 +25,17 @@ describe("navigation model", () => {
   });
 
   it("narrows only known route identifiers", () => {
-    expect(isRouteId("inventory")).toBe(true);
-    expect(isRouteId("Inventory")).toBe(false);
+    expect(isRouteId("scan")).toBe(true);
+    expect(isRouteId("inventory")).toBe(false);
+    expect(isRouteId("Scan")).toBe(false);
     expect(isRouteId("settings")).toBe(false);
   });
 
   it("separates sections that render content from the empty placeholders", () => {
-    for (const route of ["home", "inventory", "subscriptions"] satisfies RouteId[]) {
+    for (const route of ["home", "agents", "skills", "scan", "subscriptions"] satisfies RouteId[]) {
       expect(hasContent(route), route).toBe(true);
     }
-    for (const route of ["agents", "skills", "mcp", "prompts"] satisfies RouteId[]) {
+    for (const route of ["mcp", "prompts"] satisfies RouteId[]) {
       expect(hasContent(route), route).toBe(false);
     }
   });

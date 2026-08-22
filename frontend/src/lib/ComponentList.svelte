@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Component } from "../bindings/Component";
   import { useI18n } from "./i18n/locale.svelte";
-  import InventoryRow from "./InventoryRow.svelte";
+  import ComponentRow from "./ComponentRow.svelte";
 
   const i18n = useI18n();
 
@@ -13,13 +13,13 @@
     role="status"
     class="rounded-xl border border-dashed border-line-strong p-12 text-center text-sm text-mist-400"
   >
-    {i18n.t("inventory.empty")}
+    {i18n.t("components.empty")}
   </div>
 {:else}
   <ul class="flex flex-col gap-3">
     {#each components as component (component.id)}
       <li>
-        <InventoryRow {component} />
+        <ComponentRow {component} />
       </li>
     {/each}
   </ul>
