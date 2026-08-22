@@ -7,9 +7,7 @@
   let { diagnostics }: { diagnostics: Diagnostics } = $props();
 
   const hasDiagnostics = $derived(
-    diagnostics.unavailableRoots.length > 0 ||
-      diagnostics.missingClientIssues.length > 0 ||
-      diagnostics.remainingRecoverableIssues.length > 0,
+    diagnostics.missingClientIssues.length > 0 || diagnostics.remainingRecoverableIssues.length > 0,
   );
 </script>
 
@@ -19,17 +17,6 @@
     aria-label={i18n.t("diagnostics.title")}
     class="flex flex-col gap-3 rounded-xl border border-line bg-ink-800 p-4 text-sm text-mist-300"
   >
-    {#if diagnostics.unavailableRoots.length > 0}
-      <section>
-        <h2 class="font-medium text-mist-100">{i18n.t("diagnostics.unavailableRoots")}</h2>
-        <ul class="mt-1 list-disc pl-5 text-mist-400">
-          {#each diagnostics.unavailableRoots as root (root.id)}
-            <li>{root.path}</li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
-
     {#if diagnostics.missingClientIssues.length > 0}
       <section>
         <h2 class="font-medium text-mist-100">{i18n.t("diagnostics.missingClient")}</h2>

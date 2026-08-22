@@ -25,6 +25,13 @@ export type Catalog = {
     ctaTitle: string;
     ctaBody: string;
     ctaAction: string;
+    scanTitle: string;
+    scanHealthy: string;
+    scanIssues: string;
+    scanFailed: string;
+    scanRetry: string;
+    scanOpen: string;
+    scanPending: string;
   };
   placeholder: {
     badge: string;
@@ -51,8 +58,6 @@ export type Catalog = {
   toolbar: {
     searchPlaceholder: string;
     searchAriaLabel: string;
-    kindAriaLabel: string;
-    allKinds: string;
     reload: string;
     reloading: string;
   };
@@ -60,7 +65,7 @@ export type Catalog = {
     skill: string;
     agent: string;
   };
-  inventory: {
+  components: {
     loading: string;
     empty: string;
     duplicate: string;
@@ -69,9 +74,24 @@ export type Catalog = {
   };
   diagnostics: {
     title: string;
-    unavailableRoots: string;
     missingClient: string;
     recoverableIssues: string;
+  };
+  scan: {
+    verdictHealthy: string;
+    verdictIssues: string;
+    rootsTitle: string;
+    rootFound: string;
+    rootNotFound: string;
+    installationsTitle: string;
+    installationsEmpty: string;
+    durationLabel: string;
+    durationValue: string;
+  };
+  incident: {
+    label: string;
+    count: string;
+    action: string;
   };
   failure: {
     title: string;
@@ -100,7 +120,7 @@ export const catalogs = {
       skills: "Skills",
       mcp: "MCP",
       prompts: "Prompts",
-      inventory: "Inventory",
+      scan: "Scan",
       subscriptions: "AI Subscriptions",
     },
     navGroup: {
@@ -114,7 +134,7 @@ export const catalogs = {
       skills: "Skills",
       mcp: "MCP",
       prompts: "Prompts",
-      inventory: "Inventory",
+      scan: "Scan",
       subscriptions: "AI Subscriptions",
     },
     home: {
@@ -126,9 +146,16 @@ export const catalogs = {
       statAgents: "Agents",
       statRoots: "Scan roots",
       statsPending: "—",
-      ctaTitle: "Start with the inventory",
-      ctaBody: "The inventory is the only section backed by a live scan today.",
-      ctaAction: "Open inventory",
+      ctaTitle: "Browse your components",
+      ctaBody: "Agents and Skills are backed by the startup scan.",
+      ctaAction: "Open agents",
+      scanTitle: "Last scan",
+      scanHealthy: "Healthy — no incidents.",
+      scanIssues: "Completed with {count} incidents in {ms} ms.",
+      scanFailed: "The scan failed.",
+      scanRetry: "Retry scan",
+      scanOpen: "Open scan report",
+      scanPending: "Scanning...",
     },
     placeholder: {
       badge: "No data source yet",
@@ -155,8 +182,6 @@ export const catalogs = {
     toolbar: {
       searchPlaceholder: "Search by name",
       searchAriaLabel: "Search components by name",
-      kindAriaLabel: "Filter by kind",
-      allKinds: "All kinds",
       reload: "Reload",
       reloading: "Reloading...",
     },
@@ -164,7 +189,7 @@ export const catalogs = {
       skill: "Skill",
       agent: "Agent",
     },
-    inventory: {
+    components: {
       loading: "Scanning for installed components...",
       empty: "No components to show.",
       duplicate: "Duplicate",
@@ -173,12 +198,27 @@ export const catalogs = {
     },
     diagnostics: {
       title: "Scan diagnostics",
-      unavailableRoots: "Unavailable scan roots",
       missingClient: "Supported client unavailable",
       recoverableIssues: "Recoverable scan issues",
     },
+    scan: {
+      verdictHealthy: "Scan completed with no incidents.",
+      verdictIssues: "Scan completed with {count} incidents.",
+      rootsTitle: "Scan roots",
+      rootFound: "Found",
+      rootNotFound: "Not found",
+      installationsTitle: "Detected installations",
+      installationsEmpty: "No supported client installation was detected.",
+      durationLabel: "Duration",
+      durationValue: "{ms} ms",
+    },
+    incident: {
+      label: "Scan incidents",
+      count: "{count} scan incidents",
+      action: "Open the scan report",
+    },
     failure: {
-      title: "Inventory scan failed.",
+      title: "Scan failed.",
       noRootsConfigured: "No search roots are configured.",
       internalReason: "Internal scan failure: {reason}",
       unexpected: "The scan failed unexpectedly.",
@@ -200,7 +240,7 @@ export const catalogs = {
       skills: "Skills",
       mcp: "MCP",
       prompts: "Prompts",
-      inventory: "Inventario",
+      scan: "Escaneo",
       subscriptions: "Suscripciones de IA",
     },
     navGroup: {
@@ -214,7 +254,7 @@ export const catalogs = {
       skills: "Skills",
       mcp: "MCP",
       prompts: "Prompts",
-      inventory: "Inventario",
+      scan: "Escaneo",
       subscriptions: "Suscripciones de IA",
     },
     home: {
@@ -226,9 +266,16 @@ export const catalogs = {
       statAgents: "Agentes",
       statRoots: "Raíces de escaneo",
       statsPending: "—",
-      ctaTitle: "Empieza por el inventario",
-      ctaBody: "El inventario es la única sección respaldada por un escaneo real hoy.",
-      ctaAction: "Abrir inventario",
+      ctaTitle: "Explora tus componentes",
+      ctaBody: "Agents y Skills se apoyan en el escaneo de arranque.",
+      ctaAction: "Abrir agentes",
+      scanTitle: "Último escaneo",
+      scanHealthy: "Correcto: sin incidencias.",
+      scanIssues: "Terminó con {count} incidencias en {ms} ms.",
+      scanFailed: "El escaneo falló.",
+      scanRetry: "Reintentar escaneo",
+      scanOpen: "Abrir informe del escaneo",
+      scanPending: "Escaneando...",
     },
     placeholder: {
       badge: "Sin fuente de datos",
@@ -255,8 +302,6 @@ export const catalogs = {
     toolbar: {
       searchPlaceholder: "Buscar por nombre",
       searchAriaLabel: "Buscar componentes por nombre",
-      kindAriaLabel: "Filtrar por tipo",
-      allKinds: "Todos los tipos",
       reload: "Recargar",
       reloading: "Recargando...",
     },
@@ -264,7 +309,7 @@ export const catalogs = {
       skill: "Skill",
       agent: "Agent",
     },
-    inventory: {
+    components: {
       loading: "Escaneando componentes instalados...",
       empty: "No hay componentes para mostrar.",
       duplicate: "Duplicado",
@@ -273,12 +318,27 @@ export const catalogs = {
     },
     diagnostics: {
       title: "Diagnósticos del escaneo",
-      unavailableRoots: "Raíces de escaneo no disponibles",
       missingClient: "Cliente compatible no disponible",
       recoverableIssues: "Problemas recuperables del escaneo",
     },
+    scan: {
+      verdictHealthy: "El escaneo terminó sin incidencias.",
+      verdictIssues: "El escaneo terminó con {count} incidencias.",
+      rootsTitle: "Raíces de escaneo",
+      rootFound: "Encontrada",
+      rootNotFound: "No encontrada",
+      installationsTitle: "Instalaciones detectadas",
+      installationsEmpty: "No se detectó ninguna instalación de cliente compatible.",
+      durationLabel: "Duración",
+      durationValue: "{ms} ms",
+    },
+    incident: {
+      label: "Incidencias del escaneo",
+      count: "{count} incidencias del escaneo",
+      action: "Abrir el informe del escaneo",
+    },
     failure: {
-      title: "Falló el escaneo del inventario.",
+      title: "Falló el escaneo.",
       noRootsConfigured: "No hay raíces de búsqueda configuradas.",
       internalReason: "Fallo interno del escaneo: {reason}",
       unexpected: "El escaneo falló inesperadamente.",
