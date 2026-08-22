@@ -13,11 +13,11 @@
 -->
 <ul class="flex flex-col gap-0.5">
   {#each locations as location, index (index)}
-    <li class="font-mono text-xs text-slate-400">
+    <li class="font-mono text-xs text-mist-400">
       {#if location.path !== null}
         {location.path}
       {:else}
-        <span class="italic text-slate-500">{i18n.t("location.noPath")}</span>
+        <span class="italic text-mist-400">{i18n.t("location.noPath")}</span>
       {/if}
     </li>
   {/each}

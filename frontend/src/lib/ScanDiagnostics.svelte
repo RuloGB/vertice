@@ -17,12 +17,12 @@
   <section
     data-testid="scan-diagnostics"
     aria-label={i18n.t("diagnostics.title")}
-    class="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-300"
+    class="flex flex-col gap-3 rounded-xl border border-line bg-ink-800 p-4 text-sm text-mist-300"
   >
     {#if diagnostics.unavailableRoots.length > 0}
       <section>
-        <h2 class="font-medium text-slate-100">{i18n.t("diagnostics.unavailableRoots")}</h2>
-        <ul class="mt-1 list-disc pl-5 text-slate-400">
+        <h2 class="font-medium text-mist-100">{i18n.t("diagnostics.unavailableRoots")}</h2>
+        <ul class="mt-1 list-disc pl-5 text-mist-400">
           {#each diagnostics.unavailableRoots as root (root.id)}
             <li>{root.path}</li>
           {/each}
@@ -32,8 +32,8 @@
 
     {#if diagnostics.missingClientIssues.length > 0}
       <section>
-        <h2 class="font-medium text-slate-100">{i18n.t("diagnostics.missingClient")}</h2>
-        <ul class="mt-1 flex flex-col gap-1 text-slate-400">
+        <h2 class="font-medium text-mist-100">{i18n.t("diagnostics.missingClient")}</h2>
+        <ul class="mt-1 flex flex-col gap-1 text-mist-400">
           {#each diagnostics.missingClientIssues as issue (`${issue.reason}-${issue.path}`)}
             <li>{issue.reason} — {issue.path}</li>
           {/each}
@@ -43,8 +43,8 @@
 
     {#if diagnostics.remainingRecoverableIssues.length > 0}
       <section>
-        <h2 class="font-medium text-slate-100">{i18n.t("diagnostics.recoverableIssues")}</h2>
-        <ul class="mt-1 flex flex-col gap-1 text-slate-400">
+        <h2 class="font-medium text-mist-100">{i18n.t("diagnostics.recoverableIssues")}</h2>
+        <ul class="mt-1 flex flex-col gap-1 text-mist-400">
           {#each diagnostics.remainingRecoverableIssues as issue (`${issue.reason}-${issue.path}`)}
             <li>
               {issue.reason}{#if issue.path !== null} — {issue.path}{/if}

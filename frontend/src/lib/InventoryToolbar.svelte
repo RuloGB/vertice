@@ -29,13 +29,13 @@
     aria-label={i18n.t("toolbar.searchAriaLabel")}
     value={query}
     oninput={(event) => onQueryChange(event.currentTarget.value)}
-    class="min-w-48 flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:outline-none"
+    class="min-w-48 flex-1 rounded-lg border border-line bg-ink-850 px-3 py-1.5 text-sm text-mist-100 placeholder:text-mist-400 focus:border-accent-500 focus:outline-none"
   />
   <select
     aria-label={i18n.t("toolbar.kindAriaLabel")}
     value={kind}
     onchange={(event) => onKindChange(event.currentTarget.value as ComponentFilter["kind"])}
-    class="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 focus:border-slate-500 focus:outline-none"
+    class="rounded-lg border border-line bg-ink-850 px-3 py-1.5 text-sm text-mist-100 focus:border-accent-500 focus:outline-none"
   >
     <option value="all">{i18n.t("toolbar.allKinds")}</option>
     <option value="skill">{i18n.t("kind.skill")}</option>
@@ -45,7 +45,7 @@
     type="button"
     disabled={reloading}
     onclick={onReload}
-    class="rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+    class="rounded-lg bg-accent-500 px-4 py-1.5 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-400 disabled:cursor-not-allowed disabled:opacity-50"
   >
     {reloading ? i18n.t("toolbar.reloading") : i18n.t("toolbar.reload")}
   </button>
