@@ -7,17 +7,13 @@
   let { locations }: { locations: Location[] } = $props();
 </script>
 
-<!--
-  Renders every location verbatim. Nullable paths get a neutral placeholder:
-  no filesystem action is invented for embedded components.
--->
-<ul class="flex flex-col gap-0.5">
+<ul class="flex flex-col gap-1 border-t border-stroke pt-3">
   {#each locations as location, index (index)}
-    <li class="font-mono text-xs text-mist-400">
+    <li class="min-w-0 rounded-control bg-canvas/35 px-2.5 py-1.5 font-mono text-xs text-content-subtle break-all">
       {#if location.path !== null}
         {location.path}
       {:else}
-        <span class="italic text-mist-400">{i18n.t("location.noPath")}</span>
+        <span class="italic">{i18n.t("location.noPath")}</span>
       {/if}
     </li>
   {/each}
