@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the contract for detecting which AI clients are installed on the user's machine, on Windows: three independent probe slots (Claude Code npm, Claude Code desktop, OpenCode npm), each yielding a separately reported `ClientInstallation` with its own version, or an explicit "not detected" signal when absent. Traces to T7 of `internal-docs/plan-desarrollo-poc.md`; closes CA-7 (the two Claude Code installations are detected separately, each with its version) and CA-11 (an absent client is reported as *not detected*, never as an error and never as an unexplained empty list); bound by CA-16 (read-only) and CA-17 (fixture-based, machine-independent tests on a new, non-reused fixture tree). Core (Rust) only, Windows only — macOS/Linux path tables are T16. No `domain-model` requirement is added or modified by this capability: `sdd-design` closed the not-detected representation on the `ScanIssue` carrier and explicitly rejected a typed carrier (design §2), so `model/` and the generated TypeScript bindings are unchanged and `domain-model` is not a Modified Capability.
+Defines the contract for detecting which AI clients are installed on the user's machine, on Windows: three independent probe slots (Claude Code npm, Claude Code desktop, OpenCode npm), each yielding a separately reported `ClientInstallation` with its own version, plus a typed per-slot `ClientPresence` status record (`detected`/`notDetected`) published through `model/`. Traces to T7 of `internal-docs/plan-desarrollo-poc.md`; closes CA-7 (the two Claude Code installations are detected separately, each with its version) and CA-11 (an absent client is reported as *not detected*, never as an error and never as an unexplained empty list); bound by CA-16 (read-only) and CA-17 (fixture-based, machine-independent tests on a new, non-reused fixture tree). Core (Rust) only, Windows only — macOS/Linux path tables are T16. **`report-client-presence-as-status` (2026-08-23) reversed the original decision recorded here**: the not-detected representation was originally closed on the `ScanIssue` carrier with a typed carrier explicitly rejected (`client-installation-detection` design §2), but that design's own §2 named its own retrofit condition — once T10/T11's consumer existed, a typed carrier would be "the retrofit, and it is cheap" — and T11 completing met that condition. `domain-model` is now a Modified Capability of this line of work, with `ClientPresence`/`ClientPresenceStatus` published through `model/` and carried on `ScanReport.client_presence`; the not-detected `ScanIssue` `Warning` is removed accordingly.
 
 ## Requirements
 
@@ -61,36 +61,50 @@ For the two npm slots, the scanner MUST extract `version` from the `"version"` k
 - WHEN the scanner runs
 - THEN the resulting `ClientInstallation` has `version: "1.5.0"` and its `path` points at that versioned directory
 
-### Requirement: An Absent Slot Is Reported As An Explicit "Not Detected" Signal
+### Requirement: Every Resolved Probe Slot Always Emits A Typed Presence Record
 
-A slot yielding zero `ClientInstallation` MUST emit exactly one `Warning`
-`ScanIssue` with `reason` per the vocabulary table below. For the bundled
-slot this fires once even after multiple candidate roots were probed and all
-failed, with `path` set to the legacy fallback path.
+For each platform with a real probe table, `scan_for` MUST return `Some(Vec<ClientPresence>)` with exactly one record per probe slot, regardless of whether any `ClientInstallation` was resolved for that slot. On Windows this MUST always be exactly three records (Claude Code npm, Claude Code bundled, OpenCode npm), in deterministic order. A slot's `status` MUST be `Detected` when at least one candidate root for that slot exists on disk, and `NotDetected` when none does — `status` MUST NOT be derived from whether `installations` is non-empty. A slot resolving to more than one installation MUST list all of them inside that single record's `installations`, never merged or reduced to one (CA-7). Emitting a presence record MUST NOT itself push a `ScanIssue`.
 
-**Reason vocabulary** (exact strings, used throughout):
+`ScanReport.installations` MUST remain a derived flattening of every record's `installations`, in record order, computed by a single function; it MUST NOT be independently accumulated anywhere else.
 
-| Slot | `reason` when not detected |
-|------|------|
-| Claude Code npm | `"Claude Code CLI (npm) not detected"` |
-| OpenCode npm | `"OpenCode (npm) not detected"` (unchanged) |
-| Claude Code bundled | `"Claude Code (bundled in Claude Desktop) not detected"` |
+#### Scenario: A machine with no clients yields three notDetected records and zero issues
 
-#### Scenario: No Packages directory and no legacy path yields one signal
-
-- GIVEN a fixture home with neither `AppData/Local/Packages` nor the legacy
-  Claude path
+- GIVEN the `nothing` fixture home
 - WHEN the scanner runs
-- THEN exactly one `ScanIssue` with reason
-  `"Claude Code (bundled in Claude Desktop) not detected"` is produced
+- THEN `client_presence` is `Some` with exactly three records, all `status: NotDetected` with empty `installations`
+- AND zero `ScanIssue` values are produced
 
-#### Scenario: An unreadable Packages directory errors but does not block the legacy fallback
+#### Scenario: A bundled slot with two coexisting versions keeps both in one record
 
-- GIVEN a fixture home where `Packages` exists but cannot be listed, and a
-  legacy install is present
+- GIVEN the `packaged-and-legacy` fixture home, where the bundled slot resolves an MSIX package and the legacy path at different versions
 - WHEN the scanner runs
-- THEN one `Error` `ScanIssue` naming the `Packages` path is produced, and
-  the legacy install is still reported
+- THEN the bundled slot's `ClientPresence` record has `status: Detected` and `installations.len() == 2`, both versions present and neither merged
+
+#### Scenario: A candidate root that exists but yields nothing is Detected, not NotDetected
+
+- GIVEN the `npm-dir-no-package-json` fixture home, where an npm slot's directory exists but its `package.json` is missing
+- WHEN the scanner runs
+- THEN that slot's `ClientPresence` record has `status: Detected` and empty `installations`
+- AND the existing `Error` `ScanIssue` naming that slot's path is still produced, unchanged
+- AND that slot's record is never `status: NotDetected`, since the candidate root exists on disk
+
+#### Scenario: ScanReport.installations equals the flattened presence records
+
+- GIVEN the `packaged-and-legacy` fixture home
+- WHEN the scanner runs
+- THEN `ScanReport.installations`, element-for-element in order, equals the concatenation of every `ClientPresence` record's `installations`
+
+### Requirement: An Unsupported Platform Reports No Probe Attempt, Not Absence
+
+On `HostPlatform::Unsupported`, `scan_for` MUST set `client_presence: None` — never `Some(vec![])` and never three `NotDetected` records. `None` MUST be read as "this platform has no probe table; client detection was not attempted", distinct from a slot that was looked for and not found. The scanner MUST continue to emit exactly one `Warning` `ScanIssue` with `path: None` stating that client installation detection is not implemented on this platform, byte-identical to current behavior. `ScanReport.installations` MUST be empty in this case.
+
+#### Scenario: Unsupported platform yields None, not empty records, and the existing single warning
+
+- GIVEN `HostPlatform::Unsupported`
+- WHEN the scanner runs
+- THEN `client_presence` is `None`
+- AND `ScanReport.installations` is empty
+- AND exactly one `Warning` `ScanIssue` with `path: None` is produced, as before this change
 
 ### Requirement: A Malformed Or Unreadable package.json Produces An Error, Never A Phantom Installation
 
@@ -202,16 +216,3 @@ npm-slot and malformed-`package.json` cases.
 - GIVEN this spec's bundled-slot requirements
 - WHEN the fixture tree is enumerated
 - THEN each case above has at least one dedicated fixture
-
-### Requirement: Frontend Reason-String Matching Tracks The New Label Vocabulary (TypeScript)
-
-`frontend/src/lib/scanDiagnostics.ts`'s `MISSING_CLIENT_REASONS` MUST contain
-exactly the three strings in the vocabulary table above, replacing the old
-`"Claude Code (desktop) not detected"` entry.
-
-#### Scenario: A bundled-slot not-detected issue is classified as missing-client
-
-- GIVEN a `ScanIssue` with `severity: "warning"`, non-null `path`, and
-  `reason: "Claude Code (bundled in Claude Desktop) not detected"`
-- WHEN `isMissingClientIssue` is called with it
-- THEN it returns `true`
