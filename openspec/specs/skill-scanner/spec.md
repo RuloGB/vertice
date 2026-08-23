@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Defines the contract for discovering skill `Component` values under the three fixed user roots on disk. Traces to T4 of `internal-docs/plan-desarrollo-poc.md`; closes CA-6 (no plugin skill appears), CA-8 partial (`_shared` is an ordinary skill), CA-9 (absent/empty root produces no issue and no component), CA-14 (no project-scope component); contributes to CA-12 partial (unreadable file is reported, scan continues); bound by CA-16 (read-only). Core (Rust) only — no IPC or frontend surface in this change; regenerated bindings are a byproduct of the `domain-model` delta.
+Defines the contract for discovering skill `Component` values under the four fixed user roots on disk. Traces to T4 of `internal-docs/plan-desarrollo-poc.md`, extended by T7's `add-codex-client-support`; closes CA-6 (no plugin skill appears), CA-8 partial (`_shared` is an ordinary skill), CA-9 (absent/empty root produces no issue and no component), CA-14 (no project-scope component); contributes to CA-12 partial (unreadable file is reported, scan continues); bound by CA-16 (read-only). Core (Rust) only — no IPC or frontend surface in this change; regenerated bindings are a byproduct of the `domain-model` delta.
 
 ## Requirements
 
 ### Requirement: User Root Set Is Fixed and Hardcoded
 
-The scanner MUST resolve exactly three user roots by concatenating the resolved home directory with a hardcoded, per-client relative suffix: `.claude/skills/`, `.agents/skills/`, and `.config/opencode/skills/`. The singular `.config/opencode/skill/` MUST be treated as the same OpenCode root as its plural form, matching the glob `{skill,skills}/**/SKILL.md`. Root paths MUST NOT be derived from any OS config-directory convention (e.g. `%APPDATA%` on Windows); they are computed from the home directory alone.
+The scanner MUST resolve exactly four user roots by concatenating the resolved home directory with a hardcoded, per-client relative suffix: `.claude/skills/`, `.agents/skills/`, `.config/opencode/skills/`, and `.codex/skills/`. The singular `.config/opencode/skill/` MUST be treated as the same OpenCode root as its plural form, matching the glob `{skill,skills}/**/SKILL.md`. Root paths MUST NOT be derived from any OS config-directory convention (e.g. `%APPDATA%` on Windows); they are computed from the home directory alone. The `codex-skills` root MUST be appended after the three pre-existing roots, never inserted before or between them, so that canonical root order for those three roots — and therefore first-non-empty field precedence for any component already merged across them — is unchanged by this addition.
 
 #### Scenario: OpenCode root resolves under the home directory on every OS
 
@@ -21,6 +21,24 @@ The scanner MUST resolve exactly three user roots by concatenating the resolved 
 - GIVEN fixtures for both `.config/opencode/skill/` and `.config/opencode/skills/`
 - WHEN the scanner resolves the OpenCode root
 - THEN both are scanned as one logical root, not two
+
+#### Scenario: The Codex root resolves under the home directory on every OS
+
+- GIVEN the scanner runs on any supported platform
+- WHEN the Codex skill root is resolved
+- THEN it is `<home>/.codex/skills/`, never a platform config-dir path
+
+#### Scenario: A Codex SKILL.md with vendor-specific extra keys still parses
+
+- GIVEN a fixture Codex skill root containing a `SKILL.md` whose frontmatter declares `name`, `description`, and the Codex-specific keys `disable-model-invocation`, `user-invocable`, `license`, and `metadata.*`
+- WHEN the scanner walks that root
+- THEN a `Component` is produced for it, with the unmodelled keys silently ignored rather than causing a parse failure — the same permissive behavior the frontmatter reader already applies to the other three roots
+
+#### Scenario: The Codex root is appended last, not inserted mid-order
+
+- GIVEN the four resolved skill roots
+- WHEN their order is inspected
+- THEN `.codex/skills/` is the fourth entry, and the relative order of `.claude/skills/`, `.agents/skills/`, and `.config/opencode/skills/` is identical to their order before this root was added
 
 ### Requirement: SKILL.md Presence Is the Sole Detection Rule
 
@@ -80,23 +98,23 @@ Every `Component` produced by this scanner MUST have `scope: Scope::User`. The s
 
 #### Scenario: All discovered skills are User-scoped
 
-- GIVEN a full scan across the three roots
+- GIVEN a full scan across the four roots
 - WHEN the produced `Component` values are inspected
 - THEN every one has `scope == Scope::User`
 
-#### Scenario: A project-shaped tree outside the three roots yields nothing
+#### Scenario: A project-shaped tree outside the four roots yields nothing
 
-- GIVEN a fixture `.claude/skills/` directory located outside the three resolved roots
+- GIVEN a fixture `.claude/skills/` directory located outside the four resolved roots
 - WHEN the scanner runs
 - THEN no `Component` is produced from it
 
 ### Requirement: No Plugin-Provided Skill Appears In The Result
 
-The scan result MUST NOT contain any component sourced from a plugin-provided location. This MUST hold because the scanner only ever walks the three fixed roots — no plugin-exclusion filter is required or permitted as a substitute for root scoping.
+The scan result MUST NOT contain any component sourced from a plugin-provided location. This MUST hold because the scanner only ever walks the four fixed roots — no plugin-exclusion filter is required or permitted as a substitute for root scoping.
 
-#### Scenario: A plugin-shaped fixture outside the three roots is absent from the result
+#### Scenario: A plugin-shaped fixture outside the four roots is absent from the result
 
-- GIVEN a fixture tree resembling a plugin skill location, located outside the three resolved roots
+- GIVEN a fixture tree resembling a plugin skill location, located outside the four resolved roots
 - WHEN the scanner runs
 - THEN no `Component` in the result traces back to that fixture
 

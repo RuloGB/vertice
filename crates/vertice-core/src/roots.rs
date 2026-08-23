@@ -1,4 +1,4 @@
-//! Home directory resolution and the three fixed user skill roots.
+//! Home directory resolution and the four fixed user skill roots.
 //!
 //! `home_dir` is the ONLY ambient-environment read in the crate. Every
 //! other function — here and in [`crate::skills`] — takes `home` as a
@@ -49,16 +49,18 @@ fn resolve_home(raw: Option<PathBuf>) -> Result<PathBuf, ScanError> {
     Ok(home)
 }
 
-/// Resolve the three fixed user skill roots under `home`. Always returns
-/// exactly three entries — the array length is the CA-6/CA-14 guarantee,
+/// Resolve the four fixed user skill roots under `home`. Always returns
+/// exactly four entries — the array length is the CA-6/CA-14 guarantee,
 /// expressed in the type rather than asserted in prose. Root ids are
 /// hardcoded, never derived from `home`, so fixture assertions stay
 /// machine-independent.
 ///
 /// No OS config-directory convention is consulted anywhere: every root is
 /// `home` plus a hardcoded relative suffix, built with per-segment
-/// `PathBuf::push` (design §9).
-pub fn skill_roots(home: &Path) -> [ResolvedRoot; 3] {
+/// `PathBuf::push` (design §9). `codex-skills` is the fourth and last entry
+/// (design §6.1) — it lands at index 3 of `consolidate::ROOT_ORDER`'s eight,
+/// not last overall (design §0's correction to the proposal).
+pub fn skill_roots(home: &Path) -> [ResolvedRoot; 4] {
     [
         resolve_single(
             home,
@@ -73,6 +75,12 @@ pub fn skill_roots(home: &Path) -> [ResolvedRoot; 3] {
             [".agents", "skills"],
         ),
         resolve_opencode(home),
+        resolve_single(
+            home,
+            "codex-skills",
+            SearchRootKind::Skill,
+            [".codex", "skills"],
+        ),
     ]
 }
 
@@ -190,6 +198,20 @@ pub fn opencode_agent_root(home: &Path) -> ResolvedRoot {
     }
 }
 
+/// Resolve the Codex agent root under `home`: a single on-disk directory,
+/// walked exactly like `claude-agents`. Mirrors `opencode_agent_root`'s
+/// public single-root shape, but built from `resolve_single` because it is
+/// one plain directory with one scan path — no alias, no merge order
+/// (design §6.1). Emits a `SearchRoot` with `kind: Agent`.
+pub fn codex_agent_root(home: &Path) -> ResolvedRoot {
+    resolve_single(
+        home,
+        "codex-agents",
+        SearchRootKind::Agent,
+        [".codex", "agents"],
+    )
+}
+
 /// Probe whether `path` exists on disk. Returns `NotFound` only for
 /// `ErrorKind::NotFound`; any other outcome (the path existing, or a
 /// probe error of another kind) is `Found` — `NotFound` is a positive claim
@@ -257,14 +279,14 @@ mod tests {
         assert_eq!(first.root.id, SearchRootId("opencode-agents".to_string()));
     }
 
-    /// Root ids are hardcoded, never path-derived — the same three ids
+    /// Root ids are hardcoded, never path-derived — the same four ids
     /// appear regardless of `home`.
     #[test]
     fn root_ids_are_stable_and_never_path_derived() {
         let first = skill_roots(&PathBuf::from("/home/alice"));
         let second = skill_roots(&PathBuf::from("/home/bob"));
 
-        let ids = |roots: &[ResolvedRoot; 3]| -> Vec<SearchRootId> {
+        let ids = |roots: &[ResolvedRoot; 4]| -> Vec<SearchRootId> {
             roots.iter().map(|r| r.root.id.clone()).collect()
         };
 
@@ -275,20 +297,33 @@ mod tests {
                 SearchRootId("claude-skills".to_string()),
                 SearchRootId("agents-skills".to_string()),
                 SearchRootId("opencode-skills".to_string()),
+                SearchRootId("codex-skills".to_string()),
             ]
         );
     }
 
-    /// `skill_roots` returns exactly three roots for any `home`, whether or
+    /// `skill_roots` returns exactly four roots for any `home`, whether or
     /// not any of them exist on disk.
     #[test]
-    fn skill_roots_always_returns_exactly_three_entries() {
+    fn skill_roots_always_returns_exactly_four_entries() {
         let roots = skill_roots(&PathBuf::from("/definitely/does/not/exist"));
 
-        assert_eq!(roots.len(), 3);
+        assert_eq!(roots.len(), 4);
         assert!(roots
             .iter()
             .all(|r| r.root.status == SearchRootStatus::NotFound));
+    }
+
+    /// `codex_agent_root`'s id is hardcoded, never path-derived, exactly
+    /// like `opencode_agent_root`'s.
+    #[test]
+    fn codex_agent_root_id_is_stable_and_never_path_derived() {
+        let first = codex_agent_root(&PathBuf::from("/home/alice"));
+        let second = codex_agent_root(&PathBuf::from("/home/bob"));
+
+        assert_eq!(first.root.id, second.root.id);
+        assert_eq!(first.root.id, SearchRootId("codex-agents".to_string()));
+        assert_eq!(first.root.kind, SearchRootKind::Agent);
     }
 
     /// `agent_roots` returns exactly two entries: the walked on-disk root

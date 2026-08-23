@@ -12,16 +12,21 @@ use std::path::Path;
 use crate::model::{Component, Location};
 
 /// Canonical search-root order, pinned to `roots::skill_roots` ++
-/// `roots::agent_roots` ++ `roots::opencode_agent_root` by a test below
-/// (design §4) rather than by a call — those functions require a `home` and
-/// touch the filesystem, which this module must never do.
-const ROOT_ORDER: [&str; 6] = [
+/// `roots::agent_roots` ++ `roots::opencode_agent_root` ++
+/// `roots::codex_agent_root` by a test below (design §6.2) rather than by a
+/// call — those functions require a `home` and touch the filesystem, which
+/// this module must never do. `codex-skills` lands at index 3 (inside
+/// `skill_roots`), not last overall — see
+/// `openspec/changes/2026-08-23-add-codex-client-support/design.md` §0/§6.2.
+const ROOT_ORDER: [&str; 8] = [
     "claude-skills",
     "agents-skills",
     "opencode-skills",
+    "codex-skills",
     "claude-agents",
     "claude-embedded-agents",
     "opencode-agents",
+    "codex-agents",
 ];
 
 /// Rank of a root id in `ROOT_ORDER`; an unknown id (a future root not yet
@@ -193,6 +198,7 @@ mod tests {
             expected.push(resolved.root.id.0.clone());
         }
         expected.push(crate::roots::opencode_agent_root(&home).root.id.0.clone());
+        expected.push(crate::roots::codex_agent_root(&home).root.id.0.clone());
 
         let actual: Vec<String> = ROOT_ORDER.iter().map(|s| s.to_string()).collect();
 

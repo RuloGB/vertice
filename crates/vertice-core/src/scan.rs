@@ -26,19 +26,23 @@ fn scan_for(home: &Path, platform: HostPlatform) -> ScanReport {
     let skills = crate::skills::scan(home);
     let agents = crate::agents::scan(home);
     let opencode_agents = crate::opencode_agents::scan(home);
+    let codex_agents = crate::codex_agents::scan(home);
     let installations = crate::installations::scan_for(home, platform);
 
     let mut roots_scanned = skills.roots;
     roots_scanned.extend(agents.roots);
     roots_scanned.extend(opencode_agents.roots);
+    roots_scanned.extend(codex_agents.roots);
 
     let mut components = skills.components;
     components.extend(agents.components);
     components.extend(opencode_agents.components);
+    components.extend(codex_agents.components);
 
     let mut issues = skills.issues;
     issues.extend(agents.issues);
     issues.extend(opencode_agents.issues);
+    issues.extend(codex_agents.issues);
     issues.extend(installations.issues);
     append_missing_root_issues(&roots_scanned, &mut issues);
 
@@ -91,9 +95,9 @@ mod tests {
     fn complete_fixture_consolidates_all_adapter_output_into_one_report() {
         let report = scan_for(&fixture_home("complete"), HostPlatform::Windows);
 
-        assert_eq!(report.roots_scanned.len(), 6);
-        assert_eq!(report.installations.len(), 3);
-        assert_eq!(report.components.len(), 10);
+        assert_eq!(report.roots_scanned.len(), 8);
+        assert_eq!(report.installations.len(), 4);
+        assert_eq!(report.components.len(), 12);
         let shared = report
             .components
             .iter()
@@ -131,7 +135,7 @@ mod tests {
     fn missing_roots_and_clients_are_visible_diagnostics() {
         let report = scan_for(&fixture_home("missing-root-client"), HostPlatform::Windows);
 
-        assert_eq!(report.roots_scanned.len(), 6);
+        assert_eq!(report.roots_scanned.len(), 8);
         assert!(report
             .roots_scanned
             .iter()
@@ -142,14 +146,14 @@ mod tests {
                 .iter()
                 .filter(|issue| issue.path.is_none() && issue.severity == IssueSeverity::Warning)
                 .count(),
-            6
+            8
         );
 
         let client_presence = report
             .client_presence
             .as_ref()
             .expect("Windows always has a probe table");
-        assert_eq!(client_presence.len(), 3, "one record per defined slot");
+        assert_eq!(client_presence.len(), 4, "one record per defined slot");
         assert!(
             client_presence
                 .iter()
@@ -160,6 +164,50 @@ mod tests {
             report.installations.is_empty(),
             "no installations resolve when every slot is absent"
         );
+    }
+
+    /// scan-orchestration: a same-named skill from a Codex root and a
+    /// Claude Code root consolidates into one `Component` with two
+    /// `Location`s — no client discriminator, consolidation unmodified
+    /// (design §2, §6.2).
+    #[test]
+    fn codex_and_claude_same_named_skill_consolidates_into_one_component() {
+        let report = scan_for(
+            &fixture_home("codex-claude-same-skill"),
+            HostPlatform::Windows,
+        );
+
+        let shared: Vec<_> = report
+            .components
+            .iter()
+            .filter(|c| c.name == "shared")
+            .collect();
+        assert_eq!(shared.len(), 1, "one Component for the shared identity");
+        assert_eq!(shared[0].locations.len(), 2, "one Location per root");
+    }
+
+    /// scan-orchestration: a malformed Codex agent `.toml` file does not
+    /// abort the scan — one `Error` `ScanIssue` for it, every other
+    /// adapter's valid results still present (design §7.1).
+    #[test]
+    fn malformed_codex_agent_does_not_abort_the_scan() {
+        let report = scan_for(&fixture_home("corrupt-codex-agent"), HostPlatform::Windows);
+
+        let broken_path = fixture_home("corrupt-codex-agent")
+            .join(".codex")
+            .join("agents")
+            .join("broken.toml");
+        assert!(report.issues.iter().any(|issue| {
+            issue.severity == IssueSeverity::Error && issue.path.as_ref() == Some(&broken_path)
+        }));
+        assert!(report
+            .components
+            .iter()
+            .any(|component| component.name == "codex-good"));
+        assert!(report
+            .components
+            .iter()
+            .any(|component| component.name == "valid-agent"));
     }
 
     #[test]

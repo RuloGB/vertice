@@ -2,8 +2,8 @@
 
 /**
  * Closed set of clients the PoC scans. Deliberately minimal: only the
- * clients the PoC ships adapters for (Claude Code, OpenCode). Growing this
- * set is expected as later adapter phases land, but it stays a closed
- * enum, never `#[non_exhaustive]`.
+ * clients the PoC ships adapters for (Claude Code, OpenCode, Codex).
+ * Growing this set is expected as later adapter phases land, but it stays a
+ * closed enum, never `#[non_exhaustive]`.
  */
-export type ClientKind = "claudeCode" | "openCode";
+export type ClientKind = "claudeCode" | "openCode" | "codex";

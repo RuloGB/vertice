@@ -35,10 +35,10 @@ fn presence_for<'a>(records: &'a [ClientPresence], label_contains: &str) -> &'a 
         .unwrap_or_else(|| panic!("no presence record with label containing {label_contains:?}"))
 }
 
-/// CA-11 pin: a machine with no clients yields three `NotDetected` records
+/// CA-11 pin: a machine with no clients yields four `NotDetected` records
 /// and zero issues.
 #[test]
-fn nothing_yields_three_not_detected_records_and_zero_issues() {
+fn nothing_yields_four_not_detected_records_and_zero_issues() {
     let home = fixture_home("nothing");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
@@ -47,7 +47,7 @@ fn nothing_yields_three_not_detected_records_and_zero_issues() {
         .presence
         .as_ref()
         .expect("Windows always has a probe table");
-    assert_eq!(records.len(), 3, "one record per defined slot");
+    assert_eq!(records.len(), 4, "one record per defined slot");
     for record in records {
         assert_eq!(record.status, ClientPresenceStatus::NotDetected);
         assert!(record.installations.is_empty());
@@ -166,7 +166,7 @@ fn packaged_fixture_yields_npm_and_packaged_claude_installs_never_merged() {
     assert_eq!(scan.issues.len(), 0);
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
-    assert_eq!(records.len(), 3, "one record per defined slot");
+    assert_eq!(records.len(), 4, "one record per defined slot");
     let opencode = presence_for(records, "OpenCode");
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
@@ -393,14 +393,26 @@ fn isolation_fixture_isolates_one_malformed_slot_from_the_other_two() {
         .any(|i| i.client == ClientKind::OpenCode && i.version == "2.2.2"));
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
-    assert_eq!(records.len(), 3);
-    for record in records {
+    assert_eq!(records.len(), 4, "one record per defined slot");
+    let non_codex: Vec<&ClientPresence> = records
+        .iter()
+        .filter(|record| !record.label.starts_with("Codex"))
+        .collect();
+    assert_eq!(non_codex.len(), 3);
+    for record in non_codex {
         assert_eq!(
             record.status,
             ClientPresenceStatus::Detected,
-            "every slot has an existing candidate root, broken or not"
+            "every one of the three pre-existing slots has an existing candidate root, broken or not"
         );
     }
+
+    let codex = presence_for(records, "Codex");
+    assert_eq!(
+        codex.status,
+        ClientPresenceStatus::NotDetected,
+        "this fixture predates Codex support and has no .codex tree"
+    );
 }
 
 /// Requirement: a malformed or unreadable `package.json` produces an
@@ -615,6 +627,226 @@ fn full_scan_leaves_the_fixture_tree_unchanged() {
     let after = fixture_tree_bytes(&home);
 
     assert_eq!(before, after);
+}
+
+// -- Codex CLI standalone slot (design §3, §10.3) --
+
+/// Build a path under
+/// `crates/vertice-core/tests/fixtures/client-installations/codex-installations/<case>/`
+/// from per-segment pushes.
+fn codex_fixture_home(case: &str) -> PathBuf {
+    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.push("tests");
+    path.push("fixtures");
+    path.push("client-installations");
+    path.push("codex-installations");
+    path.push(case);
+    path
+}
+
+/// Tripwire, mirroring `skill_scanner.rs:36-52`: git cannot track an empty
+/// directory, so every release directory's presence depends on its
+/// `.gitkeep`. Asserted independent of any scanner code.
+#[test]
+fn codex_installation_fixture_release_directories_exist_on_disk() {
+    let cases: &[(&str, &[&str])] = &[
+        (
+            "single-release",
+            &[
+                ".codex",
+                "packages",
+                "standalone",
+                "releases",
+                "0.149.0-x86_64-pc-windows-msvc",
+            ],
+        ),
+        (
+            "two-releases",
+            &[
+                ".codex",
+                "packages",
+                "standalone",
+                "releases",
+                "0.148.0-x86_64-pc-windows-msvc",
+            ],
+        ),
+        (
+            "prerelease",
+            &[
+                ".codex",
+                "packages",
+                "standalone",
+                "releases",
+                "0.150.0-rc.1-x86_64-pc-windows-msvc",
+            ],
+        ),
+        (
+            "unknown-triple",
+            &[
+                ".codex",
+                "packages",
+                "standalone",
+                "releases",
+                "0.151.0-riscv64-unknown-linux-gnu",
+            ],
+        ),
+        (
+            "empty-releases",
+            &[".codex", "packages", "standalone", "releases"],
+        ),
+    ];
+
+    for (case, segments) in cases {
+        let mut path = codex_fixture_home(case);
+        for segment in *segments {
+            path.push(segment);
+        }
+        let metadata = std::fs::metadata(&path)
+            .unwrap_or_else(|err| panic!("fixture directory must exist for {case}: {err}"));
+        assert!(
+            metadata.is_dir(),
+            "fixture path for {case} must be a directory"
+        );
+    }
+}
+
+/// `codex-installations/single-release`: `Detected`, one `ClientInstallation`,
+/// version `0.149.0` from the directory name, path = the release directory.
+#[test]
+fn single_release_yields_one_detected_installation_from_the_directory_name() {
+    let home = codex_fixture_home("single-release");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::Detected);
+    assert_eq!(codex.installations.len(), 1);
+    assert_eq!(codex.installations[0].client, ClientKind::Codex);
+    assert_eq!(codex.installations[0].version, "0.149.0");
+    assert!(codex.installations[0]
+        .path
+        .ends_with("0.149.0-x86_64-pc-windows-msvc"));
+    assert!(scan.issues.is_empty());
+}
+
+/// CA-7: two release directories yield two unmerged installations.
+#[test]
+fn two_release_directories_yield_two_unmerged_installations() {
+    let home = codex_fixture_home("two-releases");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::Detected);
+    assert_eq!(
+        codex.installations.len(),
+        2,
+        "never merged, never reduced to a winner"
+    );
+
+    let mut versions: Vec<&str> = codex
+        .installations
+        .iter()
+        .map(|i| i.version.as_str())
+        .collect();
+    versions.sort();
+    assert_eq!(versions, vec!["0.148.0", "0.149.0"]);
+    assert!(scan.issues.is_empty());
+}
+
+/// `0.150.0-rc.1-x86_64-pc-windows-msvc` yields `0.150.0-rc.1`. The RED test
+/// that kills "split on the first `-`".
+#[test]
+fn prerelease_release_directory_name_yields_the_full_prerelease_version() {
+    let home = codex_fixture_home("prerelease");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::Detected);
+    assert_eq!(codex.installations.len(), 1);
+    assert_eq!(codex.installations[0].version, "0.150.0-rc.1");
+    assert!(scan.issues.is_empty());
+}
+
+/// CA-11: no `~/.codex` at all yields `NotDetected` and zero issues.
+#[test]
+fn home_without_codex_yields_not_detected_and_zero_issues() {
+    let home = codex_fixture_home("nothing");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::NotDetected);
+    assert!(codex.installations.is_empty());
+    assert!(scan.issues.is_empty());
+}
+
+/// An unrecognized target triple yields `Detected` + 0 installations for
+/// that directory + 1 `Error` carrying the directory's path (design §3.3).
+#[test]
+fn unknown_triple_yields_detected_zero_installations_and_one_error_with_its_path() {
+    let home = codex_fixture_home("unknown-triple");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::Detected);
+    assert!(codex.installations.is_empty());
+
+    let errors: Vec<_> = scan
+        .issues
+        .iter()
+        .filter(|i| i.severity == IssueSeverity::Error)
+        .collect();
+    assert_eq!(errors.len(), 1);
+    assert!(errors[0]
+        .path
+        .as_ref()
+        .expect("unparseable release directory issue must carry a path")
+        .ends_with("0.151.0-riscv64-unknown-linux-gnu"));
+}
+
+/// A `releases/` directory that exists but is empty yields `Detected` + 0
+/// installations + 1 `Error` (design §3.3, mirrors `packaged-empty`).
+#[test]
+fn empty_releases_yields_detected_zero_installations_and_one_error() {
+    let home = codex_fixture_home("empty-releases");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.status, ClientPresenceStatus::Detected);
+    assert!(codex.installations.is_empty());
+
+    let errors: Vec<_> = scan
+        .issues
+        .iter()
+        .filter(|i| i.severity == IssueSeverity::Error)
+        .collect();
+    assert_eq!(errors.len(), 1);
+    assert!(errors[0].reason.contains("expected at least one"));
+}
+
+/// `~/.codex/version.json`'s `latest_version` is never read as the version:
+/// the reported version equals the release directory name.
+#[test]
+fn stale_version_json_never_wins_over_the_release_directory_name() {
+    let home = codex_fixture_home("stale-version-json");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let codex = presence_for(records, "Codex");
+    assert_eq!(codex.installations.len(), 1);
+    assert_eq!(codex.installations[0].version, "0.149.0");
+    assert_ne!(codex.installations[0].version, "9.9.9");
 }
 
 fn fixture_tree_bytes(root: &std::path::Path) -> Vec<(PathBuf, Vec<u8>)> {

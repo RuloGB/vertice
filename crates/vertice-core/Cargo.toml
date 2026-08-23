@@ -10,6 +10,7 @@ jsonc-parser = { version = "0.33", default-features = false }
 serde = { workspace = true }
 serde_norway = "0.9"
 thiserror = { workspace = true }
+toml_seam = { package = "toml", version = "1", default-features = false, features = ["parse", "serde"] }
 ts-rs = { workspace = true }
 unicode-normalization = { workspace = true }
 walkdir = "2"
