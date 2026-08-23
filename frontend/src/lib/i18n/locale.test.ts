@@ -65,6 +65,9 @@ describe("catalogs", () => {
       expect(keys).not.toContain("toolbar.allKinds");
       expect(keys).not.toContain("toolbar.kindAriaLabel");
       expect(keys).not.toContain("diagnostics.unavailableRoots");
+      expect(keys).not.toContain("diagnostics.missingClient");
+      expect(keys).not.toContain("scan.installationsTitle");
+      expect(keys).not.toContain("scan.installationsEmpty");
       expect(keys.some((key) => key.startsWith("inventory."))).toBe(false);
     }
   });
@@ -92,8 +95,11 @@ describe("catalogs", () => {
       expect(catalog.scan.rootsTitle).toBeTruthy();
       expect(catalog.scan.rootFound).toBeTruthy();
       expect(catalog.scan.rootNotFound).toBeTruthy();
-      expect(catalog.scan.installationsTitle).toBeTruthy();
-      expect(catalog.scan.installationsEmpty).toBeTruthy();
+      expect(catalog.scan.clientsTitle).toBeTruthy();
+      expect(catalog.scan.clientDetected).toBeTruthy();
+      expect(catalog.scan.clientNotDetected).toBeTruthy();
+      expect(catalog.scan.clientVersionUnavailable).toBeTruthy();
+      expect(catalog.scan.clientsUnsupportedPlatform).toBeTruthy();
       expect(catalog.scan.durationLabel).toBeTruthy();
       expect(catalog.scan.durationValue).toBeTruthy();
       expect(catalog.incident.label).toBeTruthy();

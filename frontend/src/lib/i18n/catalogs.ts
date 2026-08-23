@@ -74,7 +74,6 @@ export type Catalog = {
   };
   diagnostics: {
     title: string;
-    missingClient: string;
     recoverableIssues: string;
   };
   scan: {
@@ -83,8 +82,11 @@ export type Catalog = {
     rootsTitle: string;
     rootFound: string;
     rootNotFound: string;
-    installationsTitle: string;
-    installationsEmpty: string;
+    clientsTitle: string;
+    clientDetected: string;
+    clientNotDetected: string;
+    clientVersionUnavailable: string;
+    clientsUnsupportedPlatform: string;
     durationLabel: string;
     durationValue: string;
   };
@@ -198,7 +200,6 @@ export const catalogs = {
     },
     diagnostics: {
       title: "Scan diagnostics",
-      missingClient: "Supported client unavailable",
       recoverableIssues: "Recoverable scan issues",
     },
     scan: {
@@ -207,8 +208,11 @@ export const catalogs = {
       rootsTitle: "Scan roots",
       rootFound: "Found",
       rootNotFound: "Not found",
-      installationsTitle: "Detected installations",
-      installationsEmpty: "No supported client installation was detected.",
+      clientsTitle: "Supported clients",
+      clientDetected: "Detected",
+      clientNotDetected: "Not detected",
+      clientVersionUnavailable: "Version unavailable",
+      clientsUnsupportedPlatform: "Client installation detection is not supported on this platform.",
       durationLabel: "Duration",
       durationValue: "{ms} ms",
     },
@@ -318,7 +322,6 @@ export const catalogs = {
     },
     diagnostics: {
       title: "Diagnósticos del escaneo",
-      missingClient: "Cliente compatible no disponible",
       recoverableIssues: "Problemas recuperables del escaneo",
     },
     scan: {
@@ -327,8 +330,11 @@ export const catalogs = {
       rootsTitle: "Raíces de escaneo",
       rootFound: "Encontrada",
       rootNotFound: "No encontrada",
-      installationsTitle: "Instalaciones detectadas",
-      installationsEmpty: "No se detectó ninguna instalación de cliente compatible.",
+      clientsTitle: "Clientes compatibles",
+      clientDetected: "Detectado",
+      clientNotDetected: "No detectado",
+      clientVersionUnavailable: "Versión no disponible",
+      clientsUnsupportedPlatform: "La detección de instalaciones de clientes no es compatible con esta plataforma.",
       durationLabel: "Duración",
       durationValue: "{ms} ms",
     },

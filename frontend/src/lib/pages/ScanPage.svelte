@@ -13,13 +13,17 @@
     failureMessage,
     diagnostics,
     incidents,
+    onReload,
   }: {
     status: "idle" | "loading" | "ready" | "failed";
     report: ScanReport | null;
     failureMessage: string | null;
     diagnostics: Diagnostics;
     incidents: number;
+    onReload: () => void;
   } = $props();
+
+  const reloading = $derived(status === "loading");
 </script>
 
 <section class="flex flex-col gap-6">
@@ -29,14 +33,24 @@
         {i18n.t(areaLabelKey("scan"))}
       </h1>
     </div>
-    {#if report !== null}
-      <span
-        data-testid="scan-duration"
-        class="rounded-full border border-stroke bg-surface px-3 py-1.5 text-xs font-semibold text-content-muted tabular-nums"
+    <div class="flex items-center gap-3">
+      {#if report !== null}
+        <span
+          data-testid="scan-duration"
+          class="rounded-full border border-stroke bg-surface px-3 py-1.5 text-xs font-semibold text-content-muted tabular-nums"
+        >
+          {i18n.t("scan.durationLabel")}: {i18n.t("scan.durationValue", { ms: report.durationMs })}
+        </span>
+      {/if}
+      <button
+        type="button"
+        disabled={reloading}
+        onclick={onReload}
+        class="shadow-action rounded-control bg-action px-4 py-2.5 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {i18n.t("scan.durationLabel")}: {i18n.t("scan.durationValue", { ms: report.durationMs })}
-      </span>
-    {/if}
+        {reloading ? i18n.t("toolbar.reloading") : i18n.t("toolbar.reload")}
+      </button>
+    </div>
   </header>
 
   {#if status === "idle" || status === "loading"}
@@ -75,12 +89,7 @@
               <span class="min-w-0 truncate text-content-muted" title={root.path}>
                 {root.path}
               </span>
-              <span
-                class={[
-                  "shrink-0 text-xs font-bold",
-                  root.status === "notFound" ? "text-danger" : "text-success",
-                ]}
-              >
+              <span class="shrink-0 text-xs font-bold text-content-muted">
                 {root.status === "notFound"
                   ? i18n.t("scan.rootNotFound")
                   : i18n.t("scan.rootFound")}
@@ -91,14 +100,43 @@
       </section>
 
       <section class="surface-card p-5">
-        <h2 class="panel-heading">{i18n.t("scan.installationsTitle")}</h2>
-        {#if report.installations.length === 0}
-          <p class="mt-4 text-sm text-content-subtle">{i18n.t("scan.installationsEmpty")}</p>
+        <h2 class="panel-heading">{i18n.t("scan.clientsTitle")}</h2>
+        {#if report.clientPresence === null}
+          <p class="mt-4 text-sm text-content-subtle">
+            {i18n.t("scan.clientsUnsupportedPlatform")}
+          </p>
         {:else}
           <ul class="mt-4 flex flex-col gap-2 text-sm text-content-muted">
-            {#each report.installations as installation (installation.path)}
-              <li class="rounded-control bg-canvas/35 px-3 py-2.5 break-all">
-                {installation.client} {installation.version} — {installation.path}
+            {#each report.clientPresence as record (record.label)}
+              <li
+                class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-control bg-canvas/35 px-3 py-2.5"
+              >
+                <span class="min-w-0 truncate text-content">{record.label}</span>
+                <span class="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
+                  <span
+                    class={[
+                      "font-bold",
+                      record.status === "detected" ? "text-success" : "text-content-muted",
+                    ]}
+                  >
+                    {record.status === "detected"
+                      ? i18n.t("scan.clientDetected")
+                      : i18n.t("scan.clientNotDetected")}
+                  </span>
+                  {#if record.status === "detected"}
+                    {#if record.installations.length > 0}
+                      {#each record.installations as installation (installation.path)}
+                        <span class="font-semibold text-content-muted" title={installation.path}>
+                          {installation.version}
+                        </span>
+                      {/each}
+                    {:else}
+                      <span class="text-content-subtle">
+                        {i18n.t("scan.clientVersionUnavailable")}
+                      </span>
+                    {/if}
+                  {/if}
+                </span>
               </li>
             {/each}
           </ul>
