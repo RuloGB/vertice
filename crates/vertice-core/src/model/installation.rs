@@ -18,13 +18,14 @@ pub struct ClientInstallation {
 }
 
 /// Closed set of clients the PoC scans. Deliberately minimal: only the
-/// clients the PoC ships adapters for (Claude Code, OpenCode). Growing this
-/// set is expected as later adapter phases land, but it stays a closed
-/// enum, never `#[non_exhaustive]`.
+/// clients the PoC ships adapters for (Claude Code, OpenCode, Codex).
+/// Growing this set is expected as later adapter phases land, but it stays a
+/// closed enum, never `#[non_exhaustive]`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../frontend/src/bindings/")]
 pub enum ClientKind {
     ClaudeCode,
     OpenCode,
+    Codex,
 }

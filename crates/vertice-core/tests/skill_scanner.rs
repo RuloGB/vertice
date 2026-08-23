@@ -146,7 +146,7 @@ fn absent_roots_yield_zero_components_zero_issues_all_not_found() {
 
     assert!(scan.components.is_empty());
     assert!(scan.issues.is_empty());
-    assert_eq!(scan.roots.len(), 3);
+    assert_eq!(scan.roots.len(), 4);
     assert!(scan
         .roots
         .iter()
@@ -272,4 +272,61 @@ fn reference_fixture_tree_yields_69_entries() {
     ids.sort_unstable();
     ids.dedup();
     assert_eq!(ids.len(), 25);
+}
+
+/// Design §10.1, tripwire 3: `reference/.codex` MUST NOT exist on disk. The
+/// 69/25 pins are computed from the fixture tree's contents (design §0, V7),
+/// so a `.codex/` directory silently added there would move them without a
+/// named failure. This assertion is the named failure.
+#[test]
+fn reference_fixture_has_no_codex_directory() {
+    let mut path = fixture_home("reference");
+    path.push(".codex");
+
+    assert!(
+        !path.exists(),
+        "tests/fixtures/roots/reference/.codex must never exist — it would silently move the \
+         69/25/22/3 reference pins (design §10.1)"
+    );
+}
+
+/// Design §6.1: `.codex/skills/` is the fourth resolved root, and the
+/// relative order of the three existing roots is unchanged.
+#[test]
+fn codex_skills_is_the_fourth_resolved_root_after_the_existing_three() {
+    let home = fixture_home("codex-skills");
+
+    let resolved = roots::skill_roots(&home);
+
+    let ids: Vec<&str> = resolved.iter().map(|r| r.root.id.0.as_str()).collect();
+    assert_eq!(
+        ids,
+        vec![
+            "claude-skills",
+            "agents-skills",
+            "opencode-skills",
+            "codex-skills",
+        ]
+    );
+}
+
+/// A Codex `SKILL.md` carrying `disable-model-invocation`, `user-invocable`,
+/// `license`, and a nested `metadata` table parses with the unmodelled keys
+/// silently ignored (design §8).
+#[test]
+fn codex_skill_md_with_extra_keys_parses_with_unmodelled_keys_ignored() {
+    let home = fixture_home("codex-skills");
+
+    let scan = skills::scan(&home);
+
+    let codex_demo = scan
+        .components
+        .iter()
+        .find(|c| c.name == "codex-demo")
+        .expect("the Codex skill with extra keys must still parse");
+    assert_eq!(
+        codex_demo.description.as_deref(),
+        Some("A Codex skill with extra vendor keys.")
+    );
+    assert!(scan.issues.is_empty());
 }

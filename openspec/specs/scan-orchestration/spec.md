@@ -8,7 +8,7 @@ Define T9's public core scan workflow, which produces one complete in-memory `Sc
 
 ### Requirement: Complete Consolidated Scan Report
 
-The core SHALL expose one public scan operation that invokes the existing skills, Claude-agent, OpenCode-agent, and client-installation adapters for the registered user roots. It MUST return an in-memory `ScanReport` containing the consolidated components, detected installations, every scanned root, accumulated issues, and a measured duration. It MUST apply the existing duplicate-consolidation behavior without changing adapter parsing, registered roots, installation probes, or consolidation semantics.
+The core SHALL expose one public scan operation that invokes the existing skills, Claude-agent, OpenCode-agent, Codex-agent, and client-installation adapters for the registered user roots. It MUST return an in-memory `ScanReport` containing the consolidated components, detected installations, every scanned root, accumulated issues, and a measured duration. It MUST apply the existing duplicate-consolidation behavior without changing adapter parsing, registered roots, installation probes, or consolidation semantics.
 
 #### Scenario: Complete fixture scan
 
@@ -22,6 +22,12 @@ The core SHALL expose one public scan operation that invokes the existing skills
 - GIVEN adapters produce components with the same existing consolidation identity
 - WHEN the public core scan operation runs
 - THEN the report represents those components according to existing duplicate-consolidation behavior
+
+#### Scenario: A same-named skill from a Codex root and a Claude Code root consolidates into one component
+
+- GIVEN a fixture home with a skill of the same name present under both `.codex/skills/` and `.claude/skills/`
+- WHEN the public core scan operation runs
+- THEN the report contains exactly one `Component` for that identity, carrying two `Location` entries, one per root — no client discriminator is introduced, and consolidation behavior is unmodified
 
 ### Requirement: Visible and Isolated Diagnostics
 
@@ -45,6 +51,12 @@ The scan operation MUST accumulate diagnostics for non-parseable components with
 - GIVEN one adapter fails while other adapters have valid fixture input
 - WHEN the public core scan operation runs
 - THEN it returns a report containing the available results and accumulated diagnostics from the remaining adapters
+
+#### Scenario: A malformed Codex agent file does not abort the scan
+
+- GIVEN a fixture home where one Codex agent `.toml` file is malformed while every other adapter's fixture input is well-formed
+- WHEN the public core scan operation runs
+- THEN the report includes an `Error` `ScanIssue` for the malformed Codex agent file, and every other adapter's valid results are still present in the report
 
 ### Requirement: Measured Reference-Volume Performance
 

@@ -244,6 +244,27 @@ fn scope_is_exhaustively_matchable_without_a_wildcard_arm() {
     assert_eq!(label(Scope::Local), "local");
 }
 
+/// Spec: `ClientKind` Is A Closed Enumeration Admitting Three Named Clients.
+///
+/// The wildcard-free `match` below is the actual assertion: a fourth
+/// `ClientKind` variant would break compilation here instead of silently
+/// falling into a catch-all arm (domain-model spec, "ClientKind is
+/// exhaustively matchable").
+#[test]
+fn client_kind_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(kind: ClientKind) -> &'static str {
+        match kind {
+            ClientKind::ClaudeCode => "claudeCode",
+            ClientKind::OpenCode => "openCode",
+            ClientKind::Codex => "codex",
+        }
+    }
+
+    assert_eq!(label(ClientKind::ClaudeCode), "claudeCode");
+    assert_eq!(label(ClientKind::OpenCode), "openCode");
+    assert_eq!(label(ClientKind::Codex), "codex");
+}
+
 /// Spec: `ClientPresenceStatus` Is a Closed, Exhaustively Matchable Enum.
 ///
 /// Same construction as `Scope` above, and for the same reason: the status

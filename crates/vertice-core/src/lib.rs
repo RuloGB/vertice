@@ -5,6 +5,7 @@
 //! a future CLI binary can reuse the same logic as the desktop app.
 
 pub mod agents;
+pub mod codex_agents;
 pub mod consolidate;
 pub mod frontmatter;
 pub mod installations;
@@ -14,6 +15,7 @@ pub mod opencode_agents;
 pub mod roots;
 pub mod scan;
 pub mod skills;
+pub mod toml;
 pub mod yaml;
 
 #[cfg(test)]

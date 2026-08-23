@@ -1,0 +1,10 @@
+name = "planner"
+description = "Plans work."
+developer_instructions = """
+You are a planning agent.
+
+Follow these steps:
+
+1. Read the request.
+2. Draft a plan.
+"""

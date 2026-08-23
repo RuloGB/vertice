@@ -1,0 +1,7 @@
+name = "extra"
+description = "Has unmodelled keys."
+custom_field = "ignored"
+
+[metadata]
+nested = true
+tags = ["a", "b"]

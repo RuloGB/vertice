@@ -1,0 +1,22 @@
+change: add-codex-client-support
+artifact_store: openspec
+execution_mode: automatic
+delivery_strategy: chained
+strict_tdd: true
+traces:
+  phase: T7
+  criteria: [CA-11, CA-7, CA-12, CA-8]
+  bounded_by: [CA-16, CA-17]
+  must_not_regress: [CA-2, CA-3, CA-4, CA-6, CA-14]
+capabilities:
+  new: [codex-agent-scanner]
+  modified: [skill-scanner, client-installation-detector, domain-model, workspace-architecture, scan-orchestration]
+phases:
+  exploration: done
+  proposal: done
+  spec: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: done

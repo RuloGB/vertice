@@ -1,9 +1,9 @@
-//! Client installation detection: three independent probe slots (Claude
-//! Code npm, Claude Code bundled in Claude Desktop, OpenCode npm), each
-//! resolved independently into a typed [`crate::model::ClientPresence`]
-//! record carrying zero, one, or (for the bundled slot) many
-//! [`crate::model::ClientInstallation`] values, plus a "broken" [`ScanIssue`]
-//! where applicable.
+//! Client installation detection: four independent probe slots (Claude
+//! Code npm, Claude Code bundled in Claude Desktop, OpenCode npm, Codex CLI
+//! standalone), each resolved independently into a typed
+//! [`crate::model::ClientPresence`] record carrying zero, one, or (for the
+//! bundled and Codex standalone slots) many [`crate::model::ClientInstallation`]
+//! values, plus a "broken" [`ScanIssue`] where applicable.
 //!
 //! The bundled slot is a *resolver*, not a fixed path: Claude Desktop ships
 //! as an MSIX package, so its payload lives under a per-install,
@@ -135,6 +135,7 @@ enum InstallSlot {
     ClaudeCodeNpm,
     ClaudeCodeBundled,
     OpenCodeNpm,
+    CodexStandalone,
 }
 
 impl InstallSlot {
@@ -142,6 +143,7 @@ impl InstallSlot {
         match self {
             InstallSlot::ClaudeCodeNpm | InstallSlot::ClaudeCodeBundled => ClientKind::ClaudeCode,
             InstallSlot::OpenCodeNpm => ClientKind::OpenCode,
+            InstallSlot::CodexStandalone => ClientKind::Codex,
         }
     }
 
@@ -152,6 +154,7 @@ impl InstallSlot {
             InstallSlot::ClaudeCodeNpm => "Claude Code CLI (npm)",
             InstallSlot::ClaudeCodeBundled => "Claude Code (bundled in Claude Desktop)",
             InstallSlot::OpenCodeNpm => "OpenCode (npm)",
+            InstallSlot::CodexStandalone => "Codex CLI (standalone)",
         }
     }
 
@@ -159,6 +162,7 @@ impl InstallSlot {
         match self {
             InstallSlot::ClaudeCodeNpm | InstallSlot::OpenCodeNpm => VersionSource::PackageJson,
             InstallSlot::ClaudeCodeBundled => VersionSource::DirectoryName,
+            InstallSlot::CodexStandalone => VersionSource::ReleaseDirectoryName,
         }
     }
 }
@@ -176,6 +180,29 @@ struct InstallProbe {
 enum VersionSource {
     PackageJson,
     DirectoryName,
+    ReleaseDirectoryName,
+}
+
+/// Target triples Codex publishes standalone releases for. MANUAL
+/// MAINTENANCE, exactly like `agents::EMBEDDED_CLAUDE_AGENTS`: a triple
+/// OpenAI adds is invisible to Vertice until this table is extended.
+/// Windows-only for T7; T16 adds the macOS/Linux triples here and nowhere
+/// else.
+const CODEX_TARGET_TRIPLES: [&str; 2] = ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"];
+
+/// Strip the longest suffix that is `-` followed by an exact member of
+/// [`CODEX_TARGET_TRIPLES`]. What remains, if non-empty, is the version.
+/// Pure, no I/O — unit-testable without a fixture (design §3.2).
+fn split_release_dir_name(name: &str) -> Option<&str> {
+    for triple in CODEX_TARGET_TRIPLES {
+        let suffix = format!("-{triple}");
+        if let Some(version) = name.strip_suffix(suffix.as_str()) {
+            if !version.is_empty() {
+                return Some(version);
+            }
+        }
+    }
+    None
 }
 
 /// Build the Windows probe list under `home`: the two npm slots (always
@@ -222,6 +249,15 @@ fn windows_install_probes(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<Insta
     probes.push(InstallProbe {
         slot: InstallSlot::OpenCodeNpm,
         path: opencode_npm,
+    });
+
+    let mut codex_releases = home.to_path_buf();
+    for segment in [".codex", "packages", "standalone", "releases"] {
+        codex_releases.push(segment);
+    }
+    probes.push(InstallProbe {
+        slot: InstallSlot::CodexStandalone,
+        path: codex_releases,
     });
 
     probes
@@ -352,6 +388,7 @@ fn resolve_slot(
     match slot.version_source() {
         VersionSource::PackageJson => resolve_npm_slot(slot, &candidates[0], issues),
         VersionSource::DirectoryName => resolve_bundled_slot(slot, candidates, issues),
+        VersionSource::ReleaseDirectoryName => resolve_codex_slot(slot, &candidates[0], issues),
     }
 }
 
@@ -532,6 +569,144 @@ fn resolve_bundled_slot(
     }
 }
 
+/// Resolve the Codex standalone slot from its single candidate root
+/// (`<home>/.codex/packages/standalone/releases`), enumerated one level
+/// deep, never following a symlink. A structural sibling of
+/// `resolve_bundled_slot`, not a parameterization of it (design §3.1):
+/// unlike the bundled slot, this slot has exactly one candidate root and a
+/// distinct failure class (an unparseable release directory name).
+fn resolve_codex_slot(
+    slot: InstallSlot,
+    releases_dir: &Path,
+    issues: &mut Vec<ScanIssue>,
+) -> ClientPresence {
+    debug_assert_eq!(slot.version_source(), VersionSource::ReleaseDirectoryName);
+
+    let probed_paths = vec![releases_dir.to_path_buf()];
+
+    if !exists(releases_dir) {
+        return ClientPresence {
+            label: slot.label().to_string(),
+            probed_paths,
+            status: ClientPresenceStatus::NotDetected,
+            installations: Vec::new(),
+        };
+    }
+
+    let mut installations = Vec::new();
+
+    let entries = match std::fs::read_dir(releases_dir) {
+        Ok(entries) => entries,
+        Err(err) => {
+            issues.push(ScanIssue {
+                severity: IssueSeverity::Error,
+                path: Some(releases_dir.to_path_buf()),
+                reason: format!("could not read the {} directory: {err}", slot.label()),
+            });
+            return ClientPresence {
+                label: slot.label().to_string(),
+                probed_paths,
+                status: ClientPresenceStatus::Detected,
+                installations,
+            };
+        }
+    };
+
+    // Collected as (file-name-bytes, path) so the sort below is byte-wise,
+    // never locale collation, regardless of the platform's own `read_dir`
+    // order.
+    let mut children: Vec<(OsString, PathBuf)> = Vec::new();
+    for entry in entries {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(err) => {
+                issues.push(ScanIssue {
+                    severity: IssueSeverity::Error,
+                    path: Some(releases_dir.to_path_buf()),
+                    reason: format!("could not read the {} directory: {err}", slot.label()),
+                });
+                continue;
+            }
+        };
+
+        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+
+        children.push((entry.file_name(), entry.path()));
+    }
+    children.sort_by(|a, b| a.0.as_encoded_bytes().cmp(b.0.as_encoded_bytes()));
+
+    if children.is_empty() {
+        issues.push(ScanIssue {
+            severity: IssueSeverity::Error,
+            path: Some(releases_dir.to_path_buf()),
+            reason: format!(
+                "expected at least one {} release directory, found none",
+                slot.label()
+            ),
+        });
+        return ClientPresence {
+            label: slot.label().to_string(),
+            probed_paths,
+            status: ClientPresenceStatus::Detected,
+            installations,
+        };
+    }
+
+    for (file_name, path) in children {
+        match codex_installation_from_release_dir(slot, &file_name, path) {
+            Ok(installation) => installations.push(installation),
+            Err(issue) => issues.push(issue),
+        }
+    }
+
+    ClientPresence {
+        label: slot.label().to_string(),
+        probed_paths,
+        status: ClientPresenceStatus::Detected,
+        installations,
+    }
+}
+
+/// Convert one Codex release directory into a `ClientInstallation`, or a
+/// `ScanIssue` if its name is not valid UTF-8, matches no known target
+/// triple, or strips to an empty version (design §3.3). Factored out so the
+/// non-UTF-8 branch is unit-testable with a synthetic `OsString`.
+fn codex_installation_from_release_dir(
+    slot: InstallSlot,
+    file_name: &OsString,
+    path: PathBuf,
+) -> Result<ClientInstallation, ScanIssue> {
+    let Some(name) = file_name.to_str() else {
+        return Err(ScanIssue {
+            severity: IssueSeverity::Error,
+            path: None,
+            reason: format!(
+                "a {} release directory's name is not valid UTF-8: {}",
+                slot.label(),
+                file_name.to_string_lossy()
+            ),
+        });
+    };
+
+    match split_release_dir_name(name) {
+        Some(version) => Ok(ClientInstallation {
+            client: slot.client(),
+            version: version.to_string(),
+            path,
+        }),
+        None => Err(ScanIssue {
+            severity: IssueSeverity::Error,
+            path: Some(path),
+            reason: format!(
+                "could not read a version from the {} release directory name: {name}",
+                slot.label()
+            ),
+        }),
+    }
+}
+
 /// Convert one bundled-slot version directory into a `ClientInstallation`,
 /// or a `ScanIssue` if the directory's name is not valid UTF-8 (`path: None`
 /// — there is no valid string to report; `file_name.to_string_lossy()`
@@ -674,6 +849,10 @@ mod tests {
             "Claude Code (bundled in Claude Desktop)"
         );
         assert_eq!(InstallSlot::OpenCodeNpm.label(), "OpenCode (npm)");
+        assert_eq!(
+            InstallSlot::CodexStandalone.label(),
+            "Codex CLI (standalone)"
+        );
     }
 
     #[test]
@@ -684,6 +863,7 @@ mod tests {
             ClientKind::ClaudeCode
         );
         assert_eq!(InstallSlot::OpenCodeNpm.client(), ClientKind::OpenCode);
+        assert_eq!(InstallSlot::CodexStandalone.client(), ClientKind::Codex);
     }
 
     #[test]
@@ -699,6 +879,56 @@ mod tests {
         assert_eq!(
             InstallSlot::ClaudeCodeBundled.version_source(),
             VersionSource::DirectoryName
+        );
+        assert_eq!(
+            InstallSlot::CodexStandalone.version_source(),
+            VersionSource::ReleaseDirectoryName
+        );
+    }
+
+    // -- split_release_dir_name (design §3.2) --
+
+    #[test]
+    fn split_release_dir_name_strips_the_known_triple_suffix() {
+        assert_eq!(
+            split_release_dir_name("0.149.0-x86_64-pc-windows-msvc"),
+            Some("0.149.0")
+        );
+    }
+
+    #[test]
+    fn split_release_dir_name_is_prerelease_safe() {
+        // The case that kills "split on the first `-`", which would yield
+        // "0.150.0" and silently report a prerelease as a release.
+        assert_eq!(
+            split_release_dir_name("0.150.0-rc.1-x86_64-pc-windows-msvc"),
+            Some("0.150.0-rc.1")
+        );
+    }
+
+    #[test]
+    fn split_release_dir_name_rejects_an_unknown_triple() {
+        assert_eq!(
+            split_release_dir_name("0.151.0-riscv64-unknown-linux-gnu"),
+            None
+        );
+    }
+
+    #[test]
+    fn split_release_dir_name_rejects_the_bare_triple_with_no_version() {
+        assert_eq!(split_release_dir_name("x86_64-pc-windows-msvc"), None);
+    }
+
+    #[test]
+    fn split_release_dir_name_rejects_a_name_with_no_dash() {
+        assert_eq!(split_release_dir_name("nightly"), None);
+    }
+
+    #[test]
+    fn split_release_dir_name_strips_the_aarch64_triple_too() {
+        assert_eq!(
+            split_release_dir_name("0.149.0-aarch64-pc-windows-msvc"),
+            Some("0.149.0")
         );
     }
 
