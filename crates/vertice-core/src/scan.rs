@@ -49,6 +49,7 @@ fn scan_for(home: &Path, platform: HostPlatform) -> ScanReport {
         installations: installations.installations,
         roots_scanned,
         issues,
+        client_presence: installations.presence,
         duration_ms,
     }
 }
@@ -75,7 +76,7 @@ mod tests {
 
     use super::*;
     use crate::installations::HostPlatform;
-    use crate::model::{IssueSeverity, SearchRootStatus};
+    use crate::model::{ClientPresenceStatus, IssueSeverity, SearchRootStatus};
 
     fn fixture_home(case: &str) -> PathBuf {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -143,13 +144,21 @@ mod tests {
                 .count(),
             6
         );
-        assert_eq!(
-            report
-                .issues
+
+        let client_presence = report
+            .client_presence
+            .as_ref()
+            .expect("Windows always has a probe table");
+        assert_eq!(client_presence.len(), 3, "one record per defined slot");
+        assert!(
+            client_presence
                 .iter()
-                .filter(|issue| issue.reason.ends_with("not detected"))
-                .count(),
-            3
+                .all(|record| record.status == ClientPresenceStatus::NotDetected),
+            "every slot is absent on this fixture"
+        );
+        assert!(
+            report.installations.is_empty(),
+            "no installations resolve when every slot is absent"
         );
     }
 

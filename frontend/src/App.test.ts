@@ -55,6 +55,7 @@ function reportFixture(components: Component[] = [skillFixture()]): ScanReport {
     installations: [],
     rootsScanned: [],
     issues: [],
+    clientPresence: null,
     durationMs: 4,
   };
 }
@@ -64,6 +65,14 @@ function cleanReportFixture(): ScanReport {
     ...reportFixture([skillFixture(), agentFixture()]),
     rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
     installations: [{ client: "claudeCode", version: "1.0.0", path: "C:/clients/claude" }],
+    clientPresence: [
+      {
+        label: "Claude Code CLI (npm)",
+        probedPaths: ["C:/clients/claude"],
+        status: "detected",
+        installations: [{ client: "claudeCode", version: "1.0.0", path: "C:/clients/claude" }],
+      },
+    ],
     durationMs: 42,
   };
 }
@@ -101,14 +110,49 @@ function mixedReportFixture(): ScanReport {
     issues: [
       { severity: "warning", path: null, reason: "search root claude-skills was not found" },
       {
-        severity: "warning",
-        path: "C:/Users/example/AppData/Roaming/npm",
-        reason: "Claude Code (npm) not detected",
-      },
-      {
         severity: "error",
         path: "C:/fixtures/broken-skill/SKILL.md",
         reason: "Malformed frontmatter",
+      },
+    ],
+    clientPresence: [
+      {
+        label: "Claude Code CLI (npm)",
+        probedPaths: ["C:/Users/example/AppData/Roaming/npm"],
+        status: "notDetected",
+        installations: [],
+      },
+    ],
+  };
+}
+
+function threeRowClientPresenceFixture(): ScanReport {
+  return {
+    ...reportFixture(),
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    clientPresence: [
+      {
+        label: "Claude Code CLI (npm)",
+        probedPaths: ["C:/clients/claude-npm"],
+        status: "detected",
+        installations: [
+          { client: "claudeCode", version: "1.0.0", path: "C:/clients/claude-npm" },
+        ],
+      },
+      {
+        label: "Claude Code (bundled in Claude Desktop)",
+        probedPaths: ["C:/clients/pkg-a", "C:/clients/legacy"],
+        status: "detected",
+        installations: [
+          { client: "claudeCode", version: "2.0.0", path: "C:/clients/pkg-a" },
+          { client: "claudeCode", version: "2.1.0", path: "C:/clients/legacy" },
+        ],
+      },
+      {
+        label: "OpenCode (npm)",
+        probedPaths: ["C:/clients/opencode-npm"],
+        status: "notDetected",
+        installations: [],
       },
     ],
   };
@@ -364,7 +408,7 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
-  it("shows the incident indicator on both pages for a not-found root with zero issues (correctness-critical)", async () => {
+  it("shows no incident indicator on either page for a not-found root alone with zero issues (correctness-critical)", async () => {
     mockedScan.mockResolvedValue(notFoundOnlyReportFixture());
 
     const app = mount(App, { target: document.body });
@@ -372,21 +416,11 @@ describe("App per-kind pages", () => {
 
     navigateTo("Agents");
     await flushApp();
-    const agentsIndicator = document.querySelector<HTMLButtonElement>(
-      '[data-testid="incident-indicator"]',
-    );
-    expect(agentsIndicator).not.toBeNull();
+    expect(document.querySelector('[data-testid="incident-indicator"]')).toBeNull();
 
     navigateTo("Skills");
     await flushApp();
-    const skillsIndicator = document.querySelector<HTMLButtonElement>(
-      '[data-testid="incident-indicator"]',
-    );
-    expect(skillsIndicator).not.toBeNull();
-
-    skillsIndicator?.click();
-    await flushApp();
-    expect(document.title).toBe("Vertice v0.1.0 — Scan");
+    expect(document.querySelector('[data-testid="incident-indicator"]')).toBeNull();
 
     unmount(app);
   });
@@ -510,7 +544,7 @@ describe("App scan route", () => {
     document.body.innerHTML = "";
   });
 
-  it("renders roots, installations, duration, and a healthy verdict for a clean report, never a blank panel", async () => {
+  it("renders roots, supported clients, duration, and a healthy verdict for a clean report, never a blank panel", async () => {
     mockedScan.mockResolvedValue(cleanReportFixture());
 
     const app = mount(App, { target: document.body });
@@ -520,7 +554,8 @@ describe("App scan route", () => {
 
     expect(visibleText()).toContain("Scan completed with no incidents.");
     expect(visibleText()).toContain("C:/roots/claude");
-    expect(visibleText()).toContain("claudeCode");
+    expect(visibleText()).toContain("Claude Code CLI (npm)");
+    expect(visibleText()).toContain("1.0.0");
     const duration = document.querySelector('[data-testid="scan-duration"]');
     expect(duration?.textContent).toContain("Duration");
     expect(duration?.textContent).toContain("42 ms");
@@ -528,7 +563,7 @@ describe("App scan route", () => {
     unmount(app);
   });
 
-  it("renders every mixed-report diagnostic exactly once without the duplicate root warning", async () => {
+  it("renders every mixed-report diagnostic exactly once without the duplicate root warning, absence surfaced only in the clients table", async () => {
     mockedScan.mockResolvedValue(mixedReportFixture());
 
     const app = mount(App, { target: document.body });
@@ -537,13 +572,106 @@ describe("App scan route", () => {
     await flushApp();
 
     const diagnostics = document.querySelector('[data-testid="scan-diagnostics"]');
-    expect(diagnostics?.textContent).toContain("Claude Code (npm) not detected");
-    expect(diagnostics?.textContent).toContain("C:/Users/example/AppData/Roaming/npm");
     expect(diagnostics?.textContent).toContain("Malformed frontmatter");
     expect(diagnostics?.textContent).toContain("C:/fixtures/broken-skill/SKILL.md");
+    expect(diagnostics?.textContent).not.toContain("Claude Code CLI (npm) not detected");
     expect(diagnostics?.textContent?.match(/search root claude-skills was not found/g)).toBeNull();
     expect(visibleText()).toContain("C:/roots/claude");
     expect(visibleText()).toContain("Not found");
+    expect(visibleText()).toContain("Claude Code CLI (npm)");
+    expect(visibleText()).toContain("Not detected");
+
+    unmount(app);
+  });
+
+  it("renders a three-row supported-clients table including a NotDetected row, without a path column", async () => {
+    mockedScan.mockResolvedValue(threeRowClientPresenceFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    expect(visibleText()).toContain("Claude Code CLI (npm)");
+    expect(visibleText()).toContain("Claude Code (bundled in Claude Desktop)");
+    expect(visibleText()).toContain("OpenCode (npm)");
+    expect(visibleText()).toContain("Not detected");
+    expect(visibleText()).not.toContain("C:/clients/claude-npm");
+
+    unmount(app);
+  });
+
+  it("renders two coexisting versions in one row, each with its own path as a title tooltip", async () => {
+    mockedScan.mockResolvedValue(threeRowClientPresenceFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    expect(visibleText()).toContain("2.0.0");
+    expect(visibleText()).toContain("2.1.0");
+    const pkgA = Array.from(document.querySelectorAll("[title]")).find(
+      (el) => el.getAttribute("title") === "C:/clients/pkg-a",
+    );
+    const legacy = Array.from(document.querySelectorAll("[title]")).find(
+      (el) => el.getAttribute("title") === "C:/clients/legacy",
+    );
+    expect(pkgA).not.toBeUndefined();
+    expect(legacy).not.toBeUndefined();
+
+    unmount(app);
+  });
+
+  it("renders the unsupported-platform message and no client rows when clientPresence is null", async () => {
+    mockedScan.mockResolvedValue(reportFixture());
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    expect(visibleText()).toContain(
+      "Client installation detection is not supported on this platform.",
+    );
+    expect(visibleText()).not.toContain("Detected");
+    expect(visibleText()).not.toContain("Not detected");
+
+    unmount(app);
+  });
+
+  it("invokes rescan from the scan route and disables the control while loading", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    let resolveRescan: (report: ScanReport) => void = () => {};
+    mockedRescan.mockImplementation(
+      () =>
+        new Promise<ScanReport>((resolve) => {
+          resolveRescan = resolve;
+        }),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    const rescanButton = Array.from(document.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent?.trim() === "Reload",
+    );
+    if (rescanButton === undefined) {
+      throw new Error("Rescan button was not rendered");
+    }
+    rescanButton.click();
+    await flushApp();
+
+    expect(mockedRescan).toHaveBeenCalledTimes(1);
+    expect(rescanButton.textContent?.trim()).toBe("Reloading...");
+    expect(rescanButton.disabled).toBe(true);
+
+    resolveRescan(cleanReportFixture());
+    await flushApp();
+
+    expect(rescanButton.disabled).toBe(false);
 
     unmount(app);
   });

@@ -123,7 +123,14 @@
           onNavigate={(next) => (route = next)}
         />
       {:else if route === "scan"}
-        <ScanPage {status} {report} {failureMessage} {diagnostics} {incidents} />
+        <ScanPage
+          {status}
+          {report}
+          {failureMessage}
+          {diagnostics}
+          {incidents}
+          onReload={() => void runScan("reload")}
+        />
       {:else if route === "subscriptions"}
         <SubscriptionsPage subscriptions={SAMPLE_SUBSCRIPTIONS} {today} />
       {:else if !hasContent(route)}

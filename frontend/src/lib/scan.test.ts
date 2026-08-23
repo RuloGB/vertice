@@ -22,6 +22,7 @@ function reportFixture(): ScanReport {
       },
     ],
     issues: [],
+    clientPresence: null,
     durationMs: 3,
   };
 }

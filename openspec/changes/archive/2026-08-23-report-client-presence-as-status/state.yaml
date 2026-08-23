@@ -1,0 +1,20 @@
+change: report-client-presence-as-status
+artifact_store: openspec
+execution_mode: automatic
+delivery_strategy: exception-ok
+strict_tdd: true
+traces:
+  phase: T13
+  criteria: [CA-11, CA-1, CA-7, CA-16, CA-17]
+capabilities:
+  primary: inventory-ui
+  modified: [domain-model, client-installation-detector, frontend-i18n]
+phases:
+  exploration: done
+  proposal: done
+  spec: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: done

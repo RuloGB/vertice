@@ -26,6 +26,7 @@ mod error;
 mod identity;
 mod installation;
 mod location;
+mod presence;
 mod report;
 
 pub use component::{Component, ComponentKind, Scope};
@@ -35,4 +36,5 @@ pub use installation::{ClientInstallation, ClientKind};
 pub use location::{
     Location, LocationOrigin, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
 };
+pub use presence::{ClientPresence, ClientPresenceStatus};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};

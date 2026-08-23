@@ -1,19 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ScanIssue } from "../bindings/ScanIssue";
 import type { SearchRoot } from "../bindings/SearchRoot";
-import { incidentCount, isMissingClientIssue, partitionDiagnostics } from "./scanDiagnostics";
-
-const clientReasons = [
-  "Claude Code CLI (npm) not detected",
-  "Claude Code (bundled in Claude Desktop) not detected",
-  "OpenCode (npm) not detected",
-] as const;
+import { incidentCount, partitionDiagnostics } from "./scanDiagnostics";
 
 function issue(overrides: Partial<ScanIssue> = {}): ScanIssue {
   return {
-    severity: "warning",
-    path: "C:/Users/example/AppData/Roaming/npm",
-    reason: clientReasons[0],
+    severity: "error",
+    path: "C:/fixtures/broken-skill/SKILL.md",
+    reason: "Malformed frontmatter",
     ...overrides,
   };
 }
@@ -22,97 +16,108 @@ function root(id: string, status: SearchRoot["status"]): SearchRoot {
   return { id, path: `C:/roots/${id}`, kind: "skill", status };
 }
 
-describe("isMissingClientIssue", () => {
-  it.each(clientReasons)("accepts the exact supported-client warning %s", (reason) => {
-    expect(isMissingClientIssue(issue({ reason }))).toBe(true);
-  });
-
-  it.each([
-    issue({ reason: "Other tool not detected" }),
-    issue({ severity: "error" }),
-    issue({ path: null }),
-  ])("rejects collision outside the closed predicate", (candidate) => {
-    expect(isMissingClientIssue(candidate)).toBe(false);
-  });
-
-  it("classifies a bundled-slot not-detected issue as missing-client", () => {
-    const bundledIssue = issue({
-      severity: "warning",
-      path: "C:/Users/example/AppData/Roaming/Claude/claude-code",
-      reason: "Claude Code (bundled in Claude Desktop) not detected",
-    });
-
-    expect(isMissingClientIssue(bundledIssue)).toBe(true);
-  });
-});
-
 describe("partitionDiagnostics", () => {
-  it("de-duplicates unavailable roots and preserves unrelated issues", () => {
+  it("de-duplicates unavailable roots and excludes their echo warnings from recoverableIssues", () => {
     const unavailableFirst = root("claude-skills", "notFound");
     const unavailableSecond = root("opencode-skills", "notFound");
     const roots = [unavailableFirst, unavailableSecond, root("copilot-skills", "found")];
     const firstRootWarning = issue({
+      severity: "warning",
       path: null,
       reason: "search root claude-skills was not found",
     });
     const secondRootWarning = issue({
+      severity: "warning",
       path: null,
       reason: "search root opencode-skills was not found",
     });
-    const missingClient = issue({ reason: clientReasons[2] });
-    const ordinaryIssue = issue({
-      severity: "error",
-      path: "C:/fixtures/broken-skill/SKILL.md",
-      reason: "Malformed frontmatter",
-    });
+    const ordinaryIssue = issue();
 
-    expect(partitionDiagnostics(roots, [firstRootWarning, secondRootWarning, missingClient, ordinaryIssue])).toEqual({
+    expect(
+      partitionDiagnostics(roots, [firstRootWarning, secondRootWarning, ordinaryIssue]),
+    ).toEqual({
       unavailableRoots: [unavailableFirst, unavailableSecond],
-      missingClientIssues: [missingClient],
-      remainingRecoverableIssues: [ordinaryIssue],
+      recoverableIssues: [ordinaryIssue],
     });
   });
 
   it("keeps a pathless warning whose reason does not exactly match a missing root", () => {
-    const unrelatedWarning = issue({ path: null, reason: "search root claude-skills was not found later" });
-
-    expect(partitionDiagnostics([root("claude-skills", "notFound")], [unrelatedWarning])).toEqual({
-      unavailableRoots: [root("claude-skills", "notFound")],
-      missingClientIssues: [],
-      remainingRecoverableIssues: [unrelatedWarning],
+    const unrelatedWarning = issue({
+      severity: "warning",
+      path: null,
+      reason: "search root claude-skills was not found later",
     });
+
+    expect(partitionDiagnostics([root("claude-skills", "notFound")], [unrelatedWarning])).toEqual(
+      {
+        unavailableRoots: [root("claude-skills", "notFound")],
+        recoverableIssues: [unrelatedWarning],
+      },
+    );
+  });
+});
+
+describe("the not-found-root echo suppression (V5, load-bearing coupling)", () => {
+  it("excludes the exact root-not-found reason string from incidentCount", () => {
+    const rootEcho = issue({
+      severity: "warning",
+      path: null,
+      reason: "search root skills-user was not found",
+    });
+
+    expect(
+      incidentCount(partitionDiagnostics([root("skills-user", "notFound")], [rootEcho])),
+    ).toBe(0);
+  });
+
+  it("does not exclude a one-word-drift reason string, proving the match is exact, not fuzzy", () => {
+    const drifted = issue({
+      severity: "warning",
+      path: null,
+      reason: "search root skills-user is not found",
+    });
+
+    expect(
+      incidentCount(partitionDiagnostics([root("skills-user", "notFound")], [drifted])),
+    ).toBe(1);
   });
 });
 
 describe("incidentCount", () => {
+  it("counts zero for a NotDetected client slot alongside a not-found root (absence is never an incident)", () => {
+    const roots = [root("claude-skills", "notFound")];
+    const rootWarning = issue({
+      severity: "warning",
+      path: null,
+      reason: "search root claude-skills was not found",
+    });
+
+    expect(incidentCount(partitionDiagnostics(roots, [rootWarning]))).toBe(0);
+  });
+
+  it("counts non-zero for a broken client slot's Error issue", () => {
+    const brokenClient = issue({
+      severity: "error",
+      path: "C:/Users/example/AppData/Roaming/npm",
+      reason: "could not read package.json: not found",
+    });
+
+    expect(incidentCount(partitionDiagnostics([], [brokenClient]))).toBe(1);
+  });
+
   it("counts zero for a fully clean report", () => {
     expect(incidentCount(partitionDiagnostics([root("claude-skills", "found")], []))).toBe(0);
   });
 
-  it("counts one for zero issues plus one not-found root (correctness-critical)", () => {
-    const roots = [root("claude-skills", "notFound")];
-
-    expect(incidentCount(partitionDiagnostics(roots, []))).toBe(1);
-  });
-
-  it("counts one not-found root plus its de-duplicated warning plus one real issue as two, not three", () => {
+  it("counts one not-found root's de-duplicated warning plus one real issue as one, not two", () => {
     const roots = [root("claude-skills", "notFound")];
     const rootWarning = issue({
+      severity: "warning",
       path: null,
       reason: "search root claude-skills was not found",
     });
-    const realIssue = issue({
-      severity: "error",
-      path: "C:/fixtures/broken-skill/SKILL.md",
-      reason: "Malformed frontmatter",
-    });
+    const realIssue = issue();
 
-    expect(incidentCount(partitionDiagnostics(roots, [rootWarning, realIssue]))).toBe(2);
-  });
-
-  it("counts one for a missing-client issue alone", () => {
-    const missingClient = issue({ reason: clientReasons[2] });
-
-    expect(incidentCount(partitionDiagnostics([root("claude-skills", "found")], [missingClient]))).toBe(1);
+    expect(incidentCount(partitionDiagnostics(roots, [rootWarning, realIssue]))).toBe(1);
   });
 });

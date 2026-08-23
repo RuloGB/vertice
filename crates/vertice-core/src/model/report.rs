@@ -9,6 +9,7 @@ use ts_rs::TS;
 use super::component::Component;
 use super::installation::ClientInstallation;
 use super::location::SearchRoot;
+use super::presence::ClientPresence;
 
 /// The complete result of one scan. Empty collections are a legitimate,
 /// non-error value — `Err` is reserved for orchestration-level failure
@@ -22,6 +23,11 @@ pub struct ScanReport {
     pub installations: Vec<ClientInstallation>,
     pub roots_scanned: Vec<SearchRoot>,
     pub issues: Vec<ScanIssue>,
+    /// `None` means the current platform has no probe table at all (client
+    /// detection was not attempted). `Some(vec)` means the platform was
+    /// probed, with one [`ClientPresence`] per defined slot. `None` and
+    /// `Some(vec![])` are distinct and MUST NOT be used interchangeably.
+    pub client_presence: Option<Vec<ClientPresence>>,
     /// Value passed in by the caller, never measured here — this module
     /// performs zero clock reads.
     pub duration_ms: u32,

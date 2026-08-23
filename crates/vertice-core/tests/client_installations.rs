@@ -1,19 +1,19 @@
 //! Fixture-driven behaviour tests for `vertice_core::installations::{scan,
 //! scan_for}`, over the synthetic-home fixture tree committed under
 //! `crates/vertice-core/tests/fixtures/client-installations/`. One test (or
-//! tight group) per `client-installation-detector` spec requirement;
-//! `openspec/changes/fix-windows-claude-desktop-probe/design.md` is the
-//! authority for every asserted `severity`/`reason` shape.
+//! tight group) per `client-installation-detector` spec requirement.
+//! `openspec/changes/report-client-presence-as-status/design.md` §7 is the
+//! authority for every asserted `ClientPresence`/`ScanIssue` shape.
 //!
-//! `packaged_and_legacy_yields_four_never_merged_claude_installs` (CA-7 pin)
-//! is written FIRST, before any other test in this file: it must exist and
-//! FAIL before the slot-grouped resolver is implemented. Confirmed by
-//! running this test file against the pre-resolver `installations.rs`.
+//! Rewritten for the presence-record contract: absence is asserted on
+//! `ClientPresence.status`, never on a parsed `ScanIssue.reason` string.
 
 use std::path::PathBuf;
 
 use vertice_core::installations::{self, HostPlatform};
-use vertice_core::model::{ClientInstallation, ClientKind, IssueSeverity};
+use vertice_core::model::{
+    ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus, IssueSeverity,
+};
 
 /// Build a path under
 /// `crates/vertice-core/tests/fixtures/client-installations/<case>/` from
@@ -28,10 +28,87 @@ fn fixture_home(case: &str) -> PathBuf {
     path
 }
 
-/// Requirement: Claude Code npm And Bundled Are Never Merged (CA-7) +
-/// One MSIX package and the legacy path both present, both counted.
-/// **Primary safeguard for this change** — written first, before any other
-/// test in this file.
+fn presence_for<'a>(records: &'a [ClientPresence], label_contains: &str) -> &'a ClientPresence {
+    records
+        .iter()
+        .find(|record| record.label.contains(label_contains))
+        .unwrap_or_else(|| panic!("no presence record with label containing {label_contains:?}"))
+}
+
+/// CA-11 pin: a machine with no clients yields three `NotDetected` records
+/// and zero issues.
+#[test]
+fn nothing_yields_three_not_detected_records_and_zero_issues() {
+    let home = fixture_home("nothing");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan
+        .presence
+        .as_ref()
+        .expect("Windows always has a probe table");
+    assert_eq!(records.len(), 3, "one record per defined slot");
+    for record in records {
+        assert_eq!(record.status, ClientPresenceStatus::NotDetected);
+        assert!(record.installations.is_empty());
+        assert!(!record.probed_paths.is_empty());
+    }
+    assert_eq!(scan.installations.len(), 0);
+    assert_eq!(scan.issues.len(), 0, "absence is never an issue");
+}
+
+/// CA-7 pin: the bundled slot's record carries every coexisting
+/// installation in one row, never merged or reduced.
+#[test]
+fn bundled_slot_record_carries_every_coexisting_installation() {
+    let home = fixture_home("packaged-and-legacy");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let bundled = presence_for(records, "bundled in Claude Desktop");
+
+    assert_eq!(bundled.status, ClientPresenceStatus::Detected);
+    assert_eq!(
+        bundled.installations.len(),
+        3,
+        "legacy(1) + packaged(2 versions) = 3, all in the one bundled-slot record, never merged"
+    );
+
+    let mut versions: Vec<&str> = bundled
+        .installations
+        .iter()
+        .map(|i| i.version.as_str())
+        .collect();
+    versions.sort();
+    assert_eq!(versions, vec!["2.0.0", "3.0.0", "3.1.0"]);
+}
+
+/// `ScanReport.installations` equals the concatenation of every presence
+/// record's `installations`, in record order — the flattening invariant
+/// (design §3's tripwire), checked on two independent fixtures.
+#[test]
+fn flattened_presence_installations_equal_report_installations() {
+    for case in ["packaged-and-legacy", "isolation"] {
+        let home = fixture_home(case);
+        let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+        let records = scan.presence.as_ref().expect("Windows has a probe table");
+        let expected: Vec<&ClientInstallation> = records
+            .iter()
+            .flat_map(|record| record.installations.iter())
+            .collect();
+        let actual: Vec<&ClientInstallation> = scan.installations.iter().collect();
+
+        assert_eq!(
+            actual, expected,
+            "case {case}: ScanReport.installations must equal the flattened records"
+        );
+    }
+}
+
+/// Full four-installation pin, kept from the original suite: npm(1) +
+/// legacy(1) + packaged(2 versions), never merged.
 #[test]
 fn packaged_and_legacy_yields_four_never_merged_claude_installs() {
     let home = fixture_home("packaged-and-legacy");
@@ -68,44 +145,6 @@ fn packaged_and_legacy_yields_four_never_merged_claude_installs() {
     assert_eq!(scan.issues.len(), 0, "the fixture is fully healthy");
 }
 
-/// Requirement: An Absent Slot Is Reported As An Explicit "Not Detected"
-/// Signal (CA-11 pin) — every slot is absent, no `Error`.
-#[test]
-fn nothing_yields_zero_installs_three_warnings_zero_errors() {
-    let home = fixture_home("nothing");
-
-    let scan = installations::scan_for(&home, HostPlatform::Windows);
-
-    assert_eq!(scan.installations.len(), 0);
-    assert_eq!(scan.issues.len(), 3);
-    for issue in &scan.issues {
-        assert_eq!(issue.severity, IssueSeverity::Warning);
-        assert!(
-            issue.path.is_some(),
-            "each not-detected warning must carry its probe path"
-        );
-        assert!(issue.reason.ends_with("not detected"));
-    }
-    assert!(
-        !scan
-            .issues
-            .iter()
-            .any(|i| i.severity == IssueSeverity::Error),
-        "an absent client must never be reported as an Error"
-    );
-
-    let reasons: std::collections::BTreeSet<&str> =
-        scan.issues.iter().map(|i| i.reason.as_str()).collect();
-    assert_eq!(
-        reasons,
-        std::collections::BTreeSet::from([
-            "Claude Code CLI (npm) not detected",
-            "Claude Code (bundled in Claude Desktop) not detected",
-            "OpenCode (npm) not detected",
-        ])
-    );
-}
-
 /// Requirement: npm and bundled installs with different versions never
 /// merge — a single MSIX package present, no legacy path.
 #[test]
@@ -125,6 +164,11 @@ fn packaged_fixture_yields_npm_and_packaged_claude_installs_never_merged() {
     assert_eq!(versions, vec!["1.5.0", "5.0.0"]);
 
     assert_eq!(scan.issues.len(), 0);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    assert_eq!(records.len(), 3, "one record per defined slot");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
 /// Requirement: a legacy (non-packaged) install still resolves when no
@@ -148,9 +192,10 @@ fn legacy_fixture_yields_npm_and_legacy_claude_installs_never_merged() {
     assert_eq!(scan.issues.len(), 0);
 }
 
-/// Requirement: Multiple packages, and a package missing `claude-code`, each
-/// isolated — two valid packages contribute one installation each, the
-/// third (payload-less) package contributes nothing and no issue.
+/// Requirement: multiple packages, and a package missing `claude-code`,
+/// each isolated — two valid packages contribute one installation each, the
+/// third (payload-less) package contributes nothing and does not distort
+/// the record.
 #[test]
 fn two_packages_fixture_yields_two_installations_third_package_contributes_nothing() {
     let home = fixture_home("two-packages");
@@ -181,6 +226,70 @@ fn two_packages_fixture_yields_two_installations_third_package_contributes_nothi
         "pkg1's install must be enumerated before pkg2's, unsorted"
     );
 
+    assert_eq!(
+        scan.issues.len(),
+        0,
+        "the payload-less package is not an issue"
+    );
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let record = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(record.status, ClientPresenceStatus::Detected);
+    assert_eq!(record.installations.len(), 2);
+}
+
+/// Requirement: a candidate root that exists but yields nothing is
+/// `Detected`, not `NotDetected` — an existing-but-empty bundled candidate
+/// root is an `Error`.
+#[test]
+fn packaged_empty_fixture_is_detected_with_zero_installations_and_one_error() {
+    let home = fixture_home("packaged-empty");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    assert!(!scan
+        .installations
+        .iter()
+        .any(|i| i.client == ClientKind::ClaudeCode));
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let bundled = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(
+        bundled.status,
+        ClientPresenceStatus::Detected,
+        "a broken candidate root must never read as absent"
+    );
+    assert!(bundled.installations.is_empty());
+
+    let bundled_errors: Vec<_> = scan
+        .issues
+        .iter()
+        .filter(|i| i.reason.contains("Claude Code (bundled in Claude Desktop)"))
+        .collect();
+    assert_eq!(bundled_errors.len(), 1);
+    assert_eq!(bundled_errors[0].severity, IssueSeverity::Error);
+    assert!(bundled_errors[0].reason.contains("expected at least one"));
+}
+
+/// Requirement: a `Claude_*` package with no `claude-code` directory inside
+/// is not a candidate root at all — with no legacy path either, the slot
+/// still reports `status: NotDetected`, with zero issues.
+#[test]
+fn non_claude_packages_fixture_is_not_detected_with_zero_issues() {
+    let home = fixture_home("non-claude-packages");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    assert!(!scan
+        .installations
+        .iter()
+        .any(|i| i.client == ClientKind::ClaudeCode));
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let bundled = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(bundled.status, ClientPresenceStatus::NotDetected);
+    assert!(bundled.installations.is_empty());
+
     let bundled_issues: Vec<_> = scan
         .issues
         .iter()
@@ -192,64 +301,10 @@ fn two_packages_fixture_yields_two_installations_third_package_contributes_nothi
     );
 }
 
-/// Requirement: an existing-but-empty candidate root is an `Error`, never
-/// the "not detected" `Warning`.
-#[test]
-fn packaged_empty_fixture_yields_one_error_never_a_not_detected_warning() {
-    let home = fixture_home("packaged-empty");
-
-    let scan = installations::scan_for(&home, HostPlatform::Windows);
-
-    assert!(!scan
-        .installations
-        .iter()
-        .any(|i| i.client == ClientKind::ClaudeCode));
-
-    let bundled_issues: Vec<_> = scan
-        .issues
-        .iter()
-        .filter(|i| i.reason.contains("Claude Code (bundled in Claude Desktop)"))
-        .collect();
-    assert_eq!(bundled_issues.len(), 1);
-    assert_eq!(bundled_issues[0].severity, IssueSeverity::Error);
-    assert!(bundled_issues[0].reason.contains("expected at least one"));
-    assert!(
-        !bundled_issues[0].reason.ends_with("not detected"),
-        "a broken candidate root must never read as absent"
-    );
-}
-
-/// Requirement: a `Claude_*` package with no `claude-code` directory inside
-/// is not a candidate root at all — with no legacy path either, the slot
-/// still reports exactly one "not detected" `Warning`.
-#[test]
-fn non_claude_packages_fixture_contributes_nothing_and_warns_not_detected() {
-    let home = fixture_home("non-claude-packages");
-
-    let scan = installations::scan_for(&home, HostPlatform::Windows);
-
-    assert!(!scan
-        .installations
-        .iter()
-        .any(|i| i.client == ClientKind::ClaudeCode));
-
-    let bundled_issues: Vec<_> = scan
-        .issues
-        .iter()
-        .filter(|i| i.reason.contains("Claude Code (bundled in Claude Desktop)"))
-        .collect();
-    assert_eq!(bundled_issues.len(), 1);
-    assert_eq!(bundled_issues[0].severity, IssueSeverity::Warning);
-    assert_eq!(
-        bundled_issues[0].reason,
-        "Claude Code (bundled in Claude Desktop) not detected"
-    );
-}
-
 /// Requirement: an unreadable `Packages` directory errors but does not
-/// block the legacy fallback.
+/// block the legacy fallback, which still resolves inside the same record.
 #[test]
-fn packages_unreadable_fixture_errors_but_legacy_still_resolves() {
+fn packages_unreadable_fixture_errors_but_legacy_still_resolves_in_the_same_record() {
     let home = fixture_home("packages-unreadable");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
@@ -262,6 +317,15 @@ fn packages_unreadable_fixture_errors_but_legacy_still_resolves() {
     assert_eq!(bundled.len(), 1, "the legacy install is still reported");
     assert_eq!(bundled[0].version, "6.0.0");
 
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let record = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(record.status, ClientPresenceStatus::Detected);
+    assert_eq!(
+        record.installations.len(),
+        1,
+        "enumeration Error and the legacy candidate resolve in the same record"
+    );
+
     let packages_errors: Vec<_> = scan
         .issues
         .iter()
@@ -273,7 +337,7 @@ fn packages_unreadable_fixture_errors_but_legacy_still_resolves() {
     assert_eq!(packages_errors.len(), 1);
 }
 
-/// Requirement: A present OpenCode npm install is reported.
+/// Requirement: a present OpenCode npm install is reported as `Detected`.
 #[test]
 fn opencode_npm_fixture_yields_one_opencode_installation() {
     let home = fixture_home("opencode-npm");
@@ -287,9 +351,14 @@ fn opencode_npm_fixture_yields_one_opencode_installation() {
         .collect();
     assert_eq!(opencode.len(), 1);
     assert_eq!(opencode[0].version, "0.4.2");
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let record = presence_for(records, "OpenCode");
+    assert_eq!(record.status, ClientPresenceStatus::Detected);
 }
 
-/// Requirement: Each slot fails independently (NON-NEGOTIABLE).
+/// Requirement: each slot fails independently (NON-NEGOTIABLE) — one broken
+/// slot never changes another slot's status.
 #[test]
 fn isolation_fixture_isolates_one_malformed_slot_from_the_other_two() {
     let home = fixture_home("isolation");
@@ -322,12 +391,23 @@ fn isolation_fixture_isolates_one_malformed_slot_from_the_other_two() {
         .installations
         .iter()
         .any(|i| i.client == ClientKind::OpenCode && i.version == "2.2.2"));
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    assert_eq!(records.len(), 3);
+    for record in records {
+        assert_eq!(
+            record.status,
+            ClientPresenceStatus::Detected,
+            "every slot has an existing candidate root, broken or not"
+        );
+    }
 }
 
-/// Requirement: A Malformed Or Unreadable package.json Produces An Error,
-/// Never A Phantom Installation — a `package.json` with no `"version"` key.
+/// Requirement: a malformed or unreadable `package.json` produces an
+/// `Error`, never a phantom installation — `Detected` with zero
+/// installations — a `package.json` with no `"version"` key.
 #[test]
-fn no_version_key_fixture_yields_no_phantom_installation_and_one_error() {
+fn no_version_key_fixture_is_detected_with_zero_installations_and_one_error() {
     let home = fixture_home("no-version-key");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
@@ -343,10 +423,15 @@ fn no_version_key_fixture_yields_no_phantom_installation_and_one_error() {
         .collect();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].reason, "package.json has no \"version\" string");
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.status, ClientPresenceStatus::Detected);
+    assert!(opencode.installations.is_empty());
 }
 
 /// `"version"` present but not a string — same collapsed reason as the
-/// missing-key case.
+/// missing-key case, same `Detected` + zero installations shape.
 #[test]
 fn version_not_a_string_fixture_yields_the_same_collapsed_reason() {
     let home = fixture_home("version-not-a-string");
@@ -364,6 +449,10 @@ fn version_not_a_string_fixture_yields_the_same_collapsed_reason() {
         .collect();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].reason, "package.json has no \"version\" string");
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
 /// A zero-byte `package.json` parses to an empty object and lands on the
@@ -385,25 +474,31 @@ fn package_json_empty_fixture_yields_the_same_reason_as_no_version_key() {
         .collect();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].reason, "package.json has no \"version\" string");
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
 /// A non-UTF-8 `package.json` fails at `read_to_string`, before
 /// `jsonc::parse` ever runs — distinct reason prefix from the parse-failure
-/// case in `isolation/`, and zero `Warning` (the slot is present, just
-/// broken).
+/// case in `isolation/`, and the slot still reads as `Detected`, never
+/// `NotDetected` (the slot is present, just broken).
 #[test]
-fn package_json_unreadable_fixture_yields_one_error_and_zero_warning() {
+fn package_json_unreadable_fixture_is_detected_never_not_detected() {
     let home = fixture_home("package-json-unreadable");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
 
-    assert!(
-        !scan
-            .issues
-            .iter()
-            .any(|i| i.severity == IssueSeverity::Warning && i.reason.starts_with("OpenCode")),
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(
+        opencode.status,
+        ClientPresenceStatus::Detected,
         "a present-but-broken OpenCode slot must never read as absent"
     );
+    assert!(opencode.installations.is_empty());
+
     let errors: Vec<_> = scan
         .issues
         .iter()
@@ -413,20 +508,23 @@ fn package_json_unreadable_fixture_yields_one_error_and_zero_warning() {
     assert!(errors[0].reason.starts_with("could not read package.json:"));
 }
 
-/// Requirement: broken must never be reported as not-detected — the npm
-/// package directory exists but has no `package.json` inside it.
+/// Requirement: broken must never be reported as not-detected — the
+/// OpenCode npm directory exists but has no `package.json` inside it.
 #[test]
-fn npm_dir_no_package_json_fixture_yields_one_error_and_zero_warning() {
+fn npm_dir_no_package_json_fixture_is_detected_never_not_detected() {
     let home = fixture_home("npm-dir-no-package-json");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
 
-    assert!(
-        !scan.issues.iter().any(
-            |i| i.severity == IssueSeverity::Warning && i.reason.starts_with("Claude Code CLI")
-        ),
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let opencode = presence_for(records, "OpenCode");
+    assert_eq!(
+        opencode.status,
+        ClientPresenceStatus::Detected,
         "a present-but-broken npm slot must never read as absent"
     );
+    assert!(opencode.installations.is_empty());
+
     let errors: Vec<_> = scan
         .issues
         .iter()
@@ -436,10 +534,12 @@ fn npm_dir_no_package_json_fixture_yields_one_error_and_zero_warning() {
     assert!(errors[0].reason.starts_with("could not read package.json:"));
 }
 
-/// Platform seam: `HostPlatform::Unsupported` yields exactly one `Warning`
-/// with `path: None`, never three false "not detected" warnings.
+/// Platform seam: `HostPlatform::Unsupported` yields `client_presence: None`
+/// (never three fabricated `NotDetected` records, never `Some(vec![])`),
+/// exactly one `Warning` with `path: None`, byte-identical to before this
+/// change (design §4 tripwire).
 #[test]
-fn unsupported_platform_yields_one_warning_with_no_path() {
+fn unsupported_platform_yields_none_presence_and_one_warning_with_no_path() {
     let home = fixture_home("packaged-and-legacy");
 
     let scan = installations::scan_for(&home, HostPlatform::Unsupported);
@@ -448,6 +548,10 @@ fn unsupported_platform_yields_one_warning_with_no_path() {
     assert_eq!(scan.issues.len(), 1);
     assert_eq!(scan.issues[0].severity, IssueSeverity::Warning);
     assert_eq!(scan.issues[0].path, None);
+    assert!(
+        scan.presence.is_none(),
+        "an unsupported platform has no probe table at all"
+    );
 }
 
 /// Entry-point dispatch: `scan(home)` matches `scan_for(home, ...)` for the
@@ -468,7 +572,7 @@ fn scan_dispatches_to_the_compiled_target_platform() {
 }
 
 /// Determinism: two consecutive scans over the same fixture home yield
-/// byte-identical vectors.
+/// byte-identical vectors, including `presence`.
 #[test]
 fn two_runs_over_the_same_fixture_are_byte_identical() {
     for case in ["packaged-and-legacy", "two-packages"] {
