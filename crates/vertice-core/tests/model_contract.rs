@@ -3,8 +3,9 @@
 //! `design.md` §11: these tests construct values in memory only.
 
 use vertice_core::model::{
-    ClientInstallation, ClientKind, Component, ComponentId, ComponentKind, IssueSeverity, Location,
-    LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
+    ClientInstallation, ClientKind, ClientPresenceStatus, Component, ComponentId, ComponentKind,
+    IssueSeverity, Location, LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind,
+    SearchRootStatus,
 };
 use vertice_core::model::{ScanIssue, ScanReport};
 
@@ -101,6 +102,7 @@ fn empty_scan_report_round_trips_through_json() {
         installations: Vec::new(),
         roots_scanned: Vec::new(),
         issues: Vec::new(),
+        client_presence: None,
         duration_ms: 0,
     };
 
@@ -154,6 +156,7 @@ fn populated_scan_report_round_trips_through_json() {
                 reason: "root not found".to_string(),
             },
         ],
+        client_presence: None,
         duration_ms: 42,
     };
 
@@ -201,6 +204,7 @@ fn location_root_resolves_to_a_scanned_search_root() {
         installations: Vec::new(),
         roots_scanned: vec![root_a, root_b],
         issues: Vec::new(),
+        client_presence: None,
         duration_ms: 7,
     };
 
@@ -238,6 +242,25 @@ fn scope_is_exhaustively_matchable_without_a_wildcard_arm() {
     assert_eq!(label(Scope::User), "user");
     assert_eq!(label(Scope::Project), "project");
     assert_eq!(label(Scope::Local), "local");
+}
+
+/// Spec: `ClientPresenceStatus` Is a Closed, Exhaustively Matchable Enum.
+///
+/// Same construction as `Scope` above, and for the same reason: the status
+/// carries the whole "did we find this client" answer, so a future variant
+/// must break compilation at every match site instead of silently landing
+/// in a catch-all arm and being rendered as if it were one of these two.
+#[test]
+fn client_presence_status_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(status: ClientPresenceStatus) -> &'static str {
+        match status {
+            ClientPresenceStatus::Detected => "detected",
+            ClientPresenceStatus::NotDetected => "notDetected",
+        }
+    }
+
+    assert_eq!(label(ClientPresenceStatus::Detected), "detected");
+    assert_eq!(label(ClientPresenceStatus::NotDetected), "notDetected");
 }
 
 /// Spec: a component with no provenance hint is representable without a

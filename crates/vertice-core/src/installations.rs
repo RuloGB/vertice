@@ -1,8 +1,9 @@
 //! Client installation detection: three independent probe slots (Claude
 //! Code npm, Claude Code bundled in Claude Desktop, OpenCode npm), each
-//! resolved independently into zero, one, or (for the bundled slot) many
-//! [`crate::model::ClientInstallation`] values, or an explicit "not
-//! detected"/"broken" [`ScanIssue`].
+//! resolved independently into a typed [`crate::model::ClientPresence`]
+//! record carrying zero, one, or (for the bundled slot) many
+//! [`crate::model::ClientInstallation`] values, plus a "broken" [`ScanIssue`]
+//! where applicable.
 //!
 //! The bundled slot is a *resolver*, not a fixed path: Claude Desktop ships
 //! as an MSIX package, so its payload lives under a per-install,
@@ -12,25 +13,32 @@
 //! `AppData/Roaming/Claude/claude-code/` path as a fallback for non-packaged
 //! (legacy) installs. Every candidate root is resolved independently and
 //! never merged with another, even the two npm/bundled Claude Code slots
-//! (CA-7); an absent slot yields exactly one "not detected" `Warning`, never
+//! (CA-7); an absent slot yields `ClientPresenceStatus::NotDetected`, never
 //! an `Error` (CA-11).
 //!
 //! Windows only for T7; macOS/Linux path tables are T16. `roots::probe`
 //! stays private and untouched — this module carries its own local `exists`
-//! helper. `model/` is unmodified: the not-detected signal is carried
-//! entirely through `ScanIssue`.
+//! helper. `model/` now carries the absence signal through the typed
+//! `ClientPresence`/`ClientPresenceStatus` record, not through `ScanIssue`.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::jsonc::{self, JsonValue};
-use crate::model::{ClientInstallation, ClientKind, IssueSeverity, ScanIssue};
+use crate::model::{
+    ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus, IssueSeverity, ScanIssue,
+};
 
 /// Owned result of one client-installation scan. A distinct type from
 /// `SkillScan`, `AgentScan` and `OpenCodeAgentScan`, and deliberately
 /// WITHOUT a `roots` field.
 #[derive(Debug, Clone, PartialEq)]
 pub struct InstallationScan {
+    /// One [`ClientPresence`] record per probe slot the platform's table
+    /// defines, or `None` when the platform has no probe table at all.
+    /// `installations` below is a derived flattening of these records,
+    /// computed by [`flatten_presence`] — the only producer.
+    pub presence: Option<Vec<ClientPresence>>,
     pub installations: Vec<ClientInstallation>,
     pub issues: Vec<ScanIssue>,
 }
@@ -68,15 +76,16 @@ pub fn scan(home: &Path) -> InstallationScan {
 /// is what makes the Windows table testable on the Linux and macOS CI
 /// legs — not a general-purpose knob.
 pub fn scan_for(home: &Path, platform: HostPlatform) -> InstallationScan {
-    let mut installations = Vec::new();
     let mut issues = Vec::new();
 
-    match platform {
+    let presence = match platform {
         HostPlatform::Windows => {
             let probes = windows_install_probes(home, &mut issues);
-            for (slot, candidates) in group_probes_by_slot(&probes) {
-                resolve_slot(slot, &candidates, &mut installations, &mut issues);
-            }
+            let records = group_probes_by_slot(&probes)
+                .into_iter()
+                .map(|(slot, candidates)| resolve_slot(slot, &candidates, &mut issues))
+                .collect();
+            Some(records)
         }
         HostPlatform::Unsupported => {
             issues.push(ScanIssue {
@@ -85,12 +94,31 @@ pub fn scan_for(home: &Path, platform: HostPlatform) -> InstallationScan {
                 reason: "client installation detection is not implemented on this platform"
                     .to_string(),
             });
+            None
         }
-    }
+    };
+
+    let installations = flatten_presence(&presence);
 
     InstallationScan {
+        presence,
         installations,
         issues,
+    }
+}
+
+/// The only producer of `InstallationScan.installations`: `resolve_slot`
+/// never pushes into it directly. `None` -> empty; `Some` -> concatenation
+/// of each record's `installations`, in record order, so ordering matches
+/// today's output exactly (slot order = probe-table order, candidates
+/// sorted byte-wise, legacy last).
+fn flatten_presence(presence: &Option<Vec<ClientPresence>>) -> Vec<ClientInstallation> {
+    match presence {
+        None => Vec::new(),
+        Some(records) => records
+            .iter()
+            .flat_map(|record| record.installations.clone())
+            .collect(),
     }
 }
 
@@ -311,91 +339,84 @@ fn exists(path: &Path) -> bool {
     }
 }
 
-/// Resolve one slot's verdict from its candidate paths, pushing zero-to-N
-/// installations and issues. Every slot is resolved independently — a
-/// broken candidate in one slot never blocks another slot or another
-/// candidate in the same slot (isolation).
+/// Resolve one slot's verdict from its candidate paths into a
+/// [`ClientPresence`] record, pushing zero-to-N issues. Every slot is
+/// resolved independently — a broken candidate in one slot never blocks
+/// another slot or another candidate in the same slot (isolation).
+/// Emitting a presence record never itself pushes a `ScanIssue`.
 fn resolve_slot(
     slot: InstallSlot,
     candidates: &[PathBuf],
-    installations: &mut Vec<ClientInstallation>,
     issues: &mut Vec<ScanIssue>,
-) {
+) -> ClientPresence {
     match slot.version_source() {
-        VersionSource::PackageJson => resolve_npm_slot(slot, &candidates[0], installations, issues),
-        VersionSource::DirectoryName => {
-            resolve_bundled_slot(slot, candidates, installations, issues)
-        }
+        VersionSource::PackageJson => resolve_npm_slot(slot, &candidates[0], issues),
+        VersionSource::DirectoryName => resolve_bundled_slot(slot, candidates, issues),
     }
 }
 
-/// Resolve an npm slot: absent directory -> `Warning` "not detected";
-/// present directory -> read `package.json` through the `jsonc.rs` seam and
-/// extract `"version"`.
-fn resolve_npm_slot(
-    slot: InstallSlot,
-    path: &Path,
-    installations: &mut Vec<ClientInstallation>,
-    issues: &mut Vec<ScanIssue>,
-) {
+/// Resolve an npm slot: absent directory -> `status: NotDetected`; present
+/// directory -> `status: Detected`, reading `package.json` through the
+/// `jsonc.rs` seam and extracting `"version"`. A present-but-broken
+/// directory still yields `Detected` with empty `installations`; the
+/// underlying `Error` issue is unchanged.
+fn resolve_npm_slot(slot: InstallSlot, path: &Path, issues: &mut Vec<ScanIssue>) -> ClientPresence {
     debug_assert_eq!(slot.version_source(), VersionSource::PackageJson);
 
+    let probed_paths = vec![path.to_path_buf()];
+
     if !exists(path) {
-        issues.push(ScanIssue {
-            severity: IssueSeverity::Warning,
-            path: Some(path.to_path_buf()),
-            reason: format!("{} not detected", slot.label()),
-        });
-        return;
+        return ClientPresence {
+            label: slot.label().to_string(),
+            probed_paths,
+            status: ClientPresenceStatus::NotDetected,
+            installations: Vec::new(),
+        };
     }
 
+    let mut installations = Vec::new();
     let mut package_json = path.to_path_buf();
     package_json.push("package.json");
 
-    let contents = match std::fs::read_to_string(&package_json) {
-        Ok(contents) => contents,
-        Err(err) => {
-            issues.push(ScanIssue {
+    match std::fs::read_to_string(&package_json) {
+        Ok(contents) => match jsonc::parse(&contents) {
+            Ok(JsonValue::Object(root_map)) => {
+                match extract_package_json_version(&JsonValue::Object(root_map)) {
+                    Some(version) => installations.push(ClientInstallation {
+                        client: slot.client(),
+                        version,
+                        path: path.to_path_buf(),
+                    }),
+                    None => issues.push(ScanIssue {
+                        severity: IssueSeverity::Error,
+                        path: Some(package_json),
+                        reason: "package.json has no \"version\" string".to_string(),
+                    }),
+                }
+            }
+            Ok(_) => issues.push(ScanIssue {
                 severity: IssueSeverity::Error,
                 path: Some(package_json),
-                reason: format!("could not read package.json: {err}"),
-            });
-            return;
-        }
-    };
-
-    let parsed = match jsonc::parse(&contents) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            issues.push(ScanIssue {
+                reason: "package.json is not a JSON object".to_string(),
+            }),
+            Err(err) => issues.push(ScanIssue {
                 severity: IssueSeverity::Error,
                 path: Some(package_json),
                 reason: format!("could not parse package.json: {err}"),
-            });
-            return;
-        }
-    };
-
-    let JsonValue::Object(root_map) = parsed else {
-        issues.push(ScanIssue {
+            }),
+        },
+        Err(err) => issues.push(ScanIssue {
             severity: IssueSeverity::Error,
             path: Some(package_json),
-            reason: "package.json is not a JSON object".to_string(),
-        });
-        return;
-    };
+            reason: format!("could not read package.json: {err}"),
+        }),
+    }
 
-    match extract_package_json_version(&JsonValue::Object(root_map)) {
-        Some(version) => installations.push(ClientInstallation {
-            client: slot.client(),
-            version,
-            path: path.to_path_buf(),
-        }),
-        None => issues.push(ScanIssue {
-            severity: IssueSeverity::Error,
-            path: Some(package_json),
-            reason: "package.json has no \"version\" string".to_string(),
-        }),
+    ClientPresence {
+        label: slot.label().to_string(),
+        probed_paths,
+        status: ClientPresenceStatus::Detected,
+        installations,
     }
 }
 
@@ -419,21 +440,20 @@ fn extract_package_json_version(document: &JsonValue) -> Option<String> {
 /// candidate root yields its own versioned subdirectories as independent
 /// `ClientInstallation` values, never merged across candidate roots even on
 /// matching version strings; an existing-but-empty candidate root is its
-/// own `Error`; the overall "not detected" `Warning` fires exactly once,
-/// only when NO candidate root exists at all, with `path` set to the legacy
-/// fallback (always the last candidate).
+/// own `Error`; `status: NotDetected` fires only when NO candidate root
+/// exists at all.
 fn resolve_bundled_slot(
     slot: InstallSlot,
     candidates: &[PathBuf],
-    installations: &mut Vec<ClientInstallation>,
     issues: &mut Vec<ScanIssue>,
-) {
+) -> ClientPresence {
     debug_assert_eq!(slot.version_source(), VersionSource::DirectoryName);
     debug_assert!(
         !candidates.is_empty(),
         "the legacy path is always appended, so candidates is never empty"
     );
 
+    let mut installations = Vec::new();
     let mut any_candidate_root_exists = false;
 
     for candidate in candidates {
@@ -500,16 +520,15 @@ fn resolve_bundled_slot(
         }
     }
 
-    if !any_candidate_root_exists {
-        let legacy_path = candidates
-            .last()
-            .expect("the legacy path is always appended last")
-            .clone();
-        issues.push(ScanIssue {
-            severity: IssueSeverity::Warning,
-            path: Some(legacy_path),
-            reason: format!("{} not detected", slot.label()),
-        });
+    ClientPresence {
+        label: slot.label().to_string(),
+        probed_paths: candidates.to_vec(),
+        status: if any_candidate_root_exists {
+            ClientPresenceStatus::Detected
+        } else {
+            ClientPresenceStatus::NotDetected
+        },
+        installations,
     }
 }
 
@@ -546,6 +565,41 @@ fn install_from_version_dir(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // -- flatten_presence --
+
+    #[test]
+    fn flatten_presence_none_yields_empty() {
+        assert_eq!(flatten_presence(&None), Vec::new());
+    }
+
+    #[test]
+    fn flatten_presence_concatenates_in_record_order() {
+        let make = |version: &str| ClientInstallation {
+            client: ClientKind::ClaudeCode,
+            version: version.to_string(),
+            path: PathBuf::from(version),
+        };
+        let presence = Some(vec![
+            ClientPresence {
+                label: "first".to_string(),
+                probed_paths: vec![PathBuf::from("first")],
+                status: ClientPresenceStatus::Detected,
+                installations: vec![make("1.0.0")],
+            },
+            ClientPresence {
+                label: "second".to_string(),
+                probed_paths: vec![PathBuf::from("second")],
+                status: ClientPresenceStatus::Detected,
+                installations: vec![make("2.0.0"), make("2.1.0")],
+            },
+        ]);
+
+        let flattened = flatten_presence(&presence);
+
+        let versions: Vec<&str> = flattened.iter().map(|i| i.version.as_str()).collect();
+        assert_eq!(versions, vec!["1.0.0", "2.0.0", "2.1.0"]);
+    }
 
     // -- HostPlatform --
 
