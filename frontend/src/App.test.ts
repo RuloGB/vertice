@@ -49,6 +49,21 @@ function agentFixture(): Component {
   };
 }
 
+function componentFixtures(kind: "skill" | "agent", count: number): Component[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      id: `${kind}:${number}`,
+      name: `${kind === "skill" ? "Skill" : "Agent"} ${number}`,
+      kind,
+      description: null,
+      scope: "user",
+      locations: [{ path: `C:/fixtures/${kind}-${number}`, root: `claude-${kind}s`, origin: "file" }],
+      provenanceHint: null,
+    };
+  });
+}
+
 function reportFixture(components: Component[] = [skillFixture()]): ScanReport {
   return {
     components,
@@ -357,6 +372,64 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
+  it("paginates filtered Skills and Agents, including page size and first/last controls", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([...componentFixtures("skill", 23), ...componentFixtures("agent", 12)]),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    navigateTo("Skills");
+    await flushApp();
+    expect(visibleText()).toContain("Showing 1–5 of 23 components");
+    expect(visibleText()).toContain("Skill 01");
+    expect(visibleText()).not.toContain("Skill 06");
+
+    const lastPage = document.querySelector<HTMLButtonElement>('[aria-label="Go to last page"]');
+    lastPage?.click();
+    await flushApp();
+    expect(visibleText()).toContain("Showing 21–23 of 23 components");
+    expect(visibleText()).toContain("Skill 23");
+    expect(visibleText()).not.toContain("Skill 01");
+
+    const search = document.querySelector<HTMLInputElement>('input[type="search"]');
+    if (search === null) {
+      throw new Error("Skill search input was not rendered");
+    }
+    search.value = "Skill 02";
+    search.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flushApp();
+    expect(visibleText()).toContain("Showing 1–1 of 1 components");
+    expect(visibleText()).toContain("Skill 02");
+
+    search.value = "";
+    search.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flushApp();
+    expect(visibleText()).toContain("Showing 1–5 of 23 components");
+
+    const pageSize = document.querySelector<HTMLSelectElement>('[aria-label="Components per page"]');
+    if (pageSize === null) {
+      throw new Error("Page size selector was not rendered");
+    }
+    expect(Array.from(pageSize.options, (option) => option.value)).toEqual(["5", "10", "15"]);
+    pageSize.value = "15";
+    pageSize.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+    expect(visibleText()).toContain("Showing 1–15 of 23 components");
+    expect(visibleText()).toContain("Skill 01");
+    expect(visibleText()).toContain("Skill 15");
+    expect(visibleText()).not.toContain("Skill 16");
+
+    navigateTo("Agents");
+    await flushApp();
+    expect(visibleText()).toContain("Showing 1–5 of 12 components");
+    expect(visibleText()).toContain("Agent 01");
+    expect(visibleText()).not.toContain("Agent 06");
+
+    unmount(app);
+  });
+
   it("keeps Agents and Skills search queries independent across navigation", async () => {
     mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
 
@@ -391,7 +464,7 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
-  it("renders no kind selector other than the language selector on either page", async () => {
+  it("renders a page-size selector alongside the language selector on either page", async () => {
     mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
 
     const app = mount(App, { target: document.body });
@@ -401,8 +474,11 @@ describe("App per-kind pages", () => {
       navigateTo(section);
       await flushApp();
       const selects = Array.from(document.querySelectorAll("select"));
-      expect(selects, section).toHaveLength(1);
-      expect(selects[0]?.getAttribute("aria-label"), section).toBe("Language");
+      expect(selects, section).toHaveLength(2);
+      expect(selects.map((select) => select.getAttribute("aria-label")), section).toEqual([
+        "Language",
+        "Components per page",
+      ]);
     }
 
     unmount(app);

@@ -71,6 +71,13 @@ export type Catalog = {
     duplicate: string;
     duplicateTitle: string;
     embedded: string;
+    paginationSummary: string;
+    paginationPage: string;
+    paginationPageSize: string;
+    paginationFirst: string;
+    paginationPrevious: string;
+    paginationNext: string;
+    paginationLast: string;
   };
   diagnostics: {
     title: string;
@@ -197,6 +204,13 @@ export const catalogs = {
       duplicate: "Duplicate",
       duplicateTitle: "Found at {count} locations",
       embedded: "Embedded (non-actionable)",
+      paginationSummary: "Showing {from}–{to} of {total} components",
+      paginationPage: "Page {current} of {total}",
+      paginationPageSize: "Components per page",
+      paginationFirst: "Go to first page",
+      paginationPrevious: "Go to previous page",
+      paginationNext: "Go to next page",
+      paginationLast: "Go to last page",
     },
     diagnostics: {
       title: "Scan diagnostics",
@@ -319,6 +333,13 @@ export const catalogs = {
       duplicate: "Duplicado",
       duplicateTitle: "Encontrado en {count} ubicaciones",
       embedded: "Integrado (sin acciones disponibles)",
+      paginationSummary: "Mostrando {from}–{to} de {total} componentes",
+      paginationPage: "Página {current} de {total}",
+      paginationPageSize: "Componentes por página",
+      paginationFirst: "Ir a la primera página",
+      paginationPrevious: "Ir a la página anterior",
+      paginationNext: "Ir a la página siguiente",
+      paginationLast: "Ir a la última página",
     },
     diagnostics: {
       title: "Diagnósticos del escaneo",
