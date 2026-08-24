@@ -135,6 +135,22 @@ export type Catalog = {
   location: {
     noPath: string;
   };
+  skillDetail: {
+    back: string;
+    description: string;
+    locations: string;
+    aiClients: string;
+    aiClientsEmpty: string;
+    noDescription: string;
+  };
+  agentDetail: {
+    back: string;
+    description: string;
+    locations: string;
+    aiClients: string;
+    aiClientsEmpty: string;
+    noDescription: string;
+  };
 };
 
 export type SupportedLocale = "en" | "es";
@@ -295,6 +311,22 @@ export const catalogs = {
     location: {
       noPath: "(no path on disk)",
     },
+    skillDetail: {
+      back: "Back to list",
+      description: "Description",
+      locations: "Locations",
+      aiClients: "AI Clients",
+      aiClientsEmpty: "No AI clients data available yet.",
+      noDescription: "No description available.",
+    },
+    agentDetail: {
+      back: "Back to list",
+      description: "Description",
+      locations: "Locations",
+      aiClients: "AI Clients",
+      aiClientsEmpty: "No AI clients data available yet.",
+      noDescription: "No description available.",
+    },
   },
   es: {
     app: {
@@ -451,6 +483,22 @@ export const catalogs = {
     },
     location: {
       noPath: "(sin ruta en disco)",
+    },
+    skillDetail: {
+      back: "Volver a la lista",
+      description: "Descripción",
+      locations: "Ubicaciones",
+      aiClients: "Clientes IA",
+      aiClientsEmpty: "Aún no hay datos de clientes IA.",
+      noDescription: "Sin descripción disponible.",
+    },
+    agentDetail: {
+      back: "Volver a la lista",
+      description: "Descripción",
+      locations: "Ubicaciones",
+      aiClients: "Clientes IA",
+      aiClientsEmpty: "Aún no hay datos de clientes IA.",
+      noDescription: "Sin descripción disponible.",
     },
   },
 } as const satisfies Record<SupportedLocale, Catalog>;

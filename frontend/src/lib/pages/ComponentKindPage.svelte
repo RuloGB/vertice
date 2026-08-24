@@ -11,6 +11,7 @@
     onQueryChange: (query: string) => void;
     onReload: () => void;
     onNavigate: (route: RouteId) => void;
+    onComponentSelect?: (component: import("../../bindings/Component").Component) => void;
   };
 </script>
 
@@ -35,6 +36,7 @@
     onQueryChange,
     onReload,
     onNavigate,
+    onComponentSelect,
   }: KindPageProps & { kind: ComponentKind } = $props();
 
   const KIND_ROUTE = { agent: "agents", skill: "skills" } as const satisfies Record<
@@ -102,7 +104,7 @@
       {/if}
     </div>
   {:else}
-    <ComponentList components={pageComponents} />
+    <ComponentList components={pageComponents} onSelect={onComponentSelect} />
     {#if visible.length > 0}
       <nav
         aria-label={i18n.t("components.paginationPage", { current: page, total: pageCount })}
