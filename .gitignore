@@ -8,6 +8,16 @@ internal-docs/
 .claude/
 .opencode/
 
+# Test fixtures deliberately reproduce these dotdirs to simulate a real
+# client install; un-ignore them so new fixture files aren't silently
+# dropped from git (see scan.rs regressions from #34).
+!crates/vertice-core/tests/fixtures/**/.agents/
+!crates/vertice-core/tests/fixtures/**/.agents/**
+!crates/vertice-core/tests/fixtures/**/.claude/
+!crates/vertice-core/tests/fixtures/**/.claude/**
+!crates/vertice-core/tests/fixtures/**/.opencode/
+!crates/vertice-core/tests/fixtures/**/.opencode/**
+
 #Rust
 /target
 # Tauri regenerates capability/ACL JSON schemas (IDE autocomplete only) on
