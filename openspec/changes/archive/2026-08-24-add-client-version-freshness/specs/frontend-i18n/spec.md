@@ -1,38 +1,13 @@
-# Frontend i18n Specification
+# Delta for Frontend i18n
 
-## Purpose
+New `clients.*` keys cover the freshness badge's four states, the first-run disclosure text, and the opt-out setting copy, complete in both `en` and `es` per design principle 7. Freshness payload values (a reference version string, an upstream package or repository name) are passthrough data, not translatable prose, joining the existing proper-noun rule already applied to `ClientPresence.label`.
 
-Define frontend-only locale resolution, catalogs, and runtime switching for English and Spanish UI chrome.
-
-## Requirements
-
-### Requirement: Supported Locale Resolution
-
-The frontend MUST resolve the active locale from a manual session override when present; otherwise from `navigator.languages` or `navigator.language`. It MUST map `es*` to `es`, `en*` to `en`, and fallback to `en` for unsupported locales.
-
-#### Scenario: Supported browser locale
-- GIVEN no manual override and the browser locale is `es-MX`
-- WHEN the app resolves its initial locale
-- THEN the active locale is `es`
-
-#### Scenario: Unsupported browser locale
-- GIVEN no manual override and the browser locale is `pt-BR`
-- WHEN the app resolves its initial locale
-- THEN the active locale is `en`
-
-### Requirement: Reactive UI Locale Switching
-
-The frontend MUST expose a language selector that updates one shared reactive locale source. Changing that locale MUST update all inventory UI chrome in the same session without requiring a reload.
-
-#### Scenario: Manual language change
-- GIVEN the inventory UI is rendered in English
-- WHEN the user switches the selector to Spanish
-- THEN inventory chrome updates to Spanish in the same session
-- AND no restart or rescan is required
+## MODIFIED Requirements
 
 ### Requirement: Catalog Completeness and Boundary
 
 The frontend MUST provide complete `en` and `es` catalogs for Agents page, Skills page, and `scan` route chrome, including labels, placeholders, loading, empty, failure, title, aria, duplicate, null-path copy, full scan-report labels (roots found/not found, duration, issues), incident-indicator copy, embedded/non-actionable status, the Home scan-status block (healthy/completed-with-issues/failed, retry action), the supported-clients table chrome (`scan.clientsTitle`, `scan.clientDetected`, `scan.clientNotDetected`, `scan.clientVersionUnavailable`, `scan.clientsUnsupportedPlatform`), and the freshness chrome on the clients view: `clients.*` keys for each of the four badge states (up to date, outdated, unknown, pending), the first-run disclosure text (stating that public registries are queried and that nothing about the user is sent), and the opt-out setting's label and description. Existing `inventory.*`, `toolbar.*`, and `diagnostics.*` keys MUST be reused or renamed for the new per-page and scan-route chrome rather than duplicated per page; keys scoped only to the removed combined `inventory` route (including `nav.inventory` and `area.inventory`) MUST be retired. `diagnostics.missingClient`, `scan.installationsTitle`, and `scan.installationsEmpty` MUST also be retired. The frontend MUST NOT localize payload fields or diagnostic passthrough values such as component names, paths, `ScanIssue.reason`, `ScanError.detail.reason`, a `ClientPresence.label` value, a freshness verdict's reference version string, or an upstream package/repository name — these are product proper nouns or opaque data, not translatable prose, and MUST render identically regardless of active locale.
+(Previously: did not cover the freshness badge chrome, the first-run disclosure, the opt-out setting copy, or the passthrough rule for a freshness verdict's version string and upstream identity.)
 
 #### Scenario: Payload stays verbatim
 

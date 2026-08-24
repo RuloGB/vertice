@@ -1,14 +1,13 @@
-# Desktop Shell Specification
+# Delta for Desktop Shell
 
-## Purpose
+The IPC surface grows from two commands to three: a new asynchronous freshness command, structurally separate from `scan`/`rescan`, that MUST NOT participate in the scan's execution path or its CA-15 budget. The capability grant and CSP are unaffected — this is a review check, not an assumption.
 
-Define the Tauri 2 desktop shell IPC surface that exposes the core scan to the frontend: the command contract, non-blocking execution, the capability (ACL) posture, the content security policy, and the frontend filesystem boundary. `add-client-version-freshness` (2026-08-24) grew the command surface from two commands to five: a freshness command, and two settings commands (read/write) required by the confirmed enabled-by-default-with-opt-out posture.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Minimal Scan Command Surface
 
 The shell SHALL expose exactly five commands: `scan` and `rescan`, both implemented in `vertice-app` as identical thin async pass-throughs to the core scan operation; a separate freshness command returning the freshness report; and two settings commands, one reading the persisted freshness settings and one writing them. The two settings commands are not optional conveniences: the confirmed default posture requires a visible opt-out and a first-run disclosure, and neither can function without a way to read and mutate that persisted state. The settings-write command SHALL be the only command in the shell permitted to cause a write, and only to the sanctioned settings/cache location inside the app data directory. Commands MUST contain no business logic — no filtering, no transformation of the report, no caching beyond the sanctioned freshness response cache, no state. `vertice-core` MUST remain unchanged by `scan`/`rescan`. Because no cache exists for the scan itself, `rescan` remains semantically identical to `scan`. The freshness command MUST be invokable independently of `scan`/`rescan`, MUST NOT be awaited by them, and its failure or slowness MUST NOT affect the outcome or timing of a scan invocation.
+(Previously: exposed exactly two commands, `scan` and `rescan`; no freshness command existed.)
 
 #### Scenario: Successful scan returns the consolidated report
 
@@ -40,6 +39,7 @@ The shell SHALL expose exactly five commands: `scan` and `rescan`, both implemen
 ### Requirement: Non-Blocking Command Execution
 
 All five commands SHALL be async and MUST offload their blocking work onto the Tauri async runtime's blocking facility (`spawn_blocking`) or an equivalent non-blocking mechanism. A scan taking up to the CA-15 two-second budget MUST NOT block the main thread or freeze the UI. The freshness command's network-bound work MUST likewise never block the main thread, and its latency MUST NOT be included in, or count against, the CA-15 scan budget.
+(Previously: applied to `scan` and `rescan` only; no third command existed.)
 
 #### Scenario: UI remains responsive during a slow scan
 
@@ -58,6 +58,7 @@ All five commands SHALL be async and MUST offload their blocking work onto the T
 ### Requirement: Typed IPC Contract
 
 Commands MUST return typed results directly, using the generated types exactly as serialized for the TypeScript bindings, including the freshness command's typed report. The shell MUST NOT introduce hand-written DTOs or string error payloads. A failure of an offloaded task itself (join failure) MUST map to the appropriate typed error variant — transport mapping, not business logic. A freshness-lookup failure MUST surface as `Freshness::Unknown` within the typed report, never as a rejected command invocation for an otherwise-successful report.
+(Previously: covered `scan`/`rescan` returning `Result<ScanReport, ScanError>` only.)
 
 #### Scenario: Core error crosses IPC as the typed payload
 
@@ -80,6 +81,7 @@ Commands MUST return typed results directly, using the generated types exactly a
 ### Requirement: Minimal Capability Grant
 
 The shell capability declaration SHALL grant `core:default` only: no filesystem plugin, no filesystem scopes, no shell or dialog permissions. This MUST remain true after the freshness command is added — a direct Rust-side HTTP client requires no Tauri capability grant. The audited desktop surface MUST show that the webview has zero filesystem mutation capability over scanned roots, including content writes, truncation, creation, deletion, rename/link creation, permission changes, and equivalent indirect mutation paths. The audit policy MUST cover the capability file plus the command-exposed desktop surface, including the new freshness command, and MUST avoid claiming that text inspection alone proves all transitive write absence. Verification evidence MUST name the audited capability and command surfaces used to support CA-16.
+(Previously: covered `scan`/`rescan` only; no third command existed to audit.)
 
 #### Scenario: Capabilities grant nothing beyond core default
 
@@ -100,25 +102,3 @@ The shell capability declaration SHALL grant `core:default` only: no filesystem 
 - GIVEN the freshness command is registered
 - WHEN the capability declaration is reviewed
 - THEN it remains `core:default` only, with no filesystem, shell, network, or dialog permission added for the new command
-
-### Requirement: Hardened Content Security Policy
-
-The shell configuration SHALL declare a CSP of at least `default-src 'self'` plus `object-src 'none'` and `base-uri 'none'`. It MUST NOT allow remote content, and the production policy MUST NOT contain `unsafe-inline`.
-
-#### Scenario: Production window loads under the hardened policy
-
-- GIVEN the packaged application
-- WHEN the window loads its content
-- THEN the effective CSP is at least `default-src 'self'; object-src 'none'; base-uri 'none'`
-- AND no content is loaded from any remote origin
-
-### Requirement: Frontend Filesystem Boundary
-
-The frontend SHALL invoke scan commands only through a typed wrapper module importing its types exclusively from the generated bindings. The frontend MUST NOT use any Tauri filesystem plugin or otherwise touch the filesystem; all scan data MUST arrive via command invocation.
-
-#### Scenario: Frontend has no filesystem plugin available
-
-- GIVEN the running application
-- WHEN frontend code executes in the webview
-- THEN no filesystem plugin API is available to it
-- AND scan results reach it only as typed command responses

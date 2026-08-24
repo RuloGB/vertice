@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the contract for detecting which AI clients are installed on the user's machine, on Windows: four independent probe slots (Claude Code npm, Claude Code desktop, OpenCode npm, Codex standalone), each yielding a separately reported `ClientInstallation` with its own version, plus a typed per-slot `ClientPresence` status record (`detected`/`notDetected`) published through `model/`. Traces to T7 of the completed PoC roadmap; closes CA-7 (multiple installations of one client are detected separately, each with its own version) and CA-11 (an absent client is reported as *not detected*, never as an error and never as an unexplained empty list), extended to Codex by `add-codex-client-support` (2026-08-23); bound by CA-16 (read-only) and CA-17 (fixture-based, machine-independent tests on a new, non-reused fixture tree). Core (Rust) only, Windows only — macOS/Linux path tables are T16. **`report-client-presence-as-status` (2026-08-23) reversed the original decision recorded here**: the not-detected representation was originally closed on the `ScanIssue` carrier with a typed carrier explicitly rejected (`client-installation-detection` design §2), but that design's own §2 named its own retrofit condition — once T10/T11's consumer existed, a typed carrier would be "the retrofit, and it is cheap" — and T11 completing met that condition. `domain-model` is now a Modified Capability of this line of work, with `ClientPresence`/`ClientPresenceStatus` published through `model/` and carried on `ScanReport.client_presence`; the not-detected `ScanIssue` `Warning` is removed accordingly. **`add-codex-client-support` (2026-08-23) lifted the exclusion recorded in `client-installation-detection`'s own proposal**, which had listed detection of clients outside the closed `ClientKind` set as out of scope for the PoC; that exclusion is now lifted for Codex, and only for Codex — the closed-set discipline itself is unchanged.
+Defines the contract for detecting which AI clients are installed on the user's machine, on Windows: four independent probe slots (Claude Code npm, Claude Code desktop, OpenCode npm, Codex standalone), each yielding a separately reported `ClientInstallation` with its own version, plus a typed per-slot `ClientPresence` status record (`detected`/`notDetected`) published through `model/`. Traces to T7 of the completed PoC roadmap; closes CA-7 (multiple installations of one client are detected separately, each with its own version) and CA-11 (an absent client is reported as *not detected*, never as an error and never as an unexplained empty list), extended to Codex by `add-codex-client-support` (2026-08-23); bound by CA-16 (read-only) and CA-17 (fixture-based, machine-independent tests on a new, non-reused fixture tree). Core (Rust) only, Windows only — macOS/Linux path tables are T16. **`report-client-presence-as-status` (2026-08-23) reversed the original decision recorded here**: the not-detected representation was originally closed on the `ScanIssue` carrier with a typed carrier explicitly rejected (`client-installation-detection` design §2), but that design's own §2 named its own retrofit condition — once T10/T11's consumer existed, a typed carrier would be "the retrofit, and it is cheap" — and T11 completing met that condition. `domain-model` is now a Modified Capability of this line of work, with `ClientPresence`/`ClientPresenceStatus` published through `model/` and carried on `ScanReport.client_presence`; the not-detected `ScanIssue` `Warning` is removed accordingly. **`add-codex-client-support` (2026-08-23) lifted the exclusion recorded in `client-installation-detection`'s own proposal**, which had listed detection of clients outside the closed `ClientKind` set as out of scope for the PoC; that exclusion is now lifted for Codex, and only for Codex — the closed-set discipline itself is unchanged. **`add-client-version-freshness` (2026-08-24) is a further Modified Capability of this line of work**: the previously private `InstallSlot` was promoted to a public model type, `ClientInstallSlot`, and `ClientPresence` gained a `slot: ClientInstallSlot` field so a consumer resolving upstream identity can dispatch on a stable discriminator instead of parsing `label`. Detection behavior — probes, paths, version sources, ordering, and issues — remains byte-identical; only the published shape of `ClientPresence` changed.
 
 ## Requirements
 
@@ -108,6 +108,37 @@ For each platform with a real probe table, `scan_for` MUST return `Some(Vec<Clie
 - GIVEN a fixture home with no `.codex/` directory at all
 - WHEN the scanner runs
 - THEN the Codex slot's `ClientPresence` record has `status: NotDetected`, empty `installations`, and contributes zero `ScanIssue` values (CA-11)
+
+### Requirement: Published Presence Records Carry A Stable, Non-Display Slot Discriminator
+
+`ClientPresence` MUST publish a machine-readable slot discriminator, distinct from and independent of `label`. This discriminator MUST be a closed enum type in `model/`, exhaustively matchable, mirroring the existing `ClientPresenceStatus`/`Scope` pattern. Every requirement or consumer that must identify which slot a `ClientPresence` record describes MUST key on this discriminator, and MUST NOT key on `ClientPresence.label`, `ClientInstallation.client`, or any other string-matching or prose-parsing technique. `label` remains display-only copy — it has already been reworded once by a prior change — and MUST NOT be treated as a stable identity.
+
+This requirement changes only the published shape of `ClientPresence`. Every probe path, version-extraction source, ordering guarantee, and issue-emission rule already specified in this capability's other requirements is unchanged by it — no probe, path, version source, or issue behavior is added, removed, or altered.
+
+#### Scenario: The slot discriminator is exhaustively matchable
+
+- GIVEN a `match` over every variant of the slot discriminator type with no wildcard arm
+- WHEN the code is compiled
+- THEN compilation succeeds, proving the enum is closed
+
+#### Scenario: Two slots with identical labels remain distinguishable by discriminator
+
+- GIVEN a hypothetical future revision to `label` wording that could produce ambiguity if strings were compared
+- WHEN two `ClientPresence` records are compared by their slot discriminator instead of their label
+- THEN the comparison is unambiguous and independent of the current wording of either record's `label`
+
+#### Scenario: Detection behavior is unchanged by the new field
+
+- GIVEN the existing fixture suite for probes, version extraction, and issue emission
+- WHEN the scanner runs after this change
+- THEN every `ClientInstallation`, `ScanIssue`, and ordering outcome is byte-identical to the pre-change result, with only the added slot discriminator present on each `ClientPresence` record
+
+#### Scenario: A consumer resolving upstream identity dispatches on the discriminator, not on label text
+
+- GIVEN a consumer that must determine which upstream registry or repository a `ClientPresence` record corresponds to
+- WHEN that resolution is implemented
+- THEN it dispatches on the slot discriminator value
+- AND it does not parse, match, or compare against the record's `label` string to make that determination
 
 ### Requirement: Each Codex Release Directory Is Its Own Installation
 
