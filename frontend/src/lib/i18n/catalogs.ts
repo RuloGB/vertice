@@ -17,11 +17,14 @@ export type Catalog = {
   home: {
     greeting: string;
     subtitle: string;
-    statComponents: string;
+    statClients: string;
     statSkills: string;
     statAgents: string;
     statRoots: string;
     statsPending: string;
+    outdatedTitle: string;
+    outdatedEmpty: string;
+    outdatedUpdateAvailable: string;
     ctaTitle: string;
     ctaBody: string;
     ctaAction: string;
@@ -173,11 +176,14 @@ export const catalogs = {
       greeting: "Welcome to Vertice",
       subtitle:
         "Vertice reads your machine and shows every AI component installed across your clients.",
-      statComponents: "Components",
+      statClients: "AI Clients",
       statSkills: "Skills",
       statAgents: "Agents",
       statRoots: "Scan roots",
       statsPending: "—",
+      outdatedTitle: "Outdated components",
+      outdatedEmpty: "Everything is up to date.",
+      outdatedUpdateAvailable: "Update available: {latest}",
       ctaTitle: "Browse your components",
       ctaBody: "Agents and Skills are backed by the startup scan.",
       ctaAction: "Open agents",
@@ -326,11 +332,14 @@ export const catalogs = {
       greeting: "Bienvenido a Vertice",
       subtitle:
         "Vertice analiza tu equipo y muestra todos los componentes de IA instalados en tus clientes",
-      statComponents: "Componentes",
+      statClients: "Clientes de IA",
       statSkills: "Skills",
       statAgents: "Agentes",
       statRoots: "Raíces de escaneo",
       statsPending: "—",
+      outdatedTitle: "Componentes desactualizados",
+      outdatedEmpty: "Todo está actualizado.",
+      outdatedUpdateAvailable: "Actualización disponible: {latest}",
       ctaTitle: "Explora tus componentes",
       ctaBody: "Agents y Skills se apoyan en el escaneo de arranque.",
       ctaAction: "Abrir agentes",

@@ -1,5 +1,9 @@
 <script lang="ts">
+  import type { ClientInstallSlot } from "../../bindings/ClientInstallSlot";
+  import type { ClientKind } from "../../bindings/ClientKind";
+  import type { FreshnessReport } from "../../bindings/FreshnessReport";
   import type { ScanReport } from "../../bindings/ScanReport";
+  import { fetchFreshness } from "../freshness";
   import BrandMark from "../BrandMark.svelte";
   import { useI18n } from "../i18n/locale.svelte";
   import NavIcon from "../NavIcon.svelte";
@@ -23,14 +27,26 @@
     onRetry: () => void;
   } = $props();
 
-  // Counts mirror the report already in memory; the landing page never scans.
+  const CLIENT_DEFS = [
+    { name: "Claude Code", slots: ["claudeCodeNpm", "claudeCodeBundled"] as ClientInstallSlot[], kind: "claudeCode" as ClientKind },
+    { name: "OpenCode", slots: ["openCodeNpm"] as ClientInstallSlot[], kind: "openCode" as ClientKind },
+    { name: "Codex", slots: ["codexStandalone"] as ClientInstallSlot[], kind: "codex" as ClientKind },
+  ] as const;
+
   const stats = $derived.by(() => {
     if (report === null) {
       return null;
     }
     const components = report.components;
+    const allDetected = (report.clientPresence ?? [])
+      .filter((presence) => presence.status === "detected")
+      .flatMap((presence) => presence.installations);
+    const uniqueKinds = allDetected.reduce<ClientKind[]>((acc, installation) => {
+      if (!acc.includes(installation.client)) acc.push(installation.client);
+      return acc;
+    }, []);
     return {
-      components: components.length,
+      clients: uniqueKinds.length,
       skills: components.filter(({ kind }) => kind === "skill").length,
       agents: components.filter(({ kind }) => kind === "agent").length,
       roots: report.rootsScanned.length,
@@ -38,11 +54,37 @@
   });
 
   const tiles = $derived([
-    { key: "components", route: "scan" as RouteId, label: i18n.t("home.statComponents"), value: stats?.components },
+    { key: "clients", route: "clients" as RouteId, label: i18n.t("home.statClients"), value: stats?.clients },
     { key: "skills", route: "skills" as RouteId, label: i18n.t("home.statSkills"), value: stats?.skills },
     { key: "agents", route: "agents" as RouteId, label: i18n.t("home.statAgents"), value: stats?.agents },
     { key: "roots", route: "scan" as RouteId, label: i18n.t("home.statRoots"), value: stats?.roots },
   ]);
+
+  let freshness = $state<FreshnessReport | null>(null);
+
+  void (async () => {
+    try {
+      freshness = await fetchFreshness();
+    } catch {
+      // Freshness is best-effort on the home page; never block rendering.
+    }
+  })();
+
+  type OutdatedEntry = { name: string; installed: string; latest: string };
+
+  const outdatedItems = $derived.by((): OutdatedEntry[] => {
+    if (!freshness?.enabled || !report) return [];
+    const items: OutdatedEntry[] = [];
+    for (const check of freshness.checks) {
+      const verdict = check.verdict;
+      if (verdict === "upToDate" || !("outdated" in verdict)) continue;
+      const slot = check.subject.clientInstallation.slot;
+      const def = CLIENT_DEFS.find((candidate) => candidate.slots.includes(slot));
+      if (!def) continue;
+      items.push({ name: def.name, installed: check.installed, latest: verdict.outdated.latest });
+    }
+    return items;
+  });
 </script>
 
 <section class="flex min-h-full flex-col gap-6 rounded-[1.75rem] bg-canvas p-2 text-content xl:gap-7">
@@ -133,6 +175,28 @@
       </div>
     {/if}
   </div>
+
+  {#if status === "ready" && outdatedItems.length > 0}
+    <div class="rounded-2xl border border-stroke bg-surface shadow-panel">
+      <div class="flex items-center gap-3 border-b border-stroke px-6 py-4">
+        <span class="flex size-2 rounded-full bg-action" aria-hidden="true"></span>
+        <h2 class="text-lg font-semibold tracking-tight text-content">{i18n.t("home.outdatedTitle")}</h2>
+      </div>
+      <ul class="divide-y divide-stroke">
+        {#each outdatedItems as item (item.name)}
+          <li class="flex items-center justify-between gap-4 px-6 py-3.5">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-sm font-semibold text-content">{item.name}</span>
+              <span class="text-xs text-content-muted">{item.installed}</span>
+            </div>
+            <span class="rounded-full border border-action/45 bg-action/10 px-2.5 py-1 text-xs font-semibold text-action">
+              {i18n.t("home.outdatedUpdateAvailable", { latest: item.latest })}
+            </span>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
   <div
     class="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-interactive/45 bg-surface-raised px-6 py-6 shadow-callout"

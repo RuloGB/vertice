@@ -920,7 +920,7 @@ describe("App shell navigation", () => {
     for (const [key, title] of [
       ["skills", "Skills"],
       ["agents", "Agents"],
-      ["components", "Scan"],
+      ["clients", "AI Clients"],
       ["roots", "Scan"],
     ] as const) {
       const tile = document.querySelector<HTMLButtonElement>(`[data-testid="home-stat-${key}"]`);
