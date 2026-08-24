@@ -12,9 +12,8 @@ use crate::model::{ScanError, SearchRoot, SearchRootId, SearchRootKind, SearchRo
 
 /// A resolved root together with every path that MUST be scanned for it.
 /// One entry per element except the OpenCode root, which carries two: the
-/// canonical plural path and the singular alias
-/// (`plan-desarrollo-poc.md:116`), scanned as one logical root under one
-/// id.
+/// canonical plural path and the singular alias, scanned as one logical
+/// root under one id.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedRoot {
     pub root: SearchRoot,

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the contract for reading YAML frontmatter from a single `SKILL.md`-shaped file: isolating the `---`-fenced block, delegating YAML deserialization to the shared seam, and converting every documented failure class into a `ScanIssue` value. Traces to T3 of `internal-docs/plan-desarrollo-poc.md`; closes CA-10 (complete multi-line description) and CA-12 (partial: corrupt file carries its path). Core (Rust) only — no frontend or IPC surface.
+Defines the contract for reading YAML frontmatter from a single `SKILL.md`-shaped file: isolating the `---`-fenced block, delegating YAML deserialization to the shared seam, and converting every documented failure class into a `ScanIssue` value. Traces to T3 of the completed PoC roadmap; closes CA-10 (complete multi-line description) and CA-12 (partial: corrupt file carries its path). Core (Rust) only — no frontend or IPC surface.
 
 ## Requirements
 

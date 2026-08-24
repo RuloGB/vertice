@@ -207,7 +207,7 @@ fn split_release_dir_name(name: &str) -> Option<&str> {
 
 /// Build the Windows probe list under `home`: the two npm slots (always
 /// exactly one candidate each, `home` plus hardcoded segments — never
-/// `dirs`/`directories`, never an env read, `plan-desarrollo-poc.md:179`),
+/// `dirs`/`directories`, never an env read),
 /// and the bundled slot (1..N candidates from a bounded, read-only,
 /// one-level-deep `Claude_*`-prefix-filtered listing of
 /// `home/AppData/Local/Packages`, plus the hardcoded legacy path, always
@@ -337,7 +337,7 @@ fn bundled_candidates(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<PathBuf> 
 /// unit-testable without touching the filesystem. Prefix match is byte-exact
 /// on `OsStr::as_encoded_bytes()` — no UTF-8 requirement, no allocation for
 /// the comparison, no locale-dependent case folding (which would itself be
-/// an OS-convention inference, forbidden by `plan-desarrollo-poc.md:179`).
+/// an OS-convention inference, which path resolution here never makes).
 fn filter_and_sort_claude_packages(names: Vec<OsString>) -> Vec<OsString> {
     let mut matched: Vec<OsString> = names
         .into_iter()

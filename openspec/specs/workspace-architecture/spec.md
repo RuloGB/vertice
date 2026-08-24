@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the Cargo workspace layout and the structural invariants that keep `vertice-core` reusable as a headless library (enabling a future CLI binary without a rewrite), plus the MSRV floor, the YAML serialization crate decision, and the broader "one module owns the parser" seam convention that all later adapters depend on. Traces to T1 of `internal-docs/plan-desarrollo-poc.md` and to stack decision #5 (core stays Tauri-agnostic); the seam inventory was extended to a third seam, `toml.rs`, by T7's `add-codex-client-support` (2026-08-23).
+Defines the Cargo workspace layout and the structural invariants that keep `vertice-core` reusable as a headless library (enabling a future CLI binary without a rewrite), plus the MSRV floor, the YAML serialization crate decision, and the broader "one module owns the parser" seam convention that all later adapters depend on. Traces to T1 of the completed PoC roadmap and to stack decision #5 (core stays Tauri-agnostic); the seam inventory was extended to a third seam, `toml.rs`, by T7's `add-codex-client-support` (2026-08-23).
 
 ## Requirements
 

@@ -24,9 +24,9 @@ testing_runner: cargo test (core), npm run test (frontend), tauri-driver (E2E)
 
 rules:
   proposal:
-    - Trace to a concrete phase in plan-desarrollo-poc.md (T1–T16)
-    - Identify which Criteria of Acceptance (CA-1 through CA-17) the change addresses
-    - For PoC: verify change does not introduce out-of-scope features (MCPs, project scope, write operations)
+    - Trace to the living capability specs in openspec/specs/ that the change touches
+    - State which behaviour is added, modified, or removed, and for whom
+    - Verify the change respects the standing structural invariants (core stays Tauri-free, model/ stays I/O-free, single-owner parser seams)
     - Include rollback impact for three-layer architecture
 
   specs:
@@ -44,8 +44,8 @@ rules:
     - Include error paths (ScanIssue taxonomy)
 
   tasks:
-    - Group by phase from plan-desarrollo-poc.md (Phase 0–4)
-    - Link each task to T1–T16 and its CA criteria
+    - Group by layer and delivery slice (core, IPC/app, frontend), in dependency order
+    - Link each task to the spec requirement it satisfies
     - For platform work: separate fixture creation (all platforms CI) from system verification (local)
     - Mark read-only constraints explicitly
     - Order: T1 (CI/workspace) → T2 (model) → T3–T7 (adaptors parallel) → T8–T9 (consolidation) → T10–T13 (UI/i18n) → T14–T16 (audit/release/platform)

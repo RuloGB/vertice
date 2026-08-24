@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the cross-platform continuous integration gates that must pass before any change merges. Traces to T1 of `internal-docs/plan-desarrollo-poc.md` and to CA-17 (core tests pass on versioned fixtures across the three CI platforms).
+Defines the cross-platform continuous integration gates that must pass before any change merges. Traces to T1 of the completed PoC roadmap and to CA-17 (core tests pass on versioned fixtures across the three CI platforms).
 
 ## Requirements
 

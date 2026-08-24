@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the contract for `consolidate(Vec<Component>) -> Vec<Component>`, a pure post-scan transform that groups scanned components by derived identity, merges their locations without loss, resolves divergent display fields by first-non-empty precedence, and returns a deterministically ordered result. Traces to **T8** of `internal-docs/plan-desarrollo-poc.md`; closes **CA-2** (25 not 69), **CA-3** (22 duplicated with three paths), **CA-4** (3 without a duplicate mark), **CA-8** (`_shared` consolidated with no name filtering). Bound by **CA-16** (read-only) and **CA-17** (versioned fixtures only). Core (Rust) only — no IPC or frontend surface.
+Defines the contract for `consolidate(Vec<Component>) -> Vec<Component>`, a pure post-scan transform that groups scanned components by derived identity, merges their locations without loss, resolves divergent display fields by first-non-empty precedence, and returns a deterministically ordered result. Traces to **T8** of the completed PoC roadmap; closes **CA-2** (25 not 69), **CA-3** (22 duplicated with three paths), **CA-4** (3 without a duplicate mark), **CA-8** (`_shared` consolidated with no name filtering). Bound by **CA-16** (read-only) and **CA-17** (versioned fixtures only). Core (Rust) only — no IPC or frontend surface.
 
 ## Requirements
 

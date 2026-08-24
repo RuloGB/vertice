@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the ten core domain types shared by all adapters and the frontend, the deterministic identity rule that makes aggregation possible (T8), the `ScanIssue`/`ScanReport` error and result contract, and the Rust-to-TypeScript type generation surface. Traces to T2 of `internal-docs/plan-desarrollo-poc.md` and enables CA-2, CA-3, CA-4, CA-5, CA-13. This spec performs zero disk I/O; scenarios are fixture-free.
+Defines the ten core domain types shared by all adapters and the frontend, the deterministic identity rule that makes aggregation possible (T8), the `ScanIssue`/`ScanReport` error and result contract, and the Rust-to-TypeScript type generation surface. Traces to T2 of the completed PoC roadmap and enables CA-2, CA-3, CA-4, CA-5, CA-13. This spec performs zero disk I/O; scenarios are fixture-free.
 
 ## Requirements
 

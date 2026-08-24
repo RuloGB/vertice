@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the contract for discovering skill `Component` values under the four fixed user roots on disk. Traces to T4 of `internal-docs/plan-desarrollo-poc.md`, extended by T7's `add-codex-client-support`; closes CA-6 (no plugin skill appears), CA-8 partial (`_shared` is an ordinary skill), CA-9 (absent/empty root produces no issue and no component), CA-14 (no project-scope component); contributes to CA-12 partial (unreadable file is reported, scan continues); bound by CA-16 (read-only). Core (Rust) only — no IPC or frontend surface in this change; regenerated bindings are a byproduct of the `domain-model` delta.
+Defines the contract for discovering skill `Component` values under the four fixed user roots on disk. Traces to T4 of the completed PoC roadmap, extended by T7's `add-codex-client-support`; closes CA-6 (no plugin skill appears), CA-8 partial (`_shared` is an ordinary skill), CA-9 (absent/empty root produces no issue and no component), CA-14 (no project-scope component); contributes to CA-12 partial (unreadable file is reported, scan continues); bound by CA-16 (read-only). Core (Rust) only — no IPC or frontend surface in this change; regenerated bindings are a byproduct of the `domain-model` delta.
 
 ## Requirements
 

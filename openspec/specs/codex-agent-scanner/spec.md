@@ -4,8 +4,7 @@
 
 Defines the contract for discovering Codex agent `Component` values from
 flat TOML files under `~/.codex/agents/`. Traces to T7's third-client
-extension of the T5/T6 per-client agent-adapter pattern
-(`internal-docs/plan-desarrollo-poc.md:132-167`), added by
+extension of the T5/T6 per-client agent-adapter pattern, added by
 `add-codex-client-support` (2026-08-23); closes CA-12 (a corrupt file is
 reported with its path and does not break the scan) for the new TOML
 dialect, and CA-8 (no name-convention filtering) re-affirmed for a third
