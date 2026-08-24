@@ -5,6 +5,7 @@
   import { createI18n, provideI18n } from "./lib/i18n/locale.svelte";
   import { areaLabelKey, DEFAULT_ROUTE, hasContent, type RouteId } from "./lib/navigation";
   import AgentsPage from "./lib/pages/AgentsPage.svelte";
+  import ClientsPage from "./lib/pages/ClientsPage.svelte";
   import HomePage from "./lib/pages/HomePage.svelte";
   import PlaceholderPage from "./lib/pages/PlaceholderPage.svelte";
   import ScanPage from "./lib/pages/ScanPage.svelte";
@@ -122,6 +123,8 @@
           onReload={() => void runScan("reload")}
           onNavigate={(next) => (route = next)}
         />
+      {:else if route === "clients"}
+        <ClientsPage {report} {status} {failureMessage} />
       {:else if route === "scan"}
         <ScanPage
           {status}

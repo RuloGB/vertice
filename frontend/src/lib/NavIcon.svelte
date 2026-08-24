@@ -24,6 +24,9 @@
   {:else if route === "skills"}
     <path d="m12 3 1.9 4.8L18.7 9.7l-4.8 1.9L12 16.4l-1.9-4.8L5.3 9.7l4.8-1.9z" />
     <path d="m18 16 .8 2.1 2.2.9-2.2.9L18 22l-.8-2.1-2.2-.9 2.2-.9z" />
+  {:else if route === "clients"}
+    <rect x="3" y="4" width="18" height="16" rx="3" />
+    <path d="M7 8h10M7 12h6M7 16h3" />
   {:else if route === "mcp"}
     <path d="M12 3v6M7 9h10v3a5 5 0 0 1-10 0z" />
     <path d="M12 17v4M9 3v2M15 3v2" />

@@ -792,6 +792,7 @@ describe("App shell navigation", () => {
       "Home",
       "Agents",
       "Skills",
+      "AI Clients",
       "MCP",
       "Prompts",
       "Scan",
@@ -807,6 +808,24 @@ describe("App shell navigation", () => {
     expect(sidebar?.querySelector('[aria-current="page"]')?.textContent?.trim()).toBe("Home");
     expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
     expect(document.querySelector('input[type="search"]')).toBeNull();
+
+    unmount(app);
+  });
+
+  it("renders AI client cards with scan detection and empty usage bars", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    navigateTo("AI Clients");
+    await flushApp();
+
+    expect(visibleText()).toContain("Claude Code");
+    expect(visibleText()).toContain("OpenCode");
+    expect(visibleText()).toContain("Codex");
+    expect(visibleText()).toContain("Detected");
+    expect(document.querySelectorAll("article")).toHaveLength(3);
+    expect(document.querySelectorAll("article .w-0")).toHaveLength(6);
 
     unmount(app);
   });
