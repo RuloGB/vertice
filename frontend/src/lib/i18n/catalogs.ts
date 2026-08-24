@@ -106,6 +106,18 @@ export type Catalog = {
     usageUnavailable: string;
     empty: string;
   };
+  freshness: {
+    upToDate: string;
+    outdated: string;
+    unknown: string;
+    pending: string;
+    disclosureTitle: string;
+    disclosureBody: string;
+    disclosureDismiss: string;
+    settingLabel: string;
+    settingDescription: string;
+    settingToggleAria: string;
+  };
   incident: {
     label: string;
     count: string;
@@ -250,6 +262,19 @@ export const catalogs = {
       usageUnavailable: "Usage data will be available when the backend is connected.",
       empty: "No client detection data is available.",
     },
+    freshness: {
+      upToDate: "Up to date",
+      outdated: "Update available: {latest}",
+      unknown: "Unknown",
+      pending: "Checking...",
+      disclosureTitle: "Checking for newer versions",
+      disclosureBody:
+        "Vertice checks public package registries to tell you when a detected client is out of date. Nothing about you or your machine is sent.",
+      disclosureDismiss: "Got it",
+      settingLabel: "Check for newer versions",
+      settingDescription: "Queries public registries only. Disable to stop all outbound requests.",
+      settingToggleAria: "Enable version freshness checks",
+    },
     incident: {
       label: "Scan incidents",
       count: "{count} scan incidents",
@@ -389,6 +414,20 @@ export const catalogs = {
       monthlyUsage: "Uso mensual",
       usageUnavailable: "Los datos de uso estarán disponibles cuando se conecte el backend.",
       empty: "No hay datos de detección de clientes.",
+    },
+    freshness: {
+      upToDate: "Actualizado",
+      outdated: "Actualización disponible: {latest}",
+      unknown: "Desconocido",
+      pending: "Comprobando...",
+      disclosureTitle: "Comprobación de versiones nuevas",
+      disclosureBody:
+        "Vertice consulta registros públicos de paquetes para avisarte cuando un cliente detectado está desactualizado. No se envía nada sobre ti ni sobre tu equipo.",
+      disclosureDismiss: "Entendido",
+      settingLabel: "Comprobar versiones nuevas",
+      settingDescription:
+        "Solo consulta registros públicos. Desactívalo para detener todas las solicitudes salientes.",
+      settingToggleAria: "Activar la comprobación de versiones",
     },
     incident: {
       label: "Incidencias del escaneo",

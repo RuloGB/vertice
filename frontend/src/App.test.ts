@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
+import { fetchFreshness, fetchFreshnessSettings } from "./lib/freshness";
 import { rescan, scan } from "./lib/scan";
 import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
@@ -16,8 +17,16 @@ vi.mock("./lib/scan", () => ({
   scan: vi.fn(),
 }));
 
+vi.mock("./lib/freshness", () => ({
+  fetchFreshness: vi.fn(),
+  fetchFreshnessSettings: vi.fn(),
+  setFreshnessSettings: vi.fn(),
+}));
+
 const mockedScan = vi.mocked(scan);
 const mockedRescan = vi.mocked(rescan);
+const mockedFetchFreshness = vi.mocked(fetchFreshness);
+const mockedFetchFreshnessSettings = vi.mocked(fetchFreshnessSettings);
 
 function skillFixture(): Component {
   return {
@@ -82,6 +91,7 @@ function cleanReportFixture(): ScanReport {
     installations: [{ client: "claudeCode", version: "1.0.0", path: "C:/clients/claude" }],
     clientPresence: [
       {
+        slot: "claudeCodeNpm",
         label: "Claude Code CLI (npm)",
         probedPaths: ["C:/clients/claude"],
         status: "detected",
@@ -132,6 +142,7 @@ function mixedReportFixture(): ScanReport {
     ],
     clientPresence: [
       {
+        slot: "claudeCodeNpm",
         label: "Claude Code CLI (npm)",
         probedPaths: ["C:/Users/example/AppData/Roaming/npm"],
         status: "notDetected",
@@ -147,6 +158,7 @@ function threeRowClientPresenceFixture(): ScanReport {
     rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
     clientPresence: [
       {
+        slot: "claudeCodeNpm",
         label: "Claude Code CLI (npm)",
         probedPaths: ["C:/clients/claude-npm"],
         status: "detected",
@@ -155,6 +167,7 @@ function threeRowClientPresenceFixture(): ScanReport {
         ],
       },
       {
+        slot: "claudeCodeBundled",
         label: "Claude Code (bundled in Claude Desktop)",
         probedPaths: ["C:/clients/pkg-a", "C:/clients/legacy"],
         status: "detected",
@@ -164,6 +177,7 @@ function threeRowClientPresenceFixture(): ScanReport {
         ],
       },
       {
+        slot: "openCodeNpm",
         label: "OpenCode (npm)",
         probedPaths: ["C:/clients/opencode-npm"],
         status: "notDetected",
@@ -214,6 +228,8 @@ describe("App locale switching", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
+    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 
   it("updates visible chrome, document metadata, and avoids rescanning when the selector changes", async () => {
@@ -480,6 +496,46 @@ describe("App per-kind pages", () => {
         "Components per page",
       ]);
     }
+
+    unmount(app);
+  });
+
+  it("keeps an all-outdated freshness report out of the incident channel and the Home block", async () => {
+    // `inventory-ui`: an out-of-date client is NOT a scan incident. The
+    // previous change fought to give absence its own carrier; freshness
+    // must not smuggle a second meaning back into that channel.
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    mockedFetchFreshness.mockResolvedValue({
+      enabled: true,
+      checks: [
+        {
+          subject: { clientInstallation: { slot: "claudeCodeNpm", path: "C:/clients/claude" } },
+          installed: "1.0.0",
+          verdict: { outdated: { latest: "9.9.9" } },
+        },
+      ],
+    });
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    // Visit the clients page so the freshness report is actually fetched.
+    navigateTo("AI Clients");
+    await flushApp();
+    await flushApp();
+    expect(mockedFetchFreshness).toHaveBeenCalled();
+
+    navigateTo("Agents");
+    await flushApp();
+    expect(document.querySelector('[data-testid="incident-indicator"]')).toBeNull();
+
+    navigateTo("Skills");
+    await flushApp();
+    expect(document.querySelector('[data-testid="incident-indicator"]')).toBeNull();
+
+    navigateTo("Home");
+    await flushApp();
+    expect(visibleText()).not.toContain("The scan failed");
 
     unmount(app);
   });
@@ -777,6 +833,8 @@ describe("App shell navigation", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
+    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 
   it("lands on the greeting page with live counts and every sidebar destination", async () => {
@@ -935,6 +993,8 @@ describe("App subscriptions page", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
+    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 
   it("renders one card per active subscription with plan, amount and renewal date", async () => {
