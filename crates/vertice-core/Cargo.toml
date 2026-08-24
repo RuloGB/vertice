@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 jsonc-parser = { version = "0.33", default-features = false }
+semver = "1"
 serde = { workspace = true }
 serde_norway = "0.9"
 thiserror = { workspace = true }

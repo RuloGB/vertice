@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define T9's public core scan workflow, which produces one complete in-memory `ScanReport` from the existing adapters and duplicate consolidation.
+Define T9's public core scan workflow, which produces one complete in-memory `ScanReport` from the existing adapters and duplicate consolidation. `add-client-version-freshness` (2026-08-24) added the constraint that freshness is explicitly outside this operation: never invoked by the scan, never counted toward the CA-15 budget, and a failed lookup is never represented as a `ScanIssue`.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ The core SHALL expose one public scan operation that invokes the existing skills
 
 ### Requirement: Visible and Isolated Diagnostics
 
-The scan operation MUST accumulate diagnostics for non-parseable components with their paths, undetected supported clients, and absent roots. It MUST NOT omit those conditions silently. A failure from one adapter MUST NOT abort the remaining adapters; their available results and diagnostics MUST remain represented in the report.
+The scan operation MUST accumulate diagnostics for non-parseable components with their paths, undetected supported clients, and absent roots. It MUST NOT omit those conditions silently. A failure from one adapter MUST NOT abort the remaining adapters; their available results and diagnostics MUST remain represented in the report. A failed or degraded freshness lookup MUST NOT produce a `ScanIssue` under any circumstance; it is represented exclusively as `Freshness::Unknown` in the separate freshness report, never in `ScanReport.issues`.
 
 #### Scenario: Unreadable component does not interrupt the scan
 
@@ -58,9 +58,16 @@ The scan operation MUST accumulate diagnostics for non-parseable components with
 - WHEN the public core scan operation runs
 - THEN the report includes an `Error` `ScanIssue` for the malformed Codex agent file, and every other adapter's valid results are still present in the report
 
+#### Scenario: A failed freshness lookup never becomes a ScanIssue
+
+- GIVEN every reference-version lookup fails for the current set of subjects
+- WHEN the scan operation and the freshness evaluation both run
+- THEN `ScanReport.issues` contains zero entries attributable to the freshness failure
+- AND the degradation is represented only as `Freshness::Unknown` in the freshness report
+
 ### Requirement: Measured Reference-Volume Performance
 
-The scan operation MUST measure elapsed scan duration and place that measured value in the report. On the versioned reference-volume fixture, the complete scan MUST finish in under two seconds, satisfying CA-15.
+The scan operation MUST measure elapsed scan duration and place that measured value in the report. On the versioned reference-volume fixture, the complete scan MUST finish in under two seconds, satisfying CA-15. The scan operation MUST NOT invoke, await, or otherwise depend on any freshness/reference-version lookup; the measured duration MUST reflect only the scan's own adapters and consolidation, never any network-bound freshness work, regardless of whether the freshness check is enabled or disabled.
 
 #### Scenario: Reference-volume scan meets CA-15
 
@@ -68,6 +75,13 @@ The scan operation MUST measure elapsed scan duration and place that measured va
 - WHEN the complete public core scan operation runs
 - THEN the returned report contains its measured duration
 - AND the scan completes in less than two seconds
+
+#### Scenario: The scan operation does not await freshness
+
+- GIVEN the freshness check is enabled
+- WHEN the public core scan operation runs
+- THEN it completes without invoking or waiting on any freshness/reference-version lookup
+- AND its measured duration is unaffected by freshness lookup latency
 
 ### Requirement: In-Memory Read-Only Result
 

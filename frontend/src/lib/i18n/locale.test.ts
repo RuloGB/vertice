@@ -114,6 +114,23 @@ describe("catalogs", () => {
       expect(catalog.home.scanPending).toBeTruthy();
     }
   });
+
+  it("adds freshness badge, disclosure, and opt-out setting keys in both locales", () => {
+    for (const locale of ["en", "es"] as const) {
+      const catalog = catalogs[locale] as unknown as Record<string, Record<string, string>>;
+
+      expect(catalog.freshness.upToDate).toBeTruthy();
+      expect(catalog.freshness.outdated).toBeTruthy();
+      expect(catalog.freshness.unknown).toBeTruthy();
+      expect(catalog.freshness.pending).toBeTruthy();
+      expect(catalog.freshness.disclosureTitle).toBeTruthy();
+      expect(catalog.freshness.disclosureBody).toBeTruthy();
+      expect(catalog.freshness.disclosureDismiss).toBeTruthy();
+      expect(catalog.freshness.settingLabel).toBeTruthy();
+      expect(catalog.freshness.settingDescription).toBeTruthy();
+      expect(catalog.freshness.settingToggleAria).toBeTruthy();
+    }
+  });
 });
 
 describe("formatMessage", () => {
@@ -125,6 +142,17 @@ describe("formatMessage", () => {
     );
     expect(formatMessage(catalogs.es.failure.internalReason, { reason })).toBe(
       "Fallo interno del escaneo: join failure: task panicked",
+    );
+  });
+
+  it("interpolates a freshness verdict's reference version verbatim in both catalogs", () => {
+    const latest = "2.1.241";
+
+    expect(formatMessage(catalogs.en.freshness.outdated, { latest })).toBe(
+      "Update available: 2.1.241",
+    );
+    expect(formatMessage(catalogs.es.freshness.outdated, { latest })).toBe(
+      "Actualización disponible: 2.1.241",
     );
   });
 

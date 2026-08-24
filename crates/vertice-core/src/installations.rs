@@ -26,7 +26,8 @@ use std::path::{Path, PathBuf};
 
 use crate::jsonc::{self, JsonValue};
 use crate::model::{
-    ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus, IssueSeverity, ScanIssue,
+    ClientInstallSlot, ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus,
+    IssueSeverity, ScanIssue,
 };
 
 /// Owned result of one client-installation scan. A distinct type from
@@ -124,45 +125,33 @@ fn flatten_presence(presence: &Option<Vec<ClientPresence>>) -> Vec<ClientInstall
 
 // --- private ---
 
-/// Which client a slot belongs to, its not-detected label, and where its
-/// version comes from. Replaces the old `(ClientKind, InstallKind)` pair,
-/// which could express nonsense combinations and forced a single
-/// `{Client} ({kind})` string template that cannot produce
-/// `"Claude Code CLI (npm)"` and `"Claude Code (bundled in Claude Desktop)"`
-/// from the same grammar. Never exposed as a public/`TS` type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum InstallSlot {
-    ClaudeCodeNpm,
-    ClaudeCodeBundled,
-    OpenCodeNpm,
-    CodexStandalone,
-}
-
-impl InstallSlot {
+/// Which client a slot belongs to and where its version comes from.
+/// `ClientInstallSlot` itself — the closed identity enum and its `label()`
+/// — now lives in `model/slot.rs`, promoted to a public type
+/// (`add-client-version-freshness` design §2) because `component-freshness`
+/// needs to dispatch on slot identity outside this crate. This impl block
+/// carries the detection-only behavior that stays private to this module:
+/// which `ClientKind` a slot belongs to, and which of the four version
+/// sources it reads from. No probe, path, or version-source behavior
+/// changed by this promotion.
+impl ClientInstallSlot {
     fn client(self) -> ClientKind {
         match self {
-            InstallSlot::ClaudeCodeNpm | InstallSlot::ClaudeCodeBundled => ClientKind::ClaudeCode,
-            InstallSlot::OpenCodeNpm => ClientKind::OpenCode,
-            InstallSlot::CodexStandalone => ClientKind::Codex,
-        }
-    }
-
-    /// The settled label used in `"{label} not detected"` and in this
-    /// slot's `Error` reasons.
-    fn label(self) -> &'static str {
-        match self {
-            InstallSlot::ClaudeCodeNpm => "Claude Code CLI (npm)",
-            InstallSlot::ClaudeCodeBundled => "Claude Code (bundled in Claude Desktop)",
-            InstallSlot::OpenCodeNpm => "OpenCode (npm)",
-            InstallSlot::CodexStandalone => "Codex CLI (standalone)",
+            ClientInstallSlot::ClaudeCodeNpm | ClientInstallSlot::ClaudeCodeBundled => {
+                ClientKind::ClaudeCode
+            }
+            ClientInstallSlot::OpenCodeNpm => ClientKind::OpenCode,
+            ClientInstallSlot::CodexStandalone => ClientKind::Codex,
         }
     }
 
     fn version_source(self) -> VersionSource {
         match self {
-            InstallSlot::ClaudeCodeNpm | InstallSlot::OpenCodeNpm => VersionSource::PackageJson,
-            InstallSlot::ClaudeCodeBundled => VersionSource::DirectoryName,
-            InstallSlot::CodexStandalone => VersionSource::ReleaseDirectoryName,
+            ClientInstallSlot::ClaudeCodeNpm | ClientInstallSlot::OpenCodeNpm => {
+                VersionSource::PackageJson
+            }
+            ClientInstallSlot::ClaudeCodeBundled => VersionSource::DirectoryName,
+            ClientInstallSlot::CodexStandalone => VersionSource::ReleaseDirectoryName,
         }
     }
 }
@@ -172,7 +161,7 @@ impl InstallSlot {
 /// the npm slots always contribute exactly one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct InstallProbe {
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     path: PathBuf,
 }
 
@@ -231,13 +220,13 @@ fn windows_install_probes(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<Insta
         claude_npm.push(segment);
     }
     probes.push(InstallProbe {
-        slot: InstallSlot::ClaudeCodeNpm,
+        slot: ClientInstallSlot::ClaudeCodeNpm,
         path: claude_npm,
     });
 
     for candidate in bundled_candidates(home, issues) {
         probes.push(InstallProbe {
-            slot: InstallSlot::ClaudeCodeBundled,
+            slot: ClientInstallSlot::ClaudeCodeBundled,
             path: candidate,
         });
     }
@@ -247,7 +236,7 @@ fn windows_install_probes(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<Insta
         opencode_npm.push(segment);
     }
     probes.push(InstallProbe {
-        slot: InstallSlot::OpenCodeNpm,
+        slot: ClientInstallSlot::OpenCodeNpm,
         path: opencode_npm,
     });
 
@@ -256,7 +245,7 @@ fn windows_install_probes(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<Insta
         codex_releases.push(segment);
     }
     probes.push(InstallProbe {
-        slot: InstallSlot::CodexStandalone,
+        slot: ClientInstallSlot::CodexStandalone,
         path: codex_releases,
     });
 
@@ -351,8 +340,8 @@ fn filter_and_sort_claude_packages(names: Vec<OsString>) -> Vec<OsString> {
 /// the same slot are always contiguous (`windows_install_probes` emits them
 /// slot-by-slot), so a simple run-length grouping is enough — no sorting or
 /// hashing needed, and grouping never reorders candidates within a slot.
-fn group_probes_by_slot(probes: &[InstallProbe]) -> Vec<(InstallSlot, Vec<PathBuf>)> {
-    let mut groups: Vec<(InstallSlot, Vec<PathBuf>)> = Vec::new();
+fn group_probes_by_slot(probes: &[InstallProbe]) -> Vec<(ClientInstallSlot, Vec<PathBuf>)> {
+    let mut groups: Vec<(ClientInstallSlot, Vec<PathBuf>)> = Vec::new();
     for probe in probes {
         match groups.last_mut() {
             Some((slot, paths)) if *slot == probe.slot => paths.push(probe.path.clone()),
@@ -381,7 +370,7 @@ fn exists(path: &Path) -> bool {
 /// another slot or another candidate in the same slot (isolation).
 /// Emitting a presence record never itself pushes a `ScanIssue`.
 fn resolve_slot(
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     candidates: &[PathBuf],
     issues: &mut Vec<ScanIssue>,
 ) -> ClientPresence {
@@ -397,13 +386,18 @@ fn resolve_slot(
 /// `jsonc.rs` seam and extracting `"version"`. A present-but-broken
 /// directory still yields `Detected` with empty `installations`; the
 /// underlying `Error` issue is unchanged.
-fn resolve_npm_slot(slot: InstallSlot, path: &Path, issues: &mut Vec<ScanIssue>) -> ClientPresence {
+fn resolve_npm_slot(
+    slot: ClientInstallSlot,
+    path: &Path,
+    issues: &mut Vec<ScanIssue>,
+) -> ClientPresence {
     debug_assert_eq!(slot.version_source(), VersionSource::PackageJson);
 
     let probed_paths = vec![path.to_path_buf()];
 
     if !exists(path) {
         return ClientPresence {
+            slot,
             label: slot.label().to_string(),
             probed_paths,
             status: ClientPresenceStatus::NotDetected,
@@ -450,6 +444,7 @@ fn resolve_npm_slot(slot: InstallSlot, path: &Path, issues: &mut Vec<ScanIssue>)
     }
 
     ClientPresence {
+        slot,
         label: slot.label().to_string(),
         probed_paths,
         status: ClientPresenceStatus::Detected,
@@ -480,7 +475,7 @@ fn extract_package_json_version(document: &JsonValue) -> Option<String> {
 /// own `Error`; `status: NotDetected` fires only when NO candidate root
 /// exists at all.
 fn resolve_bundled_slot(
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     candidates: &[PathBuf],
     issues: &mut Vec<ScanIssue>,
 ) -> ClientPresence {
@@ -558,6 +553,7 @@ fn resolve_bundled_slot(
     }
 
     ClientPresence {
+        slot,
         label: slot.label().to_string(),
         probed_paths: candidates.to_vec(),
         status: if any_candidate_root_exists {
@@ -576,7 +572,7 @@ fn resolve_bundled_slot(
 /// unlike the bundled slot, this slot has exactly one candidate root and a
 /// distinct failure class (an unparseable release directory name).
 fn resolve_codex_slot(
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     releases_dir: &Path,
     issues: &mut Vec<ScanIssue>,
 ) -> ClientPresence {
@@ -586,6 +582,7 @@ fn resolve_codex_slot(
 
     if !exists(releases_dir) {
         return ClientPresence {
+            slot,
             label: slot.label().to_string(),
             probed_paths,
             status: ClientPresenceStatus::NotDetected,
@@ -604,6 +601,7 @@ fn resolve_codex_slot(
                 reason: format!("could not read the {} directory: {err}", slot.label()),
             });
             return ClientPresence {
+                slot,
                 label: slot.label().to_string(),
                 probed_paths,
                 status: ClientPresenceStatus::Detected,
@@ -647,6 +645,7 @@ fn resolve_codex_slot(
             ),
         });
         return ClientPresence {
+            slot,
             label: slot.label().to_string(),
             probed_paths,
             status: ClientPresenceStatus::Detected,
@@ -662,6 +661,7 @@ fn resolve_codex_slot(
     }
 
     ClientPresence {
+        slot,
         label: slot.label().to_string(),
         probed_paths,
         status: ClientPresenceStatus::Detected,
@@ -674,7 +674,7 @@ fn resolve_codex_slot(
 /// triple, or strips to an empty version (design §3.3). Factored out so the
 /// non-UTF-8 branch is unit-testable with a synthetic `OsString`.
 fn codex_installation_from_release_dir(
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     file_name: &OsString,
     path: PathBuf,
 ) -> Result<ClientInstallation, ScanIssue> {
@@ -715,7 +715,7 @@ fn codex_installation_from_release_dir(
 /// unit-testable with a synthetic non-UTF-8 `OsString`, which is not
 /// portable to express as a committed repository fixture.
 fn install_from_version_dir(
-    slot: InstallSlot,
+    slot: ClientInstallSlot,
     file_name: OsString,
     path: PathBuf,
 ) -> Result<ClientInstallation, ScanIssue> {
@@ -757,12 +757,14 @@ mod tests {
         };
         let presence = Some(vec![
             ClientPresence {
+                slot: ClientInstallSlot::ClaudeCodeNpm,
                 label: "first".to_string(),
                 probed_paths: vec![PathBuf::from("first")],
                 status: ClientPresenceStatus::Detected,
                 installations: vec![make("1.0.0")],
             },
             ClientPresence {
+                slot: ClientInstallSlot::OpenCodeNpm,
                 label: "second".to_string(),
                 probed_paths: vec![PathBuf::from("second")],
                 status: ClientPresenceStatus::Detected,
@@ -806,7 +808,7 @@ mod tests {
         let name = OsString::from_vec(vec![0x66, 0x6f, 0x80, 0x6f]);
         let path = PathBuf::from("/home/example/version-dir");
 
-        let result = install_from_version_dir(InstallSlot::ClaudeCodeBundled, name, path);
+        let result = install_from_version_dir(ClientInstallSlot::ClaudeCodeBundled, name, path);
 
         let issue = result.expect_err("a non-UTF-8 version directory name must be an Error");
         assert_eq!(issue.severity, IssueSeverity::Error);
@@ -828,7 +830,7 @@ mod tests {
         let name = OsString::from_wide(&wide);
         let path = PathBuf::from(r"C:\example\version-dir");
 
-        let result = install_from_version_dir(InstallSlot::ClaudeCodeBundled, name, path);
+        let result = install_from_version_dir(ClientInstallSlot::ClaudeCodeBundled, name, path);
 
         let issue = result.expect_err("an unpaired surrogate must be an Error");
         assert_eq!(issue.severity, IssueSeverity::Error);
@@ -839,49 +841,61 @@ mod tests {
         assert!(issue.reason.contains("not valid UTF-8"));
     }
 
-    // -- InstallSlot labels --
+    // -- ClientInstallSlot labels --
 
     #[test]
     fn slot_labels_match_the_settled_vocabulary() {
-        assert_eq!(InstallSlot::ClaudeCodeNpm.label(), "Claude Code CLI (npm)");
         assert_eq!(
-            InstallSlot::ClaudeCodeBundled.label(),
+            ClientInstallSlot::ClaudeCodeNpm.label(),
+            "Claude Code CLI (npm)"
+        );
+        assert_eq!(
+            ClientInstallSlot::ClaudeCodeBundled.label(),
             "Claude Code (bundled in Claude Desktop)"
         );
-        assert_eq!(InstallSlot::OpenCodeNpm.label(), "OpenCode (npm)");
+        assert_eq!(ClientInstallSlot::OpenCodeNpm.label(), "OpenCode (npm)");
         assert_eq!(
-            InstallSlot::CodexStandalone.label(),
+            ClientInstallSlot::CodexStandalone.label(),
             "Codex CLI (standalone)"
         );
     }
 
     #[test]
     fn slot_client_maps_both_claude_slots_to_claude_code() {
-        assert_eq!(InstallSlot::ClaudeCodeNpm.client(), ClientKind::ClaudeCode);
         assert_eq!(
-            InstallSlot::ClaudeCodeBundled.client(),
+            ClientInstallSlot::ClaudeCodeNpm.client(),
             ClientKind::ClaudeCode
         );
-        assert_eq!(InstallSlot::OpenCodeNpm.client(), ClientKind::OpenCode);
-        assert_eq!(InstallSlot::CodexStandalone.client(), ClientKind::Codex);
+        assert_eq!(
+            ClientInstallSlot::ClaudeCodeBundled.client(),
+            ClientKind::ClaudeCode
+        );
+        assert_eq!(
+            ClientInstallSlot::OpenCodeNpm.client(),
+            ClientKind::OpenCode
+        );
+        assert_eq!(
+            ClientInstallSlot::CodexStandalone.client(),
+            ClientKind::Codex
+        );
     }
 
     #[test]
     fn slot_version_source_is_package_json_for_npm_and_directory_name_for_bundled() {
         assert_eq!(
-            InstallSlot::ClaudeCodeNpm.version_source(),
+            ClientInstallSlot::ClaudeCodeNpm.version_source(),
             VersionSource::PackageJson
         );
         assert_eq!(
-            InstallSlot::OpenCodeNpm.version_source(),
+            ClientInstallSlot::OpenCodeNpm.version_source(),
             VersionSource::PackageJson
         );
         assert_eq!(
-            InstallSlot::ClaudeCodeBundled.version_source(),
+            ClientInstallSlot::ClaudeCodeBundled.version_source(),
             VersionSource::DirectoryName
         );
         assert_eq!(
-            InstallSlot::CodexStandalone.version_source(),
+            ClientInstallSlot::CodexStandalone.version_source(),
             VersionSource::ReleaseDirectoryName
         );
     }
@@ -1031,7 +1045,7 @@ mod tests {
 
         let npm = probes
             .iter()
-            .find(|p| p.slot == InstallSlot::ClaudeCodeNpm)
+            .find(|p| p.slot == ClientInstallSlot::ClaudeCodeNpm)
             .expect("npm slot present");
         let mut expected_claude_npm = home.clone();
         for segment in [
@@ -1048,7 +1062,7 @@ mod tests {
 
         let opencode = probes
             .iter()
-            .find(|p| p.slot == InstallSlot::OpenCodeNpm)
+            .find(|p| p.slot == ClientInstallSlot::OpenCodeNpm)
             .expect("opencode slot present");
         let mut expected_opencode_npm = home.clone();
         for segment in ["AppData", "Roaming", "npm", "node_modules", "opencode-ai"] {
@@ -1066,7 +1080,7 @@ mod tests {
 
         let bundled: Vec<&InstallProbe> = probes
             .iter()
-            .filter(|p| p.slot == InstallSlot::ClaudeCodeBundled)
+            .filter(|p| p.slot == ClientInstallSlot::ClaudeCodeBundled)
             .collect();
         assert!(
             !bundled.is_empty(),
@@ -1084,19 +1098,19 @@ mod tests {
     fn group_probes_by_slot_keeps_multiple_bundled_candidates_together() {
         let probes = vec![
             InstallProbe {
-                slot: InstallSlot::ClaudeCodeNpm,
+                slot: ClientInstallSlot::ClaudeCodeNpm,
                 path: PathBuf::from("npm"),
             },
             InstallProbe {
-                slot: InstallSlot::ClaudeCodeBundled,
+                slot: ClientInstallSlot::ClaudeCodeBundled,
                 path: PathBuf::from("pkg-a"),
             },
             InstallProbe {
-                slot: InstallSlot::ClaudeCodeBundled,
+                slot: ClientInstallSlot::ClaudeCodeBundled,
                 path: PathBuf::from("legacy"),
             },
             InstallProbe {
-                slot: InstallSlot::OpenCodeNpm,
+                slot: ClientInstallSlot::OpenCodeNpm,
                 path: PathBuf::from("opencode"),
             },
         ];
@@ -1104,14 +1118,14 @@ mod tests {
         let groups = group_probes_by_slot(&probes);
 
         assert_eq!(groups.len(), 3);
-        assert_eq!(groups[0].0, InstallSlot::ClaudeCodeNpm);
+        assert_eq!(groups[0].0, ClientInstallSlot::ClaudeCodeNpm);
         assert_eq!(groups[0].1, vec![PathBuf::from("npm")]);
-        assert_eq!(groups[1].0, InstallSlot::ClaudeCodeBundled);
+        assert_eq!(groups[1].0, ClientInstallSlot::ClaudeCodeBundled);
         assert_eq!(
             groups[1].1,
             vec![PathBuf::from("pkg-a"), PathBuf::from("legacy")]
         );
-        assert_eq!(groups[2].0, InstallSlot::OpenCodeNpm);
+        assert_eq!(groups[2].0, ClientInstallSlot::OpenCodeNpm);
         assert_eq!(groups[2].1, vec![PathBuf::from("opencode")]);
     }
 }

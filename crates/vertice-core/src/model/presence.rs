@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::installation::ClientInstallation;
+use super::slot::ClientInstallSlot;
 
 /// One probe slot's verdict. Exactly one record per slot the platform's
 /// table defines (three on Windows), emitted whether or not anything
@@ -17,8 +18,13 @@ use super::installation::ClientInstallation;
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../frontend/src/bindings/")]
 pub struct ClientPresence {
+    /// The machine-readable, non-display slot identity. The stable key a
+    /// consumer (e.g. `component-freshness`) dispatches on; never inferred
+    /// from `label` (`client-installation-detector` spec).
+    pub slot: ClientInstallSlot,
     /// The slot's settled proper-noun label, e.g. "OpenCode (npm)".
-    /// Core-owned, unique within a report, never localized.
+    /// Core-owned, unique within a report, never localized. Display-only —
+    /// never a stable identity.
     pub label: String,
     /// Every path probed for this slot, in deterministic order; the legacy
     /// bundled path is always last. Non-empty by construction. Carried, not

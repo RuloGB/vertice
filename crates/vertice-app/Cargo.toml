@@ -22,3 +22,27 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 vertice-core = { workspace = true }
 tauri = { version = "2", features = [] }
+# The reference-version lookup for `component-freshness`. `tauri` already
+# depends on `reqwest` 0.13 directly, so the HTTP stack itself
+# (hyper/tokio/http) is already compiled in and this adds no second stack.
+#
+# TLS backend: `native-tls`, chosen by measurement (design §4, decided
+# 2026-08-24). Against `rustls`: +101 crates vs +120, and it avoids
+# `aws-lc-sys` — a bundled C crypto library that must build on all three CI
+# legs. `native-tls` uses the OS trust store (`schannel` on Windows,
+# Security.framework on macOS, OpenSSL on Linux), which is the correct
+# behaviour for a desktop app: a corporate root CA already trusted by the
+# machine works without configuration. Both backends pass
+# `cargo deny check bans licenses` with no new allow-list entry, so design
+# §4's ordering rule did not separate them; the crate count and the absence
+# of a vendored C build did.
+#
+# VERIFIED LOCALLY ON WINDOWS ONLY. The Linux leg needs system OpenSSL
+# headers; confirm on the first CI run before treating this as settled.
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json"] }
+# `serde`, `serde_json` and `semver` are already in the graph (via `tauri`
+# and `vertice-core` respectively, V1/design §16). Declared directly here
+# because `freshness/{cache,fetch}.rs` name them.
+serde = { workspace = true }
+serde_json = "1"
+semver = "1"

@@ -265,10 +265,11 @@ over-engineering — additive, empty by default.
 
 ## Open Questions (prioritized, for the user)
 
-1. **Data source.** Live network lookup (Option A: npm registry + GitHub Releases, accurate,
-   introduces the product's first outbound call and an HTTP dependency in `vertice-app`), or a
-   local-only reference (Option B pinned manifest, offline and dependency-free, but structurally
-   prone to saying "up to date" when it is not)?
+1. ~~**Data source.**~~ **DECIDED (2026-08-24): Option A — live lookup against the npm registry and
+   the GitHub Releases API.** Vertice takes on its first outbound call and an HTTP dependency in
+   `vertice-app`. Option B (pinned manifest) is not adopted, not even as a fallback layer, unless
+   design finds a concrete reason. Offline and rate-limited responses degrade to
+   `Unknown { reason }`.
 2. **Default behaviour.** If the lookup is live: on by default with an opt-out, or off by default
    with an opt-in? This is a product posture decision, not a technical one.
 3. **Generalization now or later.** Should the design already model the keyed report with a

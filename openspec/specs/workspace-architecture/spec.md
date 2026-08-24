@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the Cargo workspace layout and the structural invariants that keep `vertice-core` reusable as a headless library (enabling a future CLI binary without a rewrite), plus the MSRV floor, the YAML serialization crate decision, and the broader "one module owns the parser" seam convention that all later adapters depend on. Traces to T1 of the completed PoC roadmap and to stack decision #5 (core stays Tauri-agnostic); the seam inventory was extended to a third seam, `toml.rs`, by T7's `add-codex-client-support` (2026-08-23).
+Defines the Cargo workspace layout and the structural invariants that keep `vertice-core` reusable as a headless library (enabling a future CLI binary without a rewrite), plus the MSRV floor, the YAML serialization crate decision, and the broader "one module owns the parser" seam convention that all later adapters depend on. Traces to T1 of the completed PoC roadmap and to stack decision #5 (core stays Tauri-agnostic); the seam inventory was extended to a third seam, `toml.rs`, by T7's `add-codex-client-support` (2026-08-23). `add-client-version-freshness` (2026-08-24) added a fourth seam, the reference-version fetcher — the first single-owner seam whose owner lives in `vertice-app` rather than `vertice-core`, because core acquires no HTTP dependency at all — and restated core's Tauri-free containment invariant with an HTTP-free counterpart now that `vertice-app` carries its first outbound network dependency.
 
 ## Requirements
 
@@ -120,3 +120,35 @@ licenses` MUST continue to pass.
 - GIVEN the selected TOML crate's license
 - WHEN `cargo deny check bans licenses` runs after the dependency is added
 - THEN it passes with `deny.toml` byte-identical to its pre-change state
+
+### Requirement: vertice-core Stays HTTP-Free
+
+`vertice-core` MUST NOT depend, directly or transitively, on any HTTP client crate. `vertice-core` MUST obtain a reference version only through the trait abstraction it defines; it MUST NOT import, link, or transitively pull in an HTTP stack under any circumstance, including through a future convenience refactor. This containment MUST be structurally possible to verify, whether by an automated dependency-graph check or by an equivalent mechanical gate decided in design.
+
+#### Scenario: Core's dependency graph contains no HTTP client crate
+
+- GIVEN the built dependency graph of `vertice-core` after this change
+- WHEN it is inspected
+- THEN no direct or transitive dependency is an HTTP client crate
+
+#### Scenario: An accidental HTTP dependency in core is structurally detectable
+
+- GIVEN a hypothetical change adds an HTTP client dependency to `vertice-core`, directly or transitively
+- WHEN the workspace's dependency containment check runs
+- THEN the violation is detectable without relying on manual code review alone
+
+### Requirement: The Reference-Version Seam Is Owned By vertice-app
+
+The concrete reference-version fetcher — network transport, per-subject upstream resolution, response parsing, and the response cache — MUST be owned by exactly one module in `vertice-app`. `vertice-core` MUST depend only on the trait; it MUST NOT be able to construct or reference a concrete fetcher implementation. This is the first single-owner seam in the workspace whose owner lives outside `vertice-core`, and that placement MUST be documented as deliberate rather than left implicit.
+
+#### Scenario: vertice-core has no path to a concrete fetcher
+
+- GIVEN the source of `vertice-core`
+- WHEN it is inspected for any concrete reference-source implementation
+- THEN none exists; only the trait definition and its test stub are present in core
+
+#### Scenario: vertice-app owns the sole concrete implementation
+
+- GIVEN the source of `vertice-app`
+- WHEN it is inspected for reference-version fetching code
+- THEN exactly one module implements the trait, and no other module in the workspace does

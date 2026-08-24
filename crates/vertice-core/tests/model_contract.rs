@@ -3,9 +3,9 @@
 //! `design.md` §11: these tests construct values in memory only.
 
 use vertice_core::model::{
-    ClientInstallation, ClientKind, ClientPresenceStatus, Component, ComponentId, ComponentKind,
-    IssueSeverity, Location, LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind,
-    SearchRootStatus,
+    ClientInstallSlot, ClientInstallation, ClientKind, ClientPresenceStatus, Component,
+    ComponentId, ComponentKind, Freshness, FreshnessSettings, IssueSeverity, Location,
+    LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
 };
 use vertice_core::model::{ScanIssue, ScanReport};
 
@@ -318,4 +318,85 @@ fn provenance_hint_absent_empty_and_present_are_three_distinct_states() {
 
     assert_eq!(absent_json["provenanceHint"], serde_json::Value::Null);
     assert_eq!(empty_json["provenanceHint"], serde_json::json!(""));
+}
+
+/// Spec (`client-installation-detector`): the slot discriminator is
+/// exhaustively matchable — the promoted `ClientInstallSlot` mirrors the
+/// `Scope`/`ClientPresenceStatus` pattern. A fifth variant would break
+/// compilation here instead of silently falling into a catch-all arm.
+#[test]
+fn client_install_slot_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(slot: ClientInstallSlot) -> &'static str {
+        match slot {
+            ClientInstallSlot::ClaudeCodeNpm => "Claude Code CLI (npm)",
+            ClientInstallSlot::ClaudeCodeBundled => "Claude Code (bundled in Claude Desktop)",
+            ClientInstallSlot::OpenCodeNpm => "OpenCode (npm)",
+            ClientInstallSlot::CodexStandalone => "Codex CLI (standalone)",
+        }
+    }
+
+    assert_eq!(
+        label(ClientInstallSlot::ClaudeCodeNpm),
+        "Claude Code CLI (npm)"
+    );
+    assert_eq!(
+        label(ClientInstallSlot::ClaudeCodeBundled),
+        "Claude Code (bundled in Claude Desktop)"
+    );
+    assert_eq!(label(ClientInstallSlot::OpenCodeNpm), "OpenCode (npm)");
+    assert_eq!(
+        label(ClientInstallSlot::CodexStandalone),
+        "Codex CLI (standalone)"
+    );
+}
+
+/// Spec (`component-freshness`): `Freshness` is a closed three-valued
+/// verdict — no `#[non_exhaustive]`, no fourth "ahead"/"prerelease" state.
+/// The wildcard-free match is the actual assertion.
+#[test]
+fn freshness_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(freshness: &Freshness) -> &'static str {
+        match freshness {
+            Freshness::UpToDate => "upToDate",
+            Freshness::Outdated { .. } => "outdated",
+            Freshness::Unknown { .. } => "unknown",
+        }
+    }
+
+    assert_eq!(label(&Freshness::UpToDate), "upToDate");
+    assert_eq!(
+        label(&Freshness::Outdated {
+            latest: "1.0.0".to_string()
+        }),
+        "outdated"
+    );
+    assert_eq!(
+        label(&Freshness::Unknown {
+            reason: "unparseable".to_string()
+        }),
+        "unknown"
+    );
+}
+
+/// Slice 3's carried-over gap (flagged in Slice 2's apply-progress "Issues
+/// Found"): the frontend's opt-out switch and first-run disclosure need a
+/// typed, IPC-crossable settings shape distinct from `FreshnessReport` —
+/// `enabled` alone cannot tell the frontend whether the disclosure was
+/// already acknowledged. `FreshnessSettings` follows the same plain-data,
+/// camelCase-serialized, `TS`-derived pattern as every other type in this
+/// module.
+#[test]
+fn freshness_settings_round_trips_both_fields_camel_cased() {
+    let settings = FreshnessSettings {
+        enabled: false,
+        disclosure_seen: true,
+    };
+
+    let json = serde_json::to_value(settings).expect("FreshnessSettings must serialize");
+    assert_eq!(json["enabled"], false);
+    assert_eq!(json["disclosureSeen"], true);
+
+    let round_tripped: FreshnessSettings =
+        serde_json::from_value(json).expect("FreshnessSettings must deserialize its own output");
+    assert_eq!(round_tripped, settings);
 }

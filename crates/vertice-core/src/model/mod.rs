@@ -23,14 +23,19 @@
 
 mod component;
 mod error;
+mod freshness;
 mod identity;
 mod installation;
 mod location;
 mod presence;
 mod report;
+mod slot;
 
 pub use component::{Component, ComponentKind, Scope};
 pub use error::ScanError;
+pub use freshness::{
+    Freshness, FreshnessCheck, FreshnessReport, FreshnessSettings, FreshnessSubject,
+};
 pub use identity::ComponentId;
 pub use installation::{ClientInstallation, ClientKind};
 pub use location::{
@@ -38,3 +43,4 @@ pub use location::{
 };
 pub use presence::{ClientPresence, ClientPresenceStatus};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};
+pub use slot::ClientInstallSlot;

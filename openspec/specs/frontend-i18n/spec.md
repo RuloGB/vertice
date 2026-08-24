@@ -32,7 +32,7 @@ The frontend MUST expose a language selector that updates one shared reactive lo
 
 ### Requirement: Catalog Completeness and Boundary
 
-The frontend MUST provide complete `en` and `es` catalogs for Agents page, Skills page, and `scan` route chrome, including labels, placeholders, loading, empty, failure, title, aria, duplicate, null-path copy, full scan-report labels (roots found/not found, duration, issues), incident-indicator copy, embedded/non-actionable status, the Home scan-status block (healthy/completed-with-issues/failed, retry action), and the supported-clients table chrome: `scan.clientsTitle`, `scan.clientDetected`, `scan.clientNotDetected`, `scan.clientVersionUnavailable`, and `scan.clientsUnsupportedPlatform`. Existing `inventory.*`, `toolbar.*`, and `diagnostics.*` keys MUST be reused or renamed for the new per-page and scan-route chrome rather than duplicated per page; keys scoped only to the removed combined `inventory` route (including `nav.inventory` and `area.inventory`) MUST be retired. `diagnostics.missingClient`, `scan.installationsTitle`, and `scan.installationsEmpty` MUST also be retired: the supported-clients table replaces the "Detected installations" panel and the missing-client notice entirely, so these keys have no remaining consumer. The frontend MUST NOT localize payload fields or diagnostic passthrough values such as component names, paths, `ScanIssue.reason`, `ScanError.detail.reason`, or a `ClientPresence.label` value — the last is a product proper noun (e.g. `"Claude Code CLI (npm)"`), not translatable prose, and MUST render identically regardless of active locale.
+The frontend MUST provide complete `en` and `es` catalogs for Agents page, Skills page, and `scan` route chrome, including labels, placeholders, loading, empty, failure, title, aria, duplicate, null-path copy, full scan-report labels (roots found/not found, duration, issues), incident-indicator copy, embedded/non-actionable status, the Home scan-status block (healthy/completed-with-issues/failed, retry action), the supported-clients table chrome (`scan.clientsTitle`, `scan.clientDetected`, `scan.clientNotDetected`, `scan.clientVersionUnavailable`, `scan.clientsUnsupportedPlatform`), and the freshness chrome on the clients view: `clients.*` keys for each of the four badge states (up to date, outdated, unknown, pending), the first-run disclosure text (stating that public registries are queried and that nothing about the user is sent), and the opt-out setting's label and description. Existing `inventory.*`, `toolbar.*`, and `diagnostics.*` keys MUST be reused or renamed for the new per-page and scan-route chrome rather than duplicated per page; keys scoped only to the removed combined `inventory` route (including `nav.inventory` and `area.inventory`) MUST be retired. `diagnostics.missingClient`, `scan.installationsTitle`, and `scan.installationsEmpty` MUST also be retired. The frontend MUST NOT localize payload fields or diagnostic passthrough values such as component names, paths, `ScanIssue.reason`, `ScanError.detail.reason`, a `ClientPresence.label` value, a freshness verdict's reference version string, or an upstream package/repository name — these are product proper nouns or opaque data, not translatable prose, and MUST render identically regardless of active locale.
 
 #### Scenario: Payload stays verbatim
 
@@ -61,9 +61,9 @@ The frontend MUST provide complete `en` and `es` catalogs for Agents page, Skill
 - WHEN searching for `nav.inventory`, `area.inventory`, or the removed kind-selector key
 - THEN none of them exist in either the `en` or `es` catalog
 
-#### Scenario: Spanish catalog stays complete
+#### Scenario: Spanish catalog stays complete, including freshness chrome
 
-- GIVEN the `en` catalog defines a key for the scan route, incident indicator, Home scan-status block, or the supported-clients table
+- GIVEN the `en` catalog defines a key for the scan route, incident indicator, Home scan-status block, the supported-clients table, or any freshness badge state, disclosure text, or opt-out setting copy
 - WHEN the `es` catalog is inspected
 - THEN a corresponding Spanish translation exists for that key
 
@@ -78,3 +78,9 @@ The frontend MUST provide complete `en` and `es` catalogs for Agents page, Skill
 - GIVEN the catalog is inspected after this change
 - WHEN searching for `diagnostics.missingClient`, `scan.installationsTitle`, or `scan.installationsEmpty`
 - THEN none of them exist in either the `en` or `es` catalog, and no test still asserts their presence
+
+#### Scenario: A freshness verdict's reference version stays verbatim in both locales
+
+- GIVEN an `Outdated` freshness verdict carrying a reference version string such as `"2.1.241"`
+- WHEN its badge is rendered in English and then in Spanish
+- THEN the version string is byte-identical in both renders, while the surrounding badge chrome is localized
