@@ -12,7 +12,8 @@ use std::path::PathBuf;
 
 use vertice_core::installations::{self, HostPlatform};
 use vertice_core::model::{
-    ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus, IssueSeverity,
+    ClientInstallSlot, ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus,
+    IssueSeverity,
 };
 
 /// Build a path under
@@ -53,6 +54,17 @@ fn nothing_yields_four_not_detected_records_and_zero_issues() {
         assert!(record.installations.is_empty());
         assert!(!record.probed_paths.is_empty());
     }
+    let slots: Vec<ClientInstallSlot> = records.iter().map(|r| r.slot).collect();
+    assert_eq!(
+        slots,
+        vec![
+            ClientInstallSlot::ClaudeCodeNpm,
+            ClientInstallSlot::ClaudeCodeBundled,
+            ClientInstallSlot::OpenCodeNpm,
+            ClientInstallSlot::CodexStandalone,
+        ],
+        "one record per slot, in probe-table order"
+    );
     assert_eq!(scan.installations.len(), 0);
     assert_eq!(scan.issues.len(), 0, "absence is never an issue");
 }
@@ -68,6 +80,7 @@ fn bundled_slot_record_carries_every_coexisting_installation() {
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let bundled = presence_for(records, "bundled in Claude Desktop");
 
+    assert_eq!(bundled.slot, ClientInstallSlot::ClaudeCodeBundled);
     assert_eq!(bundled.status, ClientPresenceStatus::Detected);
     assert_eq!(
         bundled.installations.len(),
@@ -168,6 +181,7 @@ fn packaged_fixture_yields_npm_and_packaged_claude_installs_never_merged() {
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     assert_eq!(records.len(), 4, "one record per defined slot");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
@@ -234,6 +248,7 @@ fn two_packages_fixture_yields_two_installations_third_package_contributes_nothi
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let record = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(record.slot, ClientInstallSlot::ClaudeCodeBundled);
     assert_eq!(record.status, ClientPresenceStatus::Detected);
     assert_eq!(record.installations.len(), 2);
 }
@@ -254,6 +269,7 @@ fn packaged_empty_fixture_is_detected_with_zero_installations_and_one_error() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let bundled = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(bundled.slot, ClientInstallSlot::ClaudeCodeBundled);
     assert_eq!(
         bundled.status,
         ClientPresenceStatus::Detected,
@@ -287,6 +303,7 @@ fn non_claude_packages_fixture_is_not_detected_with_zero_issues() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let bundled = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(bundled.slot, ClientInstallSlot::ClaudeCodeBundled);
     assert_eq!(bundled.status, ClientPresenceStatus::NotDetected);
     assert!(bundled.installations.is_empty());
 
@@ -319,6 +336,7 @@ fn packages_unreadable_fixture_errors_but_legacy_still_resolves_in_the_same_reco
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let record = presence_for(records, "bundled in Claude Desktop");
+    assert_eq!(record.slot, ClientInstallSlot::ClaudeCodeBundled);
     assert_eq!(record.status, ClientPresenceStatus::Detected);
     assert_eq!(
         record.installations.len(),
@@ -354,6 +372,7 @@ fn opencode_npm_fixture_yields_one_opencode_installation() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let record = presence_for(records, "OpenCode");
+    assert_eq!(record.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(record.status, ClientPresenceStatus::Detected);
 }
 
@@ -399,15 +418,29 @@ fn isolation_fixture_isolates_one_malformed_slot_from_the_other_two() {
         .filter(|record| !record.label.starts_with("Codex"))
         .collect();
     assert_eq!(non_codex.len(), 3);
-    for record in non_codex {
+    for record in &non_codex {
         assert_eq!(
             record.status,
             ClientPresenceStatus::Detected,
             "every one of the three pre-existing slots has an existing candidate root, broken or not"
         );
     }
+    let mut non_codex_slots: Vec<ClientInstallSlot> =
+        non_codex.iter().map(|record| record.slot).collect();
+    non_codex_slots.sort_by_key(|slot| format!("{slot:?}"));
+    let mut expected_slots = vec![
+        ClientInstallSlot::ClaudeCodeNpm,
+        ClientInstallSlot::ClaudeCodeBundled,
+        ClientInstallSlot::OpenCodeNpm,
+    ];
+    expected_slots.sort_by_key(|slot| format!("{slot:?}"));
+    assert_eq!(
+        non_codex_slots, expected_slots,
+        "the three pre-existing slots keep their own distinct identities"
+    );
 
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(
         codex.status,
         ClientPresenceStatus::NotDetected,
@@ -438,6 +471,7 @@ fn no_version_key_fixture_is_detected_with_zero_installations_and_one_error() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
     assert!(opencode.installations.is_empty());
 }
@@ -464,6 +498,7 @@ fn version_not_a_string_fixture_yields_the_same_collapsed_reason() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
@@ -489,6 +524,7 @@ fn package_json_empty_fixture_yields_the_same_reason_as_no_version_key() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
 }
 
@@ -504,6 +540,7 @@ fn package_json_unreadable_fixture_is_detected_never_not_detected() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(
         opencode.status,
         ClientPresenceStatus::Detected,
@@ -530,6 +567,7 @@ fn npm_dir_no_package_json_fixture_is_detected_never_not_detected() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let opencode = presence_for(records, "OpenCode");
+    assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(
         opencode.status,
         ClientPresenceStatus::Detected,
@@ -720,6 +758,7 @@ fn single_release_yields_one_detected_installation_from_the_directory_name() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::Detected);
     assert_eq!(codex.installations.len(), 1);
     assert_eq!(codex.installations[0].client, ClientKind::Codex);
@@ -739,6 +778,7 @@ fn two_release_directories_yield_two_unmerged_installations() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::Detected);
     assert_eq!(
         codex.installations.len(),
@@ -766,6 +806,7 @@ fn prerelease_release_directory_name_yields_the_full_prerelease_version() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::Detected);
     assert_eq!(codex.installations.len(), 1);
     assert_eq!(codex.installations[0].version, "0.150.0-rc.1");
@@ -781,6 +822,7 @@ fn home_without_codex_yields_not_detected_and_zero_issues() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::NotDetected);
     assert!(codex.installations.is_empty());
     assert!(scan.issues.is_empty());
@@ -796,6 +838,7 @@ fn unknown_triple_yields_detected_zero_installations_and_one_error_with_its_path
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::Detected);
     assert!(codex.installations.is_empty());
 
@@ -822,6 +865,7 @@ fn empty_releases_yields_detected_zero_installations_and_one_error() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.status, ClientPresenceStatus::Detected);
     assert!(codex.installations.is_empty());
 
@@ -844,9 +888,70 @@ fn stale_version_json_never_wins_over_the_release_directory_name() {
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
     let codex = presence_for(records, "Codex");
+    assert_eq!(codex.slot, ClientInstallSlot::CodexStandalone);
     assert_eq!(codex.installations.len(), 1);
     assert_eq!(codex.installations[0].version, "0.149.0");
     assert_ne!(codex.installations[0].version, "9.9.9");
+}
+
+// -- Slot promotion tripwire (design §2, task 1.7) --
+
+/// Tripwire: promoting the private `InstallSlot` to the public
+/// `ClientInstallSlot` and adding `ClientPresence.slot` must leave
+/// detection behavior byte-identical — the only new thing on the wire is
+/// the `slot` field itself. For every existing fixture this asserts (a)
+/// exactly one record per defined slot, in the fixed probe-table order,
+/// (b) each record's `label` is still derived from its own `slot` (never
+/// independently set, never drifted), and (c) `installations`/`issues`/
+/// ordering are unaffected — already pinned byte-for-byte by this file's
+/// other per-fixture tests, which this test runs alongside without
+/// altering their fixtures or assertions.
+#[test]
+fn slot_promotion_leaves_detection_output_unchanged_except_for_the_new_field() {
+    let expected_slot_order = [
+        ClientInstallSlot::ClaudeCodeNpm,
+        ClientInstallSlot::ClaudeCodeBundled,
+        ClientInstallSlot::OpenCodeNpm,
+        ClientInstallSlot::CodexStandalone,
+    ];
+
+    for case in [
+        "nothing",
+        "packaged-and-legacy",
+        "packaged",
+        "legacy",
+        "two-packages",
+        "packaged-empty",
+        "non-claude-packages",
+        "packages-unreadable",
+        "opencode-npm",
+        "isolation",
+        "no-version-key",
+        "version-not-a-string",
+        "package-json-empty",
+        "package-json-unreadable",
+        "npm-dir-no-package-json",
+    ] {
+        let home = fixture_home(case);
+        let scan = installations::scan_for(&home, HostPlatform::Windows);
+        let records = scan.presence.as_ref().expect("Windows has a probe table");
+
+        assert_eq!(records.len(), 4, "case {case}: one record per defined slot");
+
+        let slots: Vec<ClientInstallSlot> = records.iter().map(|r| r.slot).collect();
+        assert_eq!(
+            slots, expected_slot_order,
+            "case {case}: slot order must equal the fixed probe-table order"
+        );
+
+        for record in records {
+            assert_eq!(
+                record.label,
+                record.slot.label(),
+                "case {case}: label must remain derived from slot, not independently set"
+            );
+        }
+    }
 }
 
 fn fixture_tree_bytes(root: &std::path::Path) -> Vec<(PathBuf, Vec<u8>)> {

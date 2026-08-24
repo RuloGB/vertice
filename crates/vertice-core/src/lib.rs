@@ -7,6 +7,7 @@
 pub mod agents;
 pub mod codex_agents;
 pub mod consolidate;
+pub mod freshness;
 pub mod frontmatter;
 pub mod installations;
 pub mod jsonc;
