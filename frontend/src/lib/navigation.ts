@@ -9,6 +9,7 @@ export const ROUTE_IDS = [
   "home",
   "agents",
   "skills",
+  "clients",
   "mcp",
   "prompts",
   "scan",
@@ -30,7 +31,7 @@ export interface NavGroup {
 /** Sidebar sections, in render order. Every route belongs to exactly one group. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   { id: "overview", routes: ["home"] },
-  { id: "library", routes: ["agents", "skills", "mcp", "prompts"] },
+  { id: "library", routes: ["agents", "skills", "clients", "mcp", "prompts"] },
   { id: "data", routes: ["scan", "subscriptions"] },
 ];
 
@@ -45,6 +46,7 @@ const ROUTES_WITH_CONTENT: ReadonlySet<RouteId> = new Set<RouteId>([
   "home",
   "agents",
   "skills",
+  "clients",
   "scan",
   "subscriptions",
 ]);

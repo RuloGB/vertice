@@ -97,6 +97,15 @@ export type Catalog = {
     durationLabel: string;
     durationValue: string;
   };
+  clients: {
+    intro: string;
+    owner: string;
+    version: string;
+    weeklyUsage: string;
+    monthlyUsage: string;
+    usageUnavailable: string;
+    empty: string;
+  };
   incident: {
     label: string;
     count: string;
@@ -127,6 +136,7 @@ export const catalogs = {
       home: "Home",
       agents: "Agents",
       skills: "Skills",
+      clients: "AI Clients",
       mcp: "MCP",
       prompts: "Prompts",
       scan: "Scan",
@@ -141,6 +151,7 @@ export const catalogs = {
       home: "Home",
       agents: "Agents",
       skills: "Skills",
+      clients: "AI Clients",
       mcp: "MCP",
       prompts: "Prompts",
       scan: "Scan",
@@ -230,6 +241,15 @@ export const catalogs = {
       durationLabel: "Duration",
       durationValue: "{ms} ms",
     },
+    clients: {
+      intro: "AI clients detected by Vertice on this machine.",
+      owner: "Owned by {owner}",
+      version: "Version",
+      weeklyUsage: "Weekly usage",
+      monthlyUsage: "Monthly usage",
+      usageUnavailable: "Usage data will be available when the backend is connected.",
+      empty: "No client detection data is available.",
+    },
     incident: {
       label: "Scan incidents",
       count: "{count} scan incidents",
@@ -256,6 +276,7 @@ export const catalogs = {
       home: "Inicio",
       agents: "Agentes",
       skills: "Skills",
+      clients: "Clientes IA",
       mcp: "MCP",
       prompts: "Prompts",
       scan: "Escaneo",
@@ -270,6 +291,7 @@ export const catalogs = {
       home: "Inicio",
       agents: "Agentes",
       skills: "Skills",
+      clients: "Clientes IA",
       mcp: "MCP",
       prompts: "Prompts",
       scan: "Escaneo",
@@ -358,6 +380,15 @@ export const catalogs = {
       clientsUnsupportedPlatform: "La detección de instalaciones de clientes no es compatible con esta plataforma.",
       durationLabel: "Duración",
       durationValue: "{ms} ms",
+    },
+    clients: {
+      intro: "Clientes de IA detectados por Vertice en este equipo.",
+      owner: "Propiedad de {owner}",
+      version: "Versión",
+      weeklyUsage: "Uso semanal",
+      monthlyUsage: "Uso mensual",
+      usageUnavailable: "Los datos de uso estarán disponibles cuando se conecte el backend.",
+      empty: "No hay datos de detección de clientes.",
     },
     incident: {
       label: "Incidencias del escaneo",
