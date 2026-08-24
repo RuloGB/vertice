@@ -252,9 +252,8 @@ describe("App locale switching", () => {
     );
     expect(visibleText()).toContain("Reload");
     expect(visibleText()).toContain("Duplicate");
-    expect(visibleText()).toContain("(no path on disk)");
     expect(visibleText()).toContain("Formatter");
-    expect(visibleText()).toContain("C:/fixtures/formatter");
+    expect(visibleText()).toContain("Formats source files");
 
     const selector = languageSelector();
     selector.value = "es";
@@ -274,9 +273,8 @@ describe("App locale switching", () => {
     expect(document.querySelector("[title]")?.getAttribute("title")).toBe(
       "Encontrado en 2 ubicaciones",
     );
-    expect(visibleText()).toContain("(sin ruta en disco)");
     expect(visibleText()).toContain("Formatter");
-    expect(visibleText()).toContain("C:/fixtures/formatter");
+    expect(visibleText()).toContain("Formats source files");
 
     unmount(app);
   });
@@ -621,9 +619,15 @@ describe("App per-kind pages", () => {
     navigateTo("Agents");
     await flushApp();
 
+    const reviewerButton = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Reviewer"),
+    );
+    expect(reviewerButton).toBeDefined();
+    (reviewerButton as HTMLButtonElement).click();
+    await flushApp();
+
     expect(visibleText()).toContain("Embedded (non-actionable)");
     expect(document.querySelectorAll('[data-testid="embedded-status"]')).toHaveLength(1);
-    expect(visibleText()).toContain("Null Path Agent");
 
     const selector = languageSelector();
     selector.value = "es";
@@ -631,7 +635,6 @@ describe("App per-kind pages", () => {
     await flushApp();
 
     expect(visibleText()).toContain("Integrado (sin acciones disponibles)");
-    expect(visibleText()).toContain("Null Path Agent");
 
     unmount(app);
   });
@@ -651,15 +654,18 @@ describe("App per-kind pages", () => {
     navigateTo("Skills");
     await flushApp();
 
-    const row = Array.from(document.querySelectorAll("article")).find((candidate) =>
+    const skillButton = Array.from(document.querySelectorAll("button")).find((candidate) =>
       candidate.textContent?.includes(embeddedComponent.name),
     );
-    expect(row?.textContent).toContain(embeddedComponent.name);
-    expect(row?.textContent).toContain(embeddedPath);
-    expect(row?.textContent).toContain("Embedded (non-actionable)");
-    expect(row?.querySelector('[data-testid="embedded-status"]')).not.toBeNull();
-    expect(row?.querySelectorAll('button, [role="button"], a[href], input[type="button"], input[type="submit"]'))
-      .toHaveLength(0);
+    expect(skillButton).toBeDefined();
+    (skillButton as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain(embeddedComponent.name);
+    expect(detail?.textContent).toContain(embeddedPath);
+    expect(detail?.textContent).toContain("Embedded (non-actionable)");
+    expect(detail?.querySelector('[data-testid="embedded-status"]')).not.toBeNull();
 
     unmount(app);
   });

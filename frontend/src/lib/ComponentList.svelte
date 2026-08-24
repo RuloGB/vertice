@@ -5,7 +5,13 @@
 
   const i18n = useI18n();
 
-  let { components }: { components: Component[] } = $props();
+  let {
+    components,
+    onSelect,
+  }: {
+    components: Component[];
+    onSelect?: (component: Component) => void;
+  } = $props();
 </script>
 
 {#if components.length === 0}
@@ -19,7 +25,7 @@
   <ul class="flex flex-col gap-4">
     {#each components as component (component.id)}
       <li>
-        <ComponentRow {component} />
+        <ComponentRow {component} {onSelect} />
       </li>
     {/each}
   </ul>
