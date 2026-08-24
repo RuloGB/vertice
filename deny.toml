@@ -49,6 +49,15 @@ deny = [
   # own codegen tooling), so both `vertice-app` and `tauri` are legitimate
   # direct parents here.
   { name = "tauri-build", wrappers = ["vertice-app", "tauri"] },
+  # `add-client-version-freshness` design §5: `reqwest` is `vertice-app`'s
+  # HTTP client for the freshness fetcher. `tauri` MUST be listed too — it
+  # already depends on `reqwest` 0.13.4 directly (design §0 V1) — or this
+  # entry false-positives on that pre-existing, legitimate edge, exactly
+  # the situation documented above for `tauri-build`. The point of the ban
+  # is structural: `vertice-core` (or a future `vertice-cli`) acquiring
+  # HTTP through a convenience refactor fails CI immediately, keeping
+  # core's HTTP-free property enforced rather than merely reviewed.
+  { name = "reqwest", wrappers = ["vertice-app", "tauri"] },
 ]
 
 [licenses]
