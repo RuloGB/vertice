@@ -80,6 +80,9 @@ pub fn load(path: &Path) -> FreshnessStore {
 pub fn save(path: &Path, store: &FreshnessStore) -> std::io::Result<()> {
     let serialized =
         serde_json::to_string(store).expect("FreshnessStore serialization cannot fail");
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     fs::write(path, serialized)
 }
 
@@ -176,6 +179,31 @@ mod tests {
         save(&path, &store).expect("save must succeed against a writable temp dir");
         let reloaded = load(&path);
 
+        assert_eq!(reloaded, store);
+    }
+
+    /// Regression: `save()` must create its own parent directory. Unlike
+    /// `temp_app_data_dir`, this helper builds the path but deliberately
+    /// does NOT create it — standing in for a machine where
+    /// `app_data_dir()` has never existed (design §9, §14 A1).
+    fn temp_app_data_dir_not_created(label: &str) -> PathBuf {
+        let unique = UNIQUE.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!(
+            "vertice-freshness-cache-test-not-created-{label}-{}-{unique}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn save_creates_the_app_data_directory_when_it_does_not_yet_exist() {
+        let app_data_dir = temp_app_data_dir_not_created("save-creates-dir");
+        assert!(!app_data_dir.exists());
+        let path = store_path(&app_data_dir);
+        let store = FreshnessStore::default();
+
+        save(&path, &store).expect("save must create the parent directory and succeed");
+
+        let reloaded = load(&path);
         assert_eq!(reloaded, store);
     }
 
