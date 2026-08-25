@@ -1,10 +1,6 @@
-# Desktop Shell Specification
+# Delta for Desktop Shell
 
-## Purpose
-
-Define the Tauri 2 desktop shell IPC surface that exposes the core scan to the frontend: the command contract, non-blocking execution, the capability (ACL) posture, the content security policy, and the frontend filesystem boundary. `add-client-version-freshness` (2026-08-24) grew the command surface from two commands to five: a freshness command, and two settings commands (read/write) required by the confirmed enabled-by-default-with-opt-out posture. `add-application-logging` (2026-08-24) grew the surface to six commands with a read-only log-path command, and extended the read-only audit to recognize a second sanctioned write exception (the logging sink). `add-locale-persistence` (2026-08-25) renamed the settings command pair to `user_settings`/`set_user_settings`, moved locale and opt-out state into a durable `settings.json`, and grew the read-only audit to a third sanctioned write exception.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Minimal Scan Command Surface
 
@@ -121,28 +117,6 @@ both pre-existing wording errors; neither is a behavior change caused by this ch
 - THEN the main thread and UI remain responsive
 - AND the elapsed time is not attributed to, or measured as part of, the scan's CA-15 duration
 
-### Requirement: Typed IPC Contract
-
-Commands MUST return typed results directly, using the generated types exactly as serialized for the TypeScript bindings, including the freshness command's typed report. The shell MUST NOT introduce hand-written DTOs or string error payloads. A failure of an offloaded task itself (join failure) MUST map to the appropriate typed error variant — transport mapping, not business logic. A freshness-lookup failure MUST surface as `Freshness::Unknown` within the typed report, never as a rejected command invocation for an otherwise-successful report.
-
-#### Scenario: Core error crosses IPC as the typed payload
-
-- GIVEN the core scan fails because no roots are configured
-- WHEN `scan` is invoked
-- THEN the invocation rejects with the serde-tagged `ScanError` payload matching the generated binding (kind `noRootsConfigured`)
-
-#### Scenario: Offloaded task failure maps to the internal variant
-
-- GIVEN the offloaded scan task fails to complete
-- WHEN the command observes the task failure
-- THEN the invocation rejects with the existing internal `ScanError` variant carrying a reason detail
-
-#### Scenario: A degraded freshness lookup still resolves the command successfully
-
-- GIVEN every reference-version lookup for the current report fails or times out
-- WHEN the freshness command is invoked
-- THEN it resolves successfully with a typed report whose entries are `Freshness::Unknown`, not a rejected invocation
-
 ### Requirement: Minimal Capability Grant
 
 The shell capability declaration SHALL grant `core:default` only: no filesystem plugin, no
@@ -209,28 +183,6 @@ a behavior change caused by this change.)
 - THEN only `freshness` (writing `freshness-cache.json` via `freshness/cache.rs`) and
   `set_user_settings` (writing `settings.json` via `settings/store.rs`) cause a write
 - AND `scan`, `rescan`, `user_settings`, and `log_file_path` cause none
-
-### Requirement: Hardened Content Security Policy
-
-The shell configuration SHALL declare a CSP of at least `default-src 'self'` plus `object-src 'none'` and `base-uri 'none'`. It MUST NOT allow remote content, and the production policy MUST NOT contain `unsafe-inline`.
-
-#### Scenario: Production window loads under the hardened policy
-
-- GIVEN the packaged application
-- WHEN the window loads its content
-- THEN the effective CSP is at least `default-src 'self'; object-src 'none'; base-uri 'none'`
-- AND no content is loaded from any remote origin
-
-### Requirement: Frontend Filesystem Boundary
-
-The frontend SHALL invoke scan commands only through a typed wrapper module importing its types exclusively from the generated bindings. The frontend MUST NOT use any Tauri filesystem plugin or otherwise touch the filesystem; all scan data MUST arrive via command invocation.
-
-#### Scenario: Frontend has no filesystem plugin available
-
-- GIVEN the running application
-- WHEN frontend code executes in the webview
-- THEN no filesystem plugin API is available to it
-- AND scan results reach it only as typed command responses
 
 ### Requirement: The Read-Only Audit Recognizes A Third Write Exception
 

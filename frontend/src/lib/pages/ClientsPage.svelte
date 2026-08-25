@@ -2,10 +2,11 @@
   import type { ClientInstallSlot } from "../../bindings/ClientInstallSlot";
   import type { ClientPresence } from "../../bindings/ClientPresence";
   import type { FreshnessReport } from "../../bindings/FreshnessReport";
-  import type { FreshnessSettings } from "../../bindings/FreshnessSettings";
+  import type { UserSettings } from "../../bindings/UserSettings";
   import type { ScanReport } from "../../bindings/ScanReport";
-  import { fetchFreshness, fetchFreshnessSettings, setFreshnessSettings } from "../freshness";
+  import { fetchFreshness } from "../freshness";
   import { useI18n } from "../i18n/locale.svelte";
+  import { fetchUserSettings, setUserSettings } from "../settings";
 
   const i18n = useI18n();
 
@@ -55,7 +56,7 @@
 
   // Freshness resolves independently of the scan and never blocks first
   // render (design §1, §9): the page paints, then the badge settles.
-  let settings = $state<FreshnessSettings | null>(null);
+  let settings = $state<UserSettings | null>(null);
   let freshness = $state<FreshnessReport | null>(null);
   let lookupFailed = $state(false);
 
@@ -86,9 +87,9 @@
   }
 
   void (async () => {
-    let resolved: FreshnessSettings;
+    let resolved: UserSettings;
     try {
-      resolved = await fetchFreshnessSettings();
+      resolved = await fetchUserSettings();
     } catch {
       // Settings unreadable: stay silent rather than guessing that the
       // check is on. No request is issued.
@@ -146,12 +147,12 @@
 
   async function dismissDisclosure(): Promise<void> {
     if (!settings) return;
-    settings = await setFreshnessSettings(settings.enabled, true);
+    settings = await setUserSettings({ disclosureSeen: true });
   }
 
   async function toggleEnabled(event: Event): Promise<void> {
     const enabled = (event.currentTarget as HTMLInputElement).checked;
-    const updated = await setFreshnessSettings(enabled, settings?.disclosureSeen ?? true);
+    const updated = await setUserSettings({ enabled });
     settings = updated;
     if (updated.enabled) {
       // Re-enabling must actually re-run the check. Clearing the state

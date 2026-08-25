@@ -20,8 +20,8 @@ struct SanctionedWriter {
 }
 
 /// CA-16's complete exception surface. Growing this list is a reviewed
-/// event (`assert_eq!(SANCTIONED_WRITERS.len(), 2)` below).
-const SANCTIONED_WRITERS: [SanctionedWriter; 2] = [
+/// event (`assert_eq!(SANCTIONED_WRITERS.len(), 3)` below).
+const SANCTIONED_WRITERS: [SanctionedWriter; 3] = [
     SanctionedWriter {
         module: "freshness/cache.rs",
         allowed: &["fs::write", "create_dir"],
@@ -38,6 +38,10 @@ const SANCTIONED_WRITERS: [SanctionedWriter; 2] = [
             "std::fs::rename",
         ],
     },
+    SanctionedWriter {
+        module: "settings/store.rs",
+        allowed: &["fs::write", "create_dir", "fs::rename"],
+    },
 ];
 
 #[test]
@@ -50,8 +54,8 @@ fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
             "scan",
             "rescan",
             "freshness",
-            "freshness_settings",
-            "set_freshness_settings",
+            "user_settings",
+            "set_user_settings",
             "log_file_path"
         ]
     );
@@ -112,16 +116,16 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
             .push("capability must not declare filesystem or command scopes".to_string());
     }
 
-    let handler = "tauri::generate_handler![\n            commands::scan,\n            commands::rescan,\n            commands::freshness,\n            commands::freshness_settings,\n            commands::set_freshness_settings,\n            commands::log_file_path\n        ]";
+    let handler = "tauri::generate_handler![\n            commands::scan,\n            commands::rescan,\n            commands::freshness,\n            commands::user_settings,\n            commands::set_user_settings,\n            commands::log_file_path\n        ]";
     if !lib_source.contains("commands::scan")
         || !lib_source.contains("commands::rescan")
         || !lib_source.contains("commands::freshness")
-        || !lib_source.contains("commands::freshness_settings")
-        || !lib_source.contains("commands::set_freshness_settings")
+        || !lib_source.contains("commands::user_settings")
+        || !lib_source.contains("commands::set_user_settings")
         || !lib_source.contains("commands::log_file_path")
     {
         command_findings.push(format!(
-            "invoke handler must expose exactly scan, rescan, freshness, freshness_settings, set_freshness_settings and log_file_path (checked structure: {handler})"
+            "invoke handler must expose exactly scan, rescan, freshness, user_settings, set_user_settings and log_file_path (checked structure: {handler})"
         ));
     }
 
@@ -154,7 +158,7 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
 
     assert_eq!(
         SANCTIONED_WRITERS.len(),
-        2,
+        3,
         "growing the sanctioned-writer list is a reviewed event"
     );
 
@@ -356,10 +360,10 @@ fn exported_tauri_commands(source: &str) -> Vec<&'static str> {
                 commands.push("rescan");
             } else if trimmed.starts_with("pub async fn freshness(") {
                 commands.push("freshness");
-            } else if trimmed.starts_with("pub async fn freshness_settings(") {
-                commands.push("freshness_settings");
-            } else if trimmed.starts_with("pub async fn set_freshness_settings(") {
-                commands.push("set_freshness_settings");
+            } else if trimmed.starts_with("pub async fn user_settings(") {
+                commands.push("user_settings");
+            } else if trimmed.starts_with("pub async fn set_user_settings(") {
+                commands.push("set_user_settings");
             } else if trimmed.starts_with("pub async fn log_file_path(") {
                 commands.push("log_file_path");
             }
@@ -430,6 +434,35 @@ fn cache_module_allow_list_does_not_extend_beyond_its_own_two_entries() {
     assert!(!is_pattern_permitted(Some(cache_writer), "File::create"));
     assert!(!is_pattern_permitted(Some(cache_writer), "fs::rename"));
     assert!(!is_pattern_permitted(Some(cache_writer), "remove_file"));
+}
+
+/// `settings/store.rs`'s allow-list is exactly three entries: any forbidden
+/// pattern outside `["fs::write", "create_dir", "fs::rename"]` must still
+/// fail if the module ever used it (user-settings spec "The settings
+/// module's allow-list does not extend beyond its three operations").
+#[test]
+fn settings_store_allow_list_does_not_extend_beyond_its_own_three_entries() {
+    let settings_writer = SANCTIONED_WRITERS
+        .iter()
+        .find(|writer| writer.module == "settings/store.rs")
+        .expect("settings/store.rs must be a sanctioned writer");
+
+    assert!(is_pattern_permitted(Some(settings_writer), "fs::write"));
+    assert!(is_pattern_permitted(Some(settings_writer), "create_dir"));
+    assert!(is_pattern_permitted(Some(settings_writer), "fs::rename"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "remove_file"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "remove_dir"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "OpenOptions"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "File::create"));
+    assert!(!is_pattern_permitted(Some(settings_writer), ".write_all("));
+    assert!(!is_pattern_permitted(Some(settings_writer), ".set_len("));
+    assert!(!is_pattern_permitted(
+        Some(settings_writer),
+        "set_permissions"
+    ));
+    assert!(!is_pattern_permitted(Some(settings_writer), "hard_link"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "symlink_file"));
+    assert!(!is_pattern_permitted(Some(settings_writer), "symlink_dir"));
 }
 
 /// A module named nowhere in `SANCTIONED_WRITERS` is permitted nothing at

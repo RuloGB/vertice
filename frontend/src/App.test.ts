@@ -7,8 +7,9 @@ import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
 import { fetchLogFilePath } from "./lib/appLog";
-import { fetchFreshness, fetchFreshnessSettings } from "./lib/freshness";
+import { fetchFreshness } from "./lib/freshness";
 import { rescan, scan } from "./lib/scan";
+import { fetchUserSettings, setUserSettings } from "./lib/settings";
 import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
 vi.mock("./lib/scan", () => ({
@@ -20,8 +21,11 @@ vi.mock("./lib/scan", () => ({
 
 vi.mock("./lib/freshness", () => ({
   fetchFreshness: vi.fn(),
-  fetchFreshnessSettings: vi.fn(),
-  setFreshnessSettings: vi.fn(),
+}));
+
+vi.mock("./lib/settings", () => ({
+  fetchUserSettings: vi.fn(),
+  setUserSettings: vi.fn(),
 }));
 
 vi.mock("./lib/appLog", () => ({
@@ -31,7 +35,8 @@ vi.mock("./lib/appLog", () => ({
 const mockedScan = vi.mocked(scan);
 const mockedRescan = vi.mocked(rescan);
 const mockedFetchFreshness = vi.mocked(fetchFreshness);
-const mockedFetchFreshnessSettings = vi.mocked(fetchFreshnessSettings);
+const mockedFetchUserSettings = vi.mocked(fetchUserSettings);
+const mockedSetUserSettings = vi.mocked(setUserSettings);
 const mockedFetchLogFilePath = vi.mocked(fetchLogFilePath);
 
 function skillFixture(): Component {
@@ -223,6 +228,19 @@ function languageSelector(): HTMLSelectElement {
   return selector;
 }
 
+/// Locale-agnostic equivalent of `languageSelector`: the sidebar's language
+/// `<select>`'s `aria-label` is itself translated (`Idioma` in Spanish), so
+/// it cannot be located by its English text once the app has already
+/// mounted in Spanish. Structural instead: it is the sidebar's only
+/// `<select>`.
+function sidebarLanguageSelector(): HTMLSelectElement {
+  const selector = document.querySelector<HTMLSelectElement>("aside select");
+  if (selector === null) {
+    throw new Error("Language selector was not rendered");
+  }
+  return selector;
+}
+
 describe("App locale switching", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -234,7 +252,7 @@ describe("App locale switching", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
-    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchUserSettings.mockResolvedValue({ locale: null, enabled: true, disclosureSeen: true });
     mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 
@@ -285,7 +303,7 @@ describe("App locale switching", () => {
     unmount(app);
   });
 
-  it("starts in English even when the browser locale is Spanish, while allowing a switch to Spanish", async () => {
+  it("falls back to the browser locale by default when no initialLocale prop is provided", async () => {
     Object.defineProperty(window.navigator, "languages", {
       configurable: true,
       value: ["es-ES"],
@@ -294,17 +312,44 @@ describe("App locale switching", () => {
     const app = mount(App, { target: document.body });
     await flushApp();
 
+    expect(document.documentElement.lang).toBe("es");
+    expect(visibleText()).toContain("Bienvenido a Vertice");
+    expect(sidebarLanguageSelector().value).toBe("es");
+
+    const selector = sidebarLanguageSelector();
+    selector.value = "en";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
     expect(document.documentElement.lang).toBe("en");
     expect(visibleText()).toContain("Welcome to Vertice");
-    expect(languageSelector().value).toBe("en");
+
+    unmount(app);
+  });
+
+  it("mounts with the resolved initialLocale prop: Spanish chrome and documentElement.lang", async () => {
+    const app = mount(App, { target: document.body, props: { initialLocale: "es" } });
+    await flushApp();
+
+    expect(document.documentElement.lang).toBe("es");
+    expect(visibleText()).toContain("Bienvenido a Vertice");
+    expect(sidebarLanguageSelector().value).toBe("es");
+
+    unmount(app);
+  });
+
+  it("persists only the locale field when the Sidebar language selector changes, never enabled or disclosureSeen", async () => {
+    mockedSetUserSettings.mockResolvedValue({ locale: "es", enabled: true, disclosureSeen: true });
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
 
     const selector = languageSelector();
     selector.value = "es";
     selector.dispatchEvent(new window.Event("change", { bubbles: true }));
     await flushApp();
 
-    expect(document.documentElement.lang).toBe("es");
-    expect(visibleText()).toContain("Bienvenido a Vertice");
+    expect(mockedSetUserSettings).toHaveBeenCalledWith({ locale: "es" });
 
     unmount(app);
   });
@@ -319,10 +364,9 @@ describe("App locale switching", () => {
 
     const app = mount(App, { target: document.body });
     await flushApp();
-    const selector = languageSelector();
-    selector.value = "es";
-    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
-    await flushApp();
+    // Spanish by default: `navigator.languages` is `es-ES` and no
+    // `initialLocale` prop was provided, so no selector interaction is
+    // needed to reach Spanish chrome.
     navigateTo("Agentes");
     await flushApp();
 
@@ -878,7 +922,7 @@ describe("App shell navigation", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
-    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchUserSettings.mockResolvedValue({ locale: null, enabled: true, disclosureSeen: true });
     mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 
@@ -1038,7 +1082,7 @@ describe("App subscriptions page", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedScan.mockResolvedValue(reportFixture());
-    mockedFetchFreshnessSettings.mockResolvedValue({ enabled: true, disclosureSeen: true });
+    mockedFetchUserSettings.mockResolvedValue({ locale: null, enabled: true, disclosureSeen: true });
     mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
   });
 

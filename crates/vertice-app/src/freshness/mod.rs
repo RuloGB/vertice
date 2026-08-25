@@ -15,7 +15,7 @@ use std::path::Path;
 use vertice_core::freshness::{MapReferenceVersions, ReferenceLookup};
 use vertice_core::model::{ClientPresence, FreshnessReport, FreshnessSubject};
 
-use cache::{CacheEntry, FreshnessStore};
+use cache::{CacheEntry, FreshnessCache};
 use upstream::UpstreamIdentity;
 
 /// Every `(subject, installed version)` pair carried by `presence`,
@@ -50,7 +50,7 @@ fn subjects_from_presence(
 async fn resolve_identity(
     client: &reqwest::Client,
     identity: &UpstreamIdentity,
-    store: &FreshnessStore,
+    store: &FreshnessCache,
     now: u64,
 ) -> ReferenceLookup {
     let cached = store.cache.get(&identity.cache_key());
@@ -80,20 +80,26 @@ async fn resolve_identity(
 /// actually needed (concurrently, once per identity, never once per
 /// installation), then run the pure core comparison. Infallible: every
 /// failure degrades to `Unknown` inside a successful report, never a
-/// rejected call (component-freshness spec).
+/// rejected call (component-freshness spec). `enabled` is read from the
+/// durable `settings::store` document, not this disposable cache
+/// (`add-locale-persistence`): an unreadable settings document resolves
+/// `enabled` conservatively to `false`.
 pub async fn build_report(
     app_data_dir: &Path,
     presence: Option<Vec<ClientPresence>>,
 ) -> FreshnessReport {
-    let store_path = cache::store_path(app_data_dir);
-    let mut store = cache::load(&store_path);
+    let settings_path = crate::settings::store::store_path(app_data_dir);
+    let settings = crate::settings::store::resolve(crate::settings::store::load(&settings_path));
 
-    if !store.enabled {
+    if !settings.enabled {
         return FreshnessReport {
             enabled: false,
             checks: vec![],
         };
     }
+
+    let store_path = cache::store_path(app_data_dir);
+    let mut store = cache::load(&store_path);
 
     let subjects = subjects_from_presence(&presence);
     let now = cache::now_unix_s();
@@ -261,12 +267,14 @@ mod tests {
     #[test]
     fn disabled_setting_yields_an_empty_disabled_report_and_reads_no_subjects() {
         let app_data_dir = temp_app_data_dir("disabled");
-        let store_path = cache::store_path(&app_data_dir);
-        let store = FreshnessStore {
+        let settings_path = crate::settings::store::store_path(&app_data_dir);
+        let settings = vertice_core::model::UserSettings {
+            locale: None,
             enabled: false,
-            ..FreshnessStore::default()
+            disclosure_seen: false,
         };
-        cache::save(&store_path, &store).expect("test setup save must succeed");
+        crate::settings::store::save(&settings_path, &settings)
+            .expect("test setup save must succeed");
 
         let report =
             tauri::async_runtime::block_on(build_report(&app_data_dir, Some(bundled_presence())));
@@ -282,6 +290,25 @@ mod tests {
         let report = tauri::async_runtime::block_on(build_report(&app_data_dir, None));
 
         assert!(report.enabled);
+        assert!(report.checks.is_empty());
+    }
+
+    /// `add-locale-persistence`: `enabled` is now read from the durable
+    /// `settings.json` document, not the freshness response cache. An
+    /// unreadable settings document must resolve `enabled` conservatively
+    /// (`false`) and issue no outbound request at all (component-freshness
+    /// spec "An unreadable or corrupt settings document disables the check
+    /// conservatively").
+    #[test]
+    fn unreadable_settings_document_disables_the_check_and_issues_no_request() {
+        let app_data_dir = temp_app_data_dir("unreadable-settings");
+        let settings_path = crate::settings::store::store_path(&app_data_dir);
+        std::fs::write(&settings_path, b"{ not json").expect("test setup write must succeed");
+
+        let report =
+            tauri::async_runtime::block_on(build_report(&app_data_dir, Some(bundled_presence())));
+
+        assert!(!report.enabled);
         assert!(report.checks.is_empty());
     }
 }

@@ -1,10 +1,13 @@
-//! The persisted freshness document (design §8, §11): a TTL'd cache of
-//! reference-lookup responses, plus the enable/disable setting and the
-//! first-run-disclosure-seen flag, all in **one** JSON file. This is the
-//! only module in the whole workspace that writes a file (CA-16), and its
-//! path is derived exclusively from `tauri::Manager::path().app_data_dir()`
-//! — never a literal path, never an env read (asserted by
-//! `tests/read_only_audit.rs`).
+//! The persisted freshness cache (design §8, §11): a disposable, TTL'd
+//! cache of reference-lookup responses only. `enabled` and
+//! `disclosure_seen` moved to the durable `settings::store` document
+//! (`add-locale-persistence`) — this cache narrows to `HashMap<String,
+//! CacheEntry>`. Its path is derived exclusively from
+//! `tauri::Manager::path().app_data_dir()` — never a literal path, never an
+//! env read (asserted by `tests/read_only_audit.rs`); `settings/store.rs`
+//! is a second, independently-proved sanctioned write exception, not a
+//! re-point of this one — the two documents deliberately have different
+//! write semantics (cheap whole-file write here vs stage-and-rename there).
 
 use std::collections::HashMap;
 use std::fs;
@@ -29,31 +32,14 @@ pub struct CacheEntry {
     pub fetched_at_unix_s: u64,
 }
 
-/// The whole persisted document. `enabled` defaults to `true` (spec: "The
-/// Check Is Enabled By Default"); a freshly created or corrupt-and-reset
-/// document is therefore never silently disabled.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct FreshnessStore {
-    #[serde(default = "default_enabled")]
-    pub enabled: bool,
-    #[serde(default)]
-    pub disclosure_seen: bool,
+/// The whole persisted document: TTL'd reference-lookup entries only. No
+/// `enabled` or `disclosure_seen` — those live exclusively in the durable
+/// `settings::store` document (component-freshness spec "The Response
+/// Cache Is The Only New Write, Confined To The App Data Directory").
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct FreshnessCache {
     #[serde(default)]
     pub cache: HashMap<String, CacheEntry>,
-}
-
-fn default_enabled() -> bool {
-    true
-}
-
-impl Default for FreshnessStore {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            disclosure_seen: false,
-            cache: HashMap::new(),
-        }
-    }
 }
 
 /// The document's path, a child of `app_data_dir` — never constructed from
@@ -63,23 +49,24 @@ pub fn store_path(app_data_dir: &Path) -> PathBuf {
     app_data_dir.join(FILE_NAME)
 }
 
-/// Load the store. A missing, corrupt, or unreadable file is treated as an
-/// empty (default) store — never a crash, never an error surfaced to the
-/// caller (design §8, `component-freshness` spec).
-pub fn load(path: &Path) -> FreshnessStore {
+/// Load the cache. A missing, corrupt, or unreadable file is treated as an
+/// empty (default) cache — never a crash, never an error surfaced to the
+/// caller (design §8, `component-freshness` spec). Its presence or absence
+/// must not affect correctness beyond a live lookup or `Unknown`.
+pub fn load(path: &Path) -> FreshnessCache {
     fs::read_to_string(path)
         .ok()
         .and_then(|contents| serde_json::from_str(&contents).ok())
         .unwrap_or_default()
 }
 
-/// The only write this whole change introduces: one whole-file `fs::write`
-/// of the serialized document. No temp-file-plus-rename (design §8: a torn
-/// write is indistinguishable from a corrupt cache, and `load` already
-/// treats that as empty).
-pub fn save(path: &Path, store: &FreshnessStore) -> std::io::Result<()> {
+/// The only write this module introduces: one whole-file `fs::write` of the
+/// serialized document. No temp-file-plus-rename (design §8: a torn write
+/// is indistinguishable from a corrupt cache, and `load` already treats
+/// that as empty).
+pub fn save(path: &Path, cache: &FreshnessCache) -> std::io::Result<()> {
     let serialized =
-        serde_json::to_string(store).expect("FreshnessStore serialization cannot fail");
+        serde_json::to_string(cache).expect("FreshnessCache serialization cannot fail");
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -136,39 +123,34 @@ mod tests {
     }
 
     #[test]
-    fn missing_file_loads_as_the_default_enabled_empty_store() {
+    fn missing_file_loads_as_the_default_empty_cache() {
         let app_data_dir = temp_app_data_dir("missing");
         let path = store_path(&app_data_dir);
 
-        let store = load(&path);
+        let cache = load(&path);
 
-        assert_eq!(store, FreshnessStore::default());
-        assert!(store.enabled);
-        assert!(store.cache.is_empty());
+        assert_eq!(cache, FreshnessCache::default());
+        assert!(cache.cache.is_empty());
     }
 
     #[test]
-    fn corrupt_file_is_treated_as_the_default_empty_store() {
+    fn corrupt_file_is_treated_as_the_default_empty_cache() {
         let app_data_dir = temp_app_data_dir("corrupt");
         let path = store_path(&app_data_dir);
         fs::write(&path, b"not valid json at all, no braces here")
             .expect("test write must succeed");
 
-        let store = load(&path);
+        let cache = load(&path);
 
-        assert_eq!(store, FreshnessStore::default());
+        assert_eq!(cache, FreshnessCache::default());
     }
 
     #[test]
     fn save_then_load_round_trips_the_whole_document() {
         let app_data_dir = temp_app_data_dir("roundtrip");
         let path = store_path(&app_data_dir);
-        let mut store = FreshnessStore {
-            enabled: false,
-            disclosure_seen: true,
-            ..FreshnessStore::default()
-        };
-        store.cache.insert(
+        let mut cache = FreshnessCache::default();
+        cache.cache.insert(
             "npm:opencode-ai".to_string(),
             CacheEntry {
                 version: "1.18.21".to_string(),
@@ -176,10 +158,10 @@ mod tests {
             },
         );
 
-        save(&path, &store).expect("save must succeed against a writable temp dir");
+        save(&path, &cache).expect("save must succeed against a writable temp dir");
         let reloaded = load(&path);
 
-        assert_eq!(reloaded, store);
+        assert_eq!(reloaded, cache);
     }
 
     /// Regression: `save()` must create its own parent directory. Unlike
@@ -199,21 +181,21 @@ mod tests {
         let app_data_dir = temp_app_data_dir_not_created("save-creates-dir");
         assert!(!app_data_dir.exists());
         let path = store_path(&app_data_dir);
-        let store = FreshnessStore::default();
+        let cache = FreshnessCache::default();
 
-        save(&path, &store).expect("save must create the parent directory and succeed");
+        save(&path, &cache).expect("save must create the parent directory and succeed");
 
         let reloaded = load(&path);
-        assert_eq!(reloaded, store);
+        assert_eq!(reloaded, cache);
     }
 
     #[test]
     fn save_is_a_single_whole_file_write() {
         let app_data_dir = temp_app_data_dir("wholefile");
         let path = store_path(&app_data_dir);
-        let store = FreshnessStore::default();
+        let cache = FreshnessCache::default();
 
-        save(&path, &store).expect("save must succeed");
+        save(&path, &cache).expect("save must succeed");
 
         assert!(path.is_file());
         assert!(

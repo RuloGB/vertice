@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import type { ScanReport } from "./bindings/ScanReport";
   import { appTitle, APP_VERSION, PRODUCT_NAME } from "./lib/appTitle";
-  import { createI18n, provideI18n } from "./lib/i18n/locale.svelte";
+  import { createI18n, provideI18n, resolveLocale, type SupportedLocale } from "./lib/i18n/locale.svelte";
   import { areaLabelKey, DEFAULT_ROUTE, hasContent, type RouteId } from "./lib/navigation";
   import AgentsPage from "./lib/pages/AgentsPage.svelte";
   import ClientsPage from "./lib/pages/ClientsPage.svelte";
@@ -13,6 +13,7 @@
   import SubscriptionsPage from "./lib/pages/SubscriptionsPage.svelte";
   import { isScanError, rescan, scan } from "./lib/scan";
   import { incidentCount, partitionDiagnostics } from "./lib/scanDiagnostics";
+  import { setUserSettings } from "./lib/settings";
   import Sidebar from "./lib/Sidebar.svelte";
   import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
@@ -22,7 +23,21 @@
     | { kind: "internal"; reason: string }
     | { kind: "unexpected" };
 
-  const i18n = provideI18n(createI18n("en"));
+  let { initialLocale = resolveLocale(navigator.languages) }: { initialLocale?: SupportedLocale } =
+    $props();
+
+  // Write-through, never awaited: a failed persist must not block the
+  // language switch itself (design "Decision 1"); `createI18n` already
+  // swallows a throwing callback.
+  function persistLocale(locale: SupportedLocale): void {
+    setUserSettings({ locale }).catch(() => {});
+  }
+
+  // Deliberate one-time read: `initialLocale` seeds `createI18n`'s own
+  // internal `$state`; subsequent changes go through `i18n.setLocale`, not
+  // through this prop.
+  // svelte-ignore state_referenced_locally
+  const i18n = provideI18n(createI18n(initialLocale, persistLocale));
 
   let route: RouteId = $state(DEFAULT_ROUTE);
   let status: Status = $state("idle");
