@@ -27,24 +27,21 @@
       id: "claudeCode",
       name: "Claude Code",
       owner: "Anthropic",
-      mark: "C",
-      tone: "#d6a77a",
+      icon: "/icons/claude.png",
       slots: ["claudeCodeNpm", "claudeCodeBundled"] as ClientInstallSlot[],
     },
     {
       id: "openCode",
       name: "OpenCode",
       owner: "SST",
-      mark: "O",
-      tone: "#a78bfa",
+      icon: "/icons/opencode.png",
       slots: ["openCodeNpm"] as ClientInstallSlot[],
     },
     {
       id: "codex",
       name: "Codex",
       owner: "OpenAI",
-      mark: "*",
-      tone: "#54d68a",
+      icon: "/icons/codex.png",
       slots: ["codexStandalone"] as ClientInstallSlot[],
     },
   ] as const;
@@ -224,11 +221,12 @@
         <article class="surface-card flex min-h-80 flex-col gap-6 p-5 transition-transform duration-200 hover:-translate-y-0.5">
           <div class="flex items-start justify-between gap-4">
             <div class="flex items-center gap-3">
-              <div
-                class="flex size-12 items-center justify-center rounded-2xl border text-xl font-bold text-canvas"
-                style={`background: ${client.tone}; border-color: ${client.tone}`}
+              <img
+                src={client.icon}
+                alt=""
+                class="size-12 rounded-2xl object-contain"
                 aria-hidden="true"
-              >{client.mark}</div>
+              />
               <div>
                 <h2 class="text-lg font-semibold text-content">{client.name}</h2>
                 <p class="text-sm text-content-muted">{i18n.t("clients.owner", { owner: client.owner })}</p>
