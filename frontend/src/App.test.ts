@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
+import { fetchLogFilePath } from "./lib/appLog";
 import { fetchFreshness, fetchFreshnessSettings } from "./lib/freshness";
 import { rescan, scan } from "./lib/scan";
 import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
@@ -23,10 +24,15 @@ vi.mock("./lib/freshness", () => ({
   setFreshnessSettings: vi.fn(),
 }));
 
+vi.mock("./lib/appLog", () => ({
+  fetchLogFilePath: vi.fn(),
+}));
+
 const mockedScan = vi.mocked(scan);
 const mockedRescan = vi.mocked(rescan);
 const mockedFetchFreshness = vi.mocked(fetchFreshness);
 const mockedFetchFreshnessSettings = vi.mocked(fetchFreshnessSettings);
+const mockedFetchLogFilePath = vi.mocked(fetchLogFilePath);
 
 function skillFixture(): Component {
   return {
@@ -680,6 +686,39 @@ describe("App scan route", () => {
     });
     document.title = "";
     document.body.innerHTML = "";
+    mockedFetchLogFilePath.mockResolvedValue(
+      "C:\\Users\\raul\\AppData\\Roaming\\com.vertice.app\\vertice.log",
+    );
+  });
+
+  it("renders the application log path as selectable text, with no reveal-in-file-manager action, in en and es", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    const logPath = "C:\\Users\\raul\\AppData\\Roaming\\com.vertice.app\\vertice.log";
+    mockedFetchLogFilePath.mockResolvedValue(logPath);
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("Scan");
+    await flushApp();
+
+    const logPathElement = document.querySelector('[data-testid="log-path"]');
+    expect(logPathElement?.tagName.toLowerCase()).toBe("code");
+    expect(logPathElement?.textContent).toBe(logPath);
+    expect(
+      Array.from(document.querySelectorAll("button")).some((button) =>
+        /reveal|open|show in/i.test(button.textContent ?? ""),
+      ),
+    ).toBe(false);
+
+    const selector = languageSelector();
+    selector.value = "es";
+    selector.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await flushApp();
+
+    const logPathElementEs = document.querySelector('[data-testid="log-path"]');
+    expect(logPathElementEs?.textContent).toBe(logPath);
+
+    unmount(app);
   });
 
   it("renders roots, supported clients, duration, and a healthy verdict for a clean report, never a blank panel", async () => {

@@ -8,15 +8,98 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use vertice_core::model::{FreshnessReport, FreshnessSettings, ScanError, ScanReport};
+use vertice_core::model::{
+    ClientPresenceStatus, Freshness, FreshnessReport, FreshnessSettings, ScanError, ScanReport,
+    SearchRootStatus,
+};
 
-/// Run the core scan off the main thread. A scan may take up to the CA-15
-/// two-second budget; `spawn_blocking` keeps the window event loop
-/// responsive for the whole duration.
-async fn run_scan() -> Result<ScanReport, ScanError> {
-    tauri::async_runtime::spawn_blocking(vertice_core::scan::scan)
+/// Run the core scan off the main thread, logging its start, end, and
+/// measured duration (application-logging spec "A scan logs its start,
+/// end, and duration"). `label` distinguishes `scan` from `rescan` in the
+/// log while both delegate to the same core operation. A failure to log
+/// never affects the returned result (D5 class 1) — logging only ever
+/// reads the already-computed `ScanReport`, never mutates or gates it.
+async fn run_scan(label: &'static str) -> Result<ScanReport, ScanError> {
+    run_scan_with(label, |level, message| log::log!(level, "{message}")).await
+}
+
+/// The testable core of [`run_scan`]: the start/end lines are emitted
+/// through an injected closure so a unit test can capture exactly what
+/// would have been logged without installing a process-global logger
+/// (mirrors `log_scan_report_with`'s seam — design §14 C1).
+async fn run_scan_with(
+    label: &'static str,
+    mut emit: impl FnMut(log::Level, &str),
+) -> Result<ScanReport, ScanError> {
+    emit(log::Level::Info, &format!("{label} started"));
+    let result = tauri::async_runtime::spawn_blocking(vertice_core::scan::scan)
         .await
-        .map_err(map_join_error)?
+        .map_err(map_join_error)?;
+    if let Ok(report) = &result {
+        emit(
+            log::Level::Info,
+            &format!("{label} finished in {} ms", report.duration_ms),
+        );
+        log_scan_report(report);
+    }
+    result
+}
+
+/// Emit one WARN line per `SearchRootStatus::NotFound` root and per
+/// `ClientPresenceStatus::NotDetected` client in `report`
+/// (application-logging spec "The Four Required Event Classes Are
+/// Recorded"). Takes `&ScanReport` — it can only read, never mutate the
+/// report already computed and about to be returned to the caller
+/// (scan-orchestration spec "Logging a report does not mutate ScanReport
+/// or ScanIssue").
+fn log_scan_report(report: &ScanReport) {
+    log_scan_report_with(report, |level, message| log::log!(level, "{message}"));
+}
+
+/// The testable core of [`log_scan_report`]: the emission is factored
+/// behind a closure so unit tests can capture what would have been logged
+/// without touching the process-global `log` sink (design §14 C1).
+fn log_scan_report_with(report: &ScanReport, mut emit: impl FnMut(log::Level, &str)) {
+    for root in &report.roots_scanned {
+        if root.status == SearchRootStatus::NotFound {
+            emit(
+                log::Level::Warn,
+                &format!(
+                    "search root not found: {} ({})",
+                    root.id.0,
+                    root.path.display()
+                ),
+            );
+        }
+    }
+    if let Some(records) = &report.client_presence {
+        for record in records {
+            if record.status == ClientPresenceStatus::NotDetected {
+                emit(
+                    log::Level::Warn,
+                    &format!("client not detected: {}", record.label),
+                );
+            }
+        }
+    }
+}
+
+/// Emit one WARN line per `Freshness::Unknown { reason }` check in `report`
+/// (application-logging spec "A freshness-unknown verdict is logged with
+/// its reason"; component-freshness spec "Freshness-Unknown Verdicts Are
+/// Also Recorded In The Application Log").
+fn log_freshness_report(report: &FreshnessReport) {
+    log_freshness_report_with(report, |level, message| log::log!(level, "{message}"));
+}
+
+/// The testable core of [`log_freshness_report`], mirroring
+/// `log_scan_report_with`'s injectable-sink shape.
+fn log_freshness_report_with(report: &FreshnessReport, mut emit: impl FnMut(log::Level, &str)) {
+    for check in &report.checks {
+        if let Freshness::Unknown { reason } = &check.verdict {
+            emit(log::Level::Warn, &format!("freshness unknown: {reason}"));
+        }
+    }
 }
 
 /// Map a join failure of the offloaded scan task to the existing internal
@@ -46,15 +129,16 @@ async fn scan_installations() -> Result<Option<Vec<vertice_core::model::ClientPr
 /// `scan` command: run a full inventory scan of the registered user roots.
 #[tauri::command]
 pub async fn scan() -> Result<ScanReport, ScanError> {
-    run_scan().await
+    run_scan("scan").await
 }
 
 /// `rescan` command: identical to `scan` — the core holds no cache or
 /// state. Kept as a stable IPC entry point for future cache-invalidation
-/// semantics.
+/// semantics. Labeled distinctly in the log so a rescan is distinguishable
+/// from the initial scan (design §11).
 #[tauri::command]
 pub async fn rescan() -> Result<ScanReport, ScanError> {
-    run_scan().await
+    run_scan("rescan").await
 }
 
 /// `freshness` command: an independent lookup, never awaiting `scan` or
@@ -68,7 +152,9 @@ pub async fn freshness(app: tauri::AppHandle) -> Result<FreshnessReport, ScanErr
 
     let presence = scan_installations().await?;
 
-    Ok(crate::freshness::build_report(&app_data_dir, presence).await)
+    let report = crate::freshness::build_report(&app_data_dir, presence).await;
+    log_freshness_report(&report);
+    Ok(report)
 }
 
 /// Resolve `app_data_dir()` and map the failure onto the existing internal
@@ -110,6 +196,21 @@ pub async fn set_freshness_settings(
     write_freshness_settings(app_data_dir, enabled, disclosure_seen).await
 }
 
+/// `log_file_path` command: returns the absolute path of the application
+/// log so the frontend can render it as selectable text. Performs no I/O
+/// at all — a path join — which is why it is the one command that does
+/// not offload to `spawn_blocking`. `async` because the audit's
+/// `exported_tauri_commands` matcher keys on `pub async fn <name>(`
+/// (desktop-shell spec "The log-path command returns the path without
+/// touching the file").
+#[tauri::command]
+pub async fn log_file_path(app: tauri::AppHandle) -> Result<String, ScanError> {
+    let app_data_dir = resolve_app_data_dir(&app)?;
+    Ok(crate::logging::log_path(&app_data_dir)
+        .to_string_lossy()
+        .into_owned())
+}
+
 /// The blocking-offloaded read behind `freshness_settings`, factored out so
 /// it is directly testable without an `AppHandle` (mirrors `run_scan`'s
 /// shape).
@@ -141,8 +242,12 @@ async fn write_freshness_settings(
         // Best-effort, matching `build_report`'s own cache-save tolerance:
         // a write failure here would surface as a silently-reverted toggle
         // on next read rather than a crash, which is preferable to
-        // rejecting an otherwise-successful settings change.
-        let _ = crate::freshness::cache::save(&path, &store);
+        // rejecting an otherwise-successful settings change. The result is
+        // unaffected either way — only the silence becomes evidence
+        // (design §9).
+        if let Err(err) = crate::freshness::cache::save(&path, &store) {
+            log::warn!("could not persist freshness store: {err}");
+        }
         FreshnessSettings {
             enabled: store.enabled,
             disclosure_seen: store.disclosure_seen,
@@ -154,8 +259,15 @@ async fn write_freshness_settings(
 
 #[cfg(test)]
 mod tests {
-    use super::{map_join_error, rescan, run_scan, scan, scan_installations};
+    use super::{
+        log_freshness_report_with, log_scan_report_with, map_join_error, rescan, run_scan,
+        run_scan_with, scan, scan_installations,
+    };
     use crate::freshness::cache::{self, FreshnessStore};
+    use vertice_core::model::{
+        ClientPresence, ClientPresenceStatus, Freshness, FreshnessCheck, FreshnessReport,
+        FreshnessSubject, ScanReport, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
+    };
 
     /// The private seam the commands delegate to: the core scan runs on the
     /// blocking pool and resolves with the consolidated report. Read-only
@@ -164,7 +276,7 @@ mod tests {
     /// or not.
     #[test]
     fn run_scan_resolves_with_a_consolidated_report() {
-        let report = tauri::async_runtime::block_on(run_scan())
+        let report = tauri::async_runtime::block_on(run_scan("scan"))
             .expect("scan must succeed when the home directory resolves");
 
         assert!(!report.roots_scanned.is_empty());
@@ -283,6 +395,160 @@ mod tests {
                 "scan issue unexpectedly mentions freshness: {issue:?}"
             );
         }
+    }
+
+    fn scan_report_fixture(
+        roots: Vec<SearchRoot>,
+        presence: Option<Vec<ClientPresence>>,
+    ) -> ScanReport {
+        ScanReport {
+            components: vec![],
+            installations: vec![],
+            roots_scanned: roots,
+            issues: vec![],
+            client_presence: presence,
+            duration_ms: 42,
+        }
+    }
+
+    /// scan-orchestration spec, "Logging a report does not mutate
+    /// ScanReport or ScanIssue": observing a completed report for logging
+    /// purposes leaves it byte-identical to what a scan already produced
+    /// (design §14 C2, D5 class 1).
+    #[test]
+    fn scan_result_is_byte_identical_whether_or_not_a_working_sink_observed_it() {
+        let report = tauri::async_runtime::block_on(run_scan("scan"))
+            .expect("scan must succeed when the home directory resolves");
+        let before = report.clone();
+
+        // No global logger is installed in this test process, so this
+        // observation runs against a "sink" that silently drops every
+        // line — exactly the failed-initialisation case D5 class 1
+        // requires to be indistinguishable from a working sink as far as
+        // the report is concerned.
+        log_scan_report_with(&report, |_level, _message| {});
+
+        assert_eq!(report, before);
+    }
+
+    /// application-logging spec "A scan logs its start, end, and duration":
+    /// exactly one INFO "started" line and one INFO "finished in N ms" line
+    /// are emitted per scan, carrying the real measured duration.
+    #[test]
+    fn run_scan_emits_one_info_start_line_and_one_info_finish_line_carrying_the_duration() {
+        let mut emitted: Vec<(log::Level, String)> = Vec::new();
+
+        let report = tauri::async_runtime::block_on(run_scan_with("scan", |level, message| {
+            emitted.push((level, message.to_string()));
+        }))
+        .expect("scan must succeed when the home directory resolves");
+
+        assert_eq!(emitted.len(), 2);
+        assert!(emitted.iter().all(|(level, _)| *level == log::Level::Info));
+        assert_eq!(emitted[0].1, "scan started");
+        assert_eq!(
+            emitted[1].1,
+            format!("scan finished in {} ms", report.duration_ms)
+        );
+    }
+
+    /// application-logging spec "A missing root and an undetected client
+    /// are both logged": one WARN line per `NotFound` root and one per
+    /// `NotDetected` client, each carrying the concrete value (design §14
+    /// C1).
+    #[test]
+    fn scan_report_with_not_found_root_and_not_detected_client_emits_one_warn_line_each() {
+        let report = scan_report_fixture(
+            vec![SearchRoot {
+                id: SearchRootId("claude-skills".to_string()),
+                path: "C:\\missing\\claude-skills".into(),
+                kind: SearchRootKind::Skill,
+                status: SearchRootStatus::NotFound,
+            }],
+            Some(vec![ClientPresence {
+                slot: vertice_core::model::ClientInstallSlot::CodexStandalone,
+                label: "Codex".to_string(),
+                probed_paths: vec!["C:\\missing\\codex".into()],
+                status: ClientPresenceStatus::NotDetected,
+                installations: vec![],
+            }]),
+        );
+
+        let mut emitted: Vec<(log::Level, String)> = Vec::new();
+        log_scan_report_with(&report, |level, message| {
+            emitted.push((level, message.to_string()));
+        });
+
+        assert_eq!(emitted.len(), 2);
+        assert!(emitted.iter().all(|(level, _)| *level == log::Level::Warn));
+        assert!(emitted
+            .iter()
+            .any(|(_, message)| message.contains("claude-skills")));
+        assert!(emitted.iter().any(|(_, message)| message.contains("Codex")));
+    }
+
+    /// component-freshness spec "Freshness-Unknown Verdicts Are Also
+    /// Recorded In The Application Log": the `reason` value is carried
+    /// verbatim into the WARN line (design §14 C1).
+    #[test]
+    fn freshness_report_with_an_unknown_verdict_emits_a_warn_line_carrying_the_reason_verbatim() {
+        let reason = "upstream lookup timed out after 2000ms".to_string();
+        let report = FreshnessReport {
+            enabled: true,
+            checks: vec![FreshnessCheck {
+                subject: FreshnessSubject::ClientInstallation {
+                    slot: vertice_core::model::ClientInstallSlot::CodexStandalone,
+                    path: "C:\\fixture\\codex".into(),
+                },
+                installed: "1.0.0".to_string(),
+                verdict: Freshness::Unknown {
+                    reason: reason.clone(),
+                },
+            }],
+        };
+
+        let mut emitted: Vec<(log::Level, String)> = Vec::new();
+        log_freshness_report_with(&report, |level, message| {
+            emitted.push((level, message.to_string()));
+        });
+
+        assert_eq!(emitted.len(), 1);
+        assert_eq!(emitted[0].0, log::Level::Warn);
+        assert!(emitted[0].1.contains(&reason));
+    }
+
+    /// Regression: the settings-write path must create its own app data
+    /// directory. Unlike `temp_app_data_dir`, this deliberately does NOT
+    /// create the directory — standing in for a machine where
+    /// `app_data_dir()` has never existed (design §9, §14 A2: "the toggle
+    /// survives restart").
+    fn temp_app_data_dir_not_created(label: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!(
+            "vertice-commands-freshness-settings-not-created-{label}-{}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn writing_settings_survives_a_never_created_app_data_directory() {
+        let app_data_dir = temp_app_data_dir_not_created("write-survives-restart");
+        assert!(!app_data_dir.exists());
+
+        let written = tauri::async_runtime::block_on(super::write_freshness_settings(
+            app_data_dir.clone(),
+            false,
+            true,
+        ))
+        .expect("writing settings must succeed even when the app data dir never existed");
+        assert!(!written.enabled);
+        assert!(written.disclosure_seen);
+
+        // Simulates a restart: a fresh read against the same path must
+        // observe exactly what was written, not the store's defaults.
+        let read_back =
+            tauri::async_runtime::block_on(super::read_freshness_settings(app_data_dir))
+                .expect("reading settings back must succeed");
+        assert_eq!(read_back, written);
     }
 
     fn temp_app_data_dir(label: &str) -> std::path::PathBuf {

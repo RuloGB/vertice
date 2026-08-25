@@ -10,10 +10,35 @@ struct ShellAuditReport {
     static_proof_is_limited: bool,
 }
 
-/// The one module CA-16 permits to write: it derives its path exclusively
-/// from `app_data_dir()`, never a literal path, never an env read (design
-/// §8, §14).
-const CACHE_MODULE_EXCEPTION: &str = "freshness/cache.rs";
+/// One sanctioned write-exception module and the specific enumerated
+/// syscalls it is permitted to use — membership alone grants nothing: every
+/// entry's path derivation is still independently proved by
+/// `assert_write_path_is_derived_from_app_data_dir` (design §10).
+struct SanctionedWriter {
+    module: &'static str,
+    allowed: &'static [&'static str],
+}
+
+/// CA-16's complete exception surface. Growing this list is a reviewed
+/// event (`assert_eq!(SANCTIONED_WRITERS.len(), 2)` below).
+const SANCTIONED_WRITERS: [SanctionedWriter; 2] = [
+    SanctionedWriter {
+        module: "freshness/cache.rs",
+        allowed: &["fs::write", "create_dir"],
+    },
+    SanctionedWriter {
+        module: "logging.rs",
+        allowed: &[
+            "OpenOptions",
+            ".write(",
+            ".write_all(",
+            "File::create",
+            "create_dir",
+            "fs::rename",
+            "std::fs::rename",
+        ],
+    },
+];
 
 #[test]
 fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
@@ -26,7 +51,8 @@ fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
             "rescan",
             "freshness",
             "freshness_settings",
-            "set_freshness_settings"
+            "set_freshness_settings",
+            "log_file_path"
         ]
     );
     assert_eq!(report.permissions, vec!["core:default".to_string()]);
@@ -86,32 +112,39 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
             .push("capability must not declare filesystem or command scopes".to_string());
     }
 
-    let handler = "tauri::generate_handler![\n            commands::scan,\n            commands::rescan,\n            commands::freshness,\n            commands::freshness_settings,\n            commands::set_freshness_settings\n        ]";
+    let handler = "tauri::generate_handler![\n            commands::scan,\n            commands::rescan,\n            commands::freshness,\n            commands::freshness_settings,\n            commands::set_freshness_settings,\n            commands::log_file_path\n        ]";
     if !lib_source.contains("commands::scan")
         || !lib_source.contains("commands::rescan")
         || !lib_source.contains("commands::freshness")
         || !lib_source.contains("commands::freshness_settings")
         || !lib_source.contains("commands::set_freshness_settings")
+        || !lib_source.contains("commands::log_file_path")
     {
         command_findings.push(format!(
-            "invoke handler must expose exactly scan, rescan, freshness, freshness_settings and set_freshness_settings (checked structure: {handler})"
+            "invoke handler must expose exactly scan, rescan, freshness, freshness_settings, set_freshness_settings and log_file_path (checked structure: {handler})"
         ));
     }
 
-    // Widened per `add-client-version-freshness` design §14: every file
-    // under `src/**` is scanned for the forbidden mutation patterns,
-    // except the one module CA-16 permits to write at all. `#[cfg(test)]`
-    // module bodies are stripped first: this audit is about the
-    // *production* command surface, and test helpers legitimately create
-    // scratch directories/files under the OS temp dir, which is not the
-    // surface this test proves anything about.
+    // Every file under `src/**` is scanned for the forbidden mutation
+    // patterns. A sanctioned module is no longer skipped wholesale: it is
+    // looked up in `SANCTIONED_WRITERS` and only its own enumerated
+    // `allowed` patterns are permitted — every other forbidden pattern,
+    // including the always-denied set (`remove_file`, `remove_dir`,
+    // `.set_len(`, `set_permissions`, `hard_link`, `symlink_file`,
+    // `symlink_dir`), still fails the audit even inside a sanctioned
+    // module. `#[cfg(test)]` module bodies are stripped first: this audit
+    // is about the *production* command surface, and test helpers
+    // legitimately create scratch directories/files under the OS temp dir,
+    // which is not the surface this test proves anything about.
     for (relative_path, source) in all_rs_files_under(&src_dir) {
-        if relative_path == CACHE_MODULE_EXCEPTION {
-            continue;
-        }
         let production_source = strip_cfg_test_blocks(&source);
+        let sanctioned = SANCTIONED_WRITERS
+            .iter()
+            .find(|writer| writer.module == relative_path);
+
         for forbidden in FORBIDDEN_MUTATION_PATTERNS {
-            if production_source.contains(forbidden) {
+            if !is_pattern_permitted(sanctioned, forbidden) && production_source.contains(forbidden)
+            {
                 command_findings.push(format!(
                     "{relative_path} contains forbidden mutation pattern `{forbidden}`"
                 ));
@@ -119,32 +152,27 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
         }
     }
 
-    // The scoped exception itself: `cache.rs` MAY write, but ONLY via a
-    // path derived from `app_data_dir()` — never a literal absolute path,
-    // never an environment read. Same production-only scoping: `cache.rs`'s
-    // own unit tests stub `app_data_dir()` with a scratch temp directory
-    // via `std::env::temp_dir()`, which is test scaffolding, not the
-    // production write path this check pins.
-    let cache_source_full = fs::read_to_string(src_dir.join("freshness").join("cache.rs"))
-        .expect("freshness/cache.rs must exist once the freshness module lands");
-    let cache_source = strip_cfg_test_blocks(&cache_source_full);
+    assert_eq!(
+        SANCTIONED_WRITERS.len(),
+        2,
+        "growing the sanctioned-writer list is a reviewed event"
+    );
 
-    if !cache_source.contains("app_data_dir") {
-        command_findings.push(
-            "freshness/cache.rs must derive its path from app_data_dir(), found no reference"
-                .to_string(),
+    // Every sanctioned module's path derivation is proved individually —
+    // path derived from `app_data_dir()`, no literal absolute path, no
+    // `std::env::` read — rather than accepted merely by presence in the
+    // list (design §10, desktop-shell "The Read-Only Audit Recognizes A
+    // Second Write Exception").
+    for writer in &SANCTIONED_WRITERS {
+        let source_full = fs::read_to_string(src_dir.join(writer.module)).unwrap_or_else(|_| {
+            panic!("{} must exist once it lands", writer.module);
+        });
+        let production_source = strip_cfg_test_blocks(&source_full);
+        assert_write_path_is_derived_from_app_data_dir(
+            writer.module,
+            &production_source,
+            &mut command_findings,
         );
-    }
-    if cache_source.contains("std::env::") || cache_source.contains(" env::") {
-        command_findings
-            .push("freshness/cache.rs must not read the environment directly".to_string());
-    }
-    for literal_path_marker in ["C:\\\\", "C:/", "\"/home/", "\"/Users/", "\"/etc/"] {
-        if cache_source.contains(literal_path_marker) {
-            command_findings.push(format!(
-                "freshness/cache.rs must not contain a literal absolute path (`{literal_path_marker}`)"
-            ));
-        }
     }
 
     ShellAuditReport {
@@ -153,6 +181,41 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
         capability_findings,
         command_findings,
         static_proof_is_limited: true,
+    }
+}
+
+/// Whether `pattern` is one of `sanctioned`'s own enumerated `allowed`
+/// patterns. `sanctioned: None` (an unlisted module) permits nothing — the
+/// always-denied set (`remove_file`, `remove_dir`, `.set_len(`,
+/// `set_permissions`, `hard_link`, `symlink_file`, `symlink_dir`) is never
+/// in any module's `allowed` list, so it stays denied everywhere, including
+/// inside both sanctioned exceptions (design §10).
+fn is_pattern_permitted(sanctioned: Option<&SanctionedWriter>, pattern: &str) -> bool {
+    sanctioned.is_some_and(|writer| writer.allowed.contains(&pattern))
+}
+
+/// The three path-derivation proof obligations any sanctioned writer must
+/// satisfy: references `app_data_dir`, reads no environment variable
+/// directly, and contains no literal absolute path (design §10).
+fn assert_write_path_is_derived_from_app_data_dir(
+    module: &str,
+    production_source: &str,
+    findings: &mut Vec<String>,
+) {
+    if !production_source.contains("app_data_dir") {
+        findings.push(format!(
+            "{module} must derive its path from app_data_dir(), found no reference"
+        ));
+    }
+    if production_source.contains("std::env::") || production_source.contains(" env::") {
+        findings.push(format!("{module} must not read the environment directly"));
+    }
+    for literal_path_marker in ["C:\\\\", "C:/", "\"/home/", "\"/Users/", "\"/etc/"] {
+        if production_source.contains(literal_path_marker) {
+            findings.push(format!(
+                "{module} must not contain a literal absolute path (`{literal_path_marker}`)"
+            ));
+        }
     }
 }
 
@@ -297,6 +360,8 @@ fn exported_tauri_commands(source: &str) -> Vec<&'static str> {
                 commands.push("freshness_settings");
             } else if trimmed.starts_with("pub async fn set_freshness_settings(") {
                 commands.push("set_freshness_settings");
+            } else if trimmed.starts_with("pub async fn log_file_path(") {
+                commands.push("log_file_path");
             }
             next_public_async_fn_is_command = false;
         }
@@ -324,4 +389,53 @@ fn capability_permissions(source: &str) -> Vec<String> {
             (!permission.is_empty()).then(|| permission.to_string())
         })
         .collect()
+}
+
+/// `logging.rs`'s exception is narrow: it does not extend to
+/// `remove_file`, nor to a literal Windows path marker — both stay denied
+/// even inside a sanctioned module (design §14 E2, second half).
+#[test]
+fn logging_module_exception_does_not_extend_to_remove_file_or_a_literal_windows_path() {
+    let logging_writer = SANCTIONED_WRITERS
+        .iter()
+        .find(|writer| writer.module == "logging.rs")
+        .expect("logging.rs must be a sanctioned writer");
+
+    assert!(!is_pattern_permitted(Some(logging_writer), "remove_file"));
+    assert!(!is_pattern_permitted(Some(logging_writer), "remove_dir"));
+    assert!(!is_pattern_permitted(Some(logging_writer), ".set_len("));
+    assert!(!is_pattern_permitted(
+        Some(logging_writer),
+        "set_permissions"
+    ));
+    assert!(!is_pattern_permitted(Some(logging_writer), "hard_link"));
+    assert!(!is_pattern_permitted(Some(logging_writer), "symlink_file"));
+    assert!(!is_pattern_permitted(Some(logging_writer), "symlink_dir"));
+}
+
+/// `cache.rs`'s allow-list is two entries only: any forbidden pattern
+/// outside `["fs::write", "create_dir"]` — including patterns `logging.rs`
+/// is allowed — must still fail if `cache.rs` ever used it (design §14 E3).
+#[test]
+fn cache_module_allow_list_does_not_extend_beyond_its_own_two_entries() {
+    let cache_writer = SANCTIONED_WRITERS
+        .iter()
+        .find(|writer| writer.module == "freshness/cache.rs")
+        .expect("freshness/cache.rs must be a sanctioned writer");
+
+    assert!(is_pattern_permitted(Some(cache_writer), "fs::write"));
+    assert!(is_pattern_permitted(Some(cache_writer), "create_dir"));
+    assert!(!is_pattern_permitted(Some(cache_writer), "OpenOptions"));
+    assert!(!is_pattern_permitted(Some(cache_writer), ".write_all("));
+    assert!(!is_pattern_permitted(Some(cache_writer), "File::create"));
+    assert!(!is_pattern_permitted(Some(cache_writer), "fs::rename"));
+    assert!(!is_pattern_permitted(Some(cache_writer), "remove_file"));
+}
+
+/// A module named nowhere in `SANCTIONED_WRITERS` is permitted nothing at
+/// all — the blanket `continue` this design replaces is gone.
+#[test]
+fn an_unsanctioned_module_is_permitted_no_forbidden_pattern() {
+    assert!(!is_pattern_permitted(None, "fs::write"));
+    assert!(!is_pattern_permitted(None, "create_dir"));
 }

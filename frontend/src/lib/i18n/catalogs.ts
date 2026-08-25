@@ -99,6 +99,8 @@ export type Catalog = {
     clientsUnsupportedPlatform: string;
     durationLabel: string;
     durationValue: string;
+    logPathLabel: string;
+    logPathHint: string;
   };
   clients: {
     intro: string;
@@ -274,6 +276,8 @@ export const catalogs = {
       clientsUnsupportedPlatform: "Client installation detection is not supported on this platform.",
       durationLabel: "Duration",
       durationValue: "{ms} ms",
+      logPathLabel: "Application log",
+      logPathHint: "Send this file to support when reporting an issue.",
     },
     clients: {
       intro: "AI clients detected by Vertice on this machine.",
@@ -446,6 +450,8 @@ export const catalogs = {
       clientsUnsupportedPlatform: "La detección de instalaciones de clientes no es compatible con esta plataforma.",
       durationLabel: "Duración",
       durationValue: "{ms} ms",
+      logPathLabel: "Registro de la aplicación",
+      logPathHint: "Envía este archivo a soporte al reportar un problema.",
     },
     clients: {
       intro: "Clientes de IA detectados por Vertice en este equipo.",

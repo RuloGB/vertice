@@ -41,6 +41,13 @@ describe("catalogs", () => {
     expect(flattenKeys(catalogs.es)).toEqual(flattenKeys(catalogs.en));
   });
 
+  it("localizes the scan route's log-path label and hint in both locales", () => {
+    for (const locale of ["en", "es"] as const) {
+      expect(catalogs[locale].scan.logPathLabel.trim()).not.toBe("");
+      expect(catalogs[locale].scan.logPathHint.trim()).not.toBe("");
+    }
+  });
+
   it("keeps every catalog message non-blank", () => {
     for (const locale of ["en", "es"] as const) {
       for (const key of flattenKeys(catalogs[locale])) {

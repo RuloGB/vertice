@@ -1,11 +1,26 @@
 <script lang="ts">
   import type { ScanReport } from "../../bindings/ScanReport";
+  import { fetchLogFilePath } from "../appLog";
   import { useI18n } from "../i18n/locale.svelte";
   import { areaLabelKey } from "../navigation";
   import ScanIssueList from "../ScanIssueList.svelte";
   import type { Diagnostics } from "../scanDiagnostics";
 
   const i18n = useI18n();
+
+  // Resolves independently of the scan report — a failure to resolve the
+  // log path simply leaves the element unrendered rather than failing the
+  // route (desktop-shell "The log-path command returns the path without
+  // touching the file").
+  let logPath = $state<string | null>(null);
+
+  void (async () => {
+    try {
+      logPath = await fetchLogFilePath();
+    } catch {
+      logPath = null;
+    }
+  })();
 
   let {
     status,
@@ -145,5 +160,16 @@
     </div>
 
     <ScanIssueList {diagnostics} />
+
+    {#if logPath !== null}
+      <section class="surface-card p-5">
+        <h2 class="panel-heading">{i18n.t("scan.logPathLabel")}</h2>
+        <p class="mt-1 text-xs text-content-subtle">{i18n.t("scan.logPathHint")}</p>
+        <code
+          data-testid="log-path"
+          class="mt-3 block break-all rounded-control bg-canvas/35 px-3 py-2.5 text-xs text-content-muted select-all"
+        >{logPath}</code>
+      </section>
+    {/if}
   {/if}
 </section>

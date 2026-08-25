@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define T9's public core scan workflow, which produces one complete in-memory `ScanReport` from the existing adapters and duplicate consolidation. `add-client-version-freshness` (2026-08-24) added the constraint that freshness is explicitly outside this operation: never invoked by the scan, never counted toward the CA-15 budget, and a failed lookup is never represented as a `ScanIssue`.
+Define T9's public core scan workflow, which produces one complete in-memory `ScanReport` from the existing adapters and duplicate consolidation. `add-client-version-freshness` (2026-08-24) added the constraint that freshness is explicitly outside this operation: never invoked by the scan, never counted toward the CA-15 budget, and a failed lookup is never represented as a `ScanIssue`. `add-application-logging` (2026-08-24) added the constraint that the application log is an orthogonal observer over a completed `ScanReport`: it never mutates the report or its issues.
 
 ## Requirements
 
@@ -31,7 +31,17 @@ The core SHALL expose one public scan operation that invokes the existing skills
 
 ### Requirement: Visible and Isolated Diagnostics
 
-The scan operation MUST accumulate diagnostics for non-parseable components with their paths, undetected supported clients, and absent roots. It MUST NOT omit those conditions silently. A failure from one adapter MUST NOT abort the remaining adapters; their available results and diagnostics MUST remain represented in the report. A failed or degraded freshness lookup MUST NOT produce a `ScanIssue` under any circumstance; it is represented exclusively as `Freshness::Unknown` in the separate freshness report, never in `ScanReport.issues`.
+The scan operation MUST accumulate diagnostics for non-parseable components with their paths,
+undetected supported clients, and absent roots. It MUST NOT omit those conditions silently. A
+failure from one adapter MUST NOT abort the remaining adapters; their available results and
+diagnostics MUST remain represented in the report. A failed or degraded freshness lookup MUST NOT
+produce a `ScanIssue` under any circumstance; it is represented exclusively as `Freshness::Unknown`
+in the separate freshness report, never in `ScanReport.issues`. The application log introduced by
+`add-application-logging` is an orthogonal sink over these same diagnostics: it MUST NOT change
+`ScanReport` or `ScanIssue` semantics, MUST NOT add a new diagnostic field or variant to either type,
+and observing a report for logging purposes MUST NOT alter the report returned to the caller.
+(Previously: did not address the relationship between `ScanReport`/`ScanIssue` and the application
+log, because no log existed.)
 
 #### Scenario: Unreadable component does not interrupt the scan
 
@@ -64,6 +74,13 @@ The scan operation MUST accumulate diagnostics for non-parseable components with
 - WHEN the scan operation and the freshness evaluation both run
 - THEN `ScanReport.issues` contains zero entries attributable to the freshness failure
 - AND the degradation is represented only as `Freshness::Unknown` in the freshness report
+
+#### Scenario: Logging a report does not mutate ScanReport or ScanIssue
+
+- GIVEN a completed `ScanReport` is observed by the logging sink for missing-root and
+  undetected-client events
+- WHEN the report already returned to the frontend is compared before and after that observation
+- THEN it is unchanged — no field, issue, or status is added, removed, or altered by logging
 
 ### Requirement: Measured Reference-Volume Performance
 
