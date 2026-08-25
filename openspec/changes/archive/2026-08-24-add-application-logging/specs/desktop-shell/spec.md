@@ -1,10 +1,6 @@
-# Desktop Shell Specification
+# Delta for Desktop Shell
 
-## Purpose
-
-Define the Tauri 2 desktop shell IPC surface that exposes the core scan to the frontend: the command contract, non-blocking execution, the capability (ACL) posture, the content security policy, and the frontend filesystem boundary. `add-client-version-freshness` (2026-08-24) grew the command surface from two commands to five: a freshness command, and two settings commands (read/write) required by the confirmed enabled-by-default-with-opt-out posture. `add-application-logging` (2026-08-24) grew the surface to six commands with a read-only log-path command, and extended the read-only audit to recognize a second sanctioned write exception (the logging sink).
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Minimal Scan Command Surface
 
@@ -60,46 +56,6 @@ and its failure or slowness MUST NOT affect the outcome or timing of a scan invo
 - THEN it returns the absolute path derived from `app_data_dir()` as a plain string
 - AND no file or directory is created, opened, or modified as a side effect of the invocation
 
-### Requirement: Non-Blocking Command Execution
-
-All five commands SHALL be async and MUST offload their blocking work onto the Tauri async runtime's blocking facility (`spawn_blocking`) or an equivalent non-blocking mechanism. A scan taking up to the CA-15 two-second budget MUST NOT block the main thread or freeze the UI. The freshness command's network-bound work MUST likewise never block the main thread, and its latency MUST NOT be included in, or count against, the CA-15 scan budget.
-
-#### Scenario: UI remains responsive during a slow scan
-
-- GIVEN a scan that takes up to the CA-15 two-second budget
-- WHEN the command is awaiting the core scan
-- THEN the scan runs off the main thread
-- AND the window event loop remains responsive for the whole duration
-
-#### Scenario: A slow freshness lookup does not block the UI or the scan budget
-
-- GIVEN the freshness command is performing a live network lookup that takes longer than the CA-15 scan budget
-- WHEN it is in flight
-- THEN the main thread and UI remain responsive
-- AND the elapsed time is not attributed to, or measured as part of, the scan's CA-15 duration
-
-### Requirement: Typed IPC Contract
-
-Commands MUST return typed results directly, using the generated types exactly as serialized for the TypeScript bindings, including the freshness command's typed report. The shell MUST NOT introduce hand-written DTOs or string error payloads. A failure of an offloaded task itself (join failure) MUST map to the appropriate typed error variant — transport mapping, not business logic. A freshness-lookup failure MUST surface as `Freshness::Unknown` within the typed report, never as a rejected command invocation for an otherwise-successful report.
-
-#### Scenario: Core error crosses IPC as the typed payload
-
-- GIVEN the core scan fails because no roots are configured
-- WHEN `scan` is invoked
-- THEN the invocation rejects with the serde-tagged `ScanError` payload matching the generated binding (kind `noRootsConfigured`)
-
-#### Scenario: Offloaded task failure maps to the internal variant
-
-- GIVEN the offloaded scan task fails to complete
-- WHEN the command observes the task failure
-- THEN the invocation rejects with the existing internal `ScanError` variant carrying a reason detail
-
-#### Scenario: A degraded freshness lookup still resolves the command successfully
-
-- GIVEN every reference-version lookup for the current report fails or times out
-- WHEN the freshness command is invoked
-- THEN it resolves successfully with a typed report whose entries are `Freshness::Unknown`, not a rejected invocation
-
 ### Requirement: Minimal Capability Grant
 
 The shell capability declaration SHALL grant `core:default` only: no filesystem plugin, no
@@ -142,27 +98,7 @@ log-path command.)
 - THEN it remains `core:default` only — no filesystem, shell, or dialog permission is added for a
   command that only returns a computed string
 
-### Requirement: Hardened Content Security Policy
-
-The shell configuration SHALL declare a CSP of at least `default-src 'self'` plus `object-src 'none'` and `base-uri 'none'`. It MUST NOT allow remote content, and the production policy MUST NOT contain `unsafe-inline`.
-
-#### Scenario: Production window loads under the hardened policy
-
-- GIVEN the packaged application
-- WHEN the window loads its content
-- THEN the effective CSP is at least `default-src 'self'; object-src 'none'; base-uri 'none'`
-- AND no content is loaded from any remote origin
-
-### Requirement: Frontend Filesystem Boundary
-
-The frontend SHALL invoke scan commands only through a typed wrapper module importing its types exclusively from the generated bindings. The frontend MUST NOT use any Tauri filesystem plugin or otherwise touch the filesystem; all scan data MUST arrive via command invocation.
-
-#### Scenario: Frontend has no filesystem plugin available
-
-- GIVEN the running application
-- WHEN frontend code executes in the webview
-- THEN no filesystem plugin API is available to it
-- AND scan results reach it only as typed command responses
+## ADDED Requirements
 
 ### Requirement: The Read-Only Audit Recognizes A Second Write Exception
 

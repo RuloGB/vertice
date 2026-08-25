@@ -191,8 +191,12 @@ pub async fn build_report(
     // Persist whatever cache entries were updated, best-effort: a write
     // failure degrades this run's checks not at all (they are already
     // computed), and the next run simply refetches (design §8's
-    // corrupt-as-empty handling covers a torn or unwritable file too).
-    let _ = cache::save(&store_path, &store);
+    // corrupt-as-empty handling covers a torn or unwritable file too). The
+    // returned checks are unaffected either way — only the silence
+    // becomes evidence (design §9).
+    if let Err(err) = cache::save(&store_path, &store) {
+        log::warn!("could not persist freshness store: {err}");
+    }
 
     FreshnessReport {
         enabled: true,
