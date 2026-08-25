@@ -58,19 +58,3 @@ pub struct FreshnessReport {
     pub enabled: bool,
     pub checks: Vec<FreshnessCheck>,
 }
-
-/// The persisted opt-out/disclosure state for `component-freshness`,
-/// crossing IPC so the frontend can render the opt-out switch and decide
-/// whether to show the first-run disclosure. Distinct from
-/// `FreshnessReport.enabled`: a report only ever exists after a check runs,
-/// while a settings read must be possible before the first check has ever
-/// happened. Not part of design's original §3 sketch — added when the
-/// frontend slice closed the gap Slice 2 flagged (no command existed to
-/// read or mutate `enabled`/`disclosure_seen`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../frontend/src/bindings/")]
-pub struct FreshnessSettings {
-    pub enabled: bool,
-    pub disclosure_seen: bool,
-}

@@ -6,6 +6,7 @@
 mod commands;
 mod freshness;
 mod logging;
+mod settings;
 
 use std::path::{Path, PathBuf};
 
@@ -57,8 +58,8 @@ pub fn run() {
             commands::scan,
             commands::rescan,
             commands::freshness,
-            commands::freshness_settings,
-            commands::set_freshness_settings,
+            commands::user_settings,
+            commands::set_user_settings,
             commands::log_file_path
         ])
         .run(tauri::generate_context!())

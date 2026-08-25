@@ -5,23 +5,27 @@ import { mount, unmount } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClientPresence } from "../../bindings/ClientPresence";
 import type { FreshnessReport } from "../../bindings/FreshnessReport";
-import type { FreshnessSettings } from "../../bindings/FreshnessSettings";
+import type { UserSettings } from "../../bindings/UserSettings";
 import type { ScanReport } from "../../bindings/ScanReport";
-import { fetchFreshness, fetchFreshnessSettings, setFreshnessSettings } from "../freshness";
+import { fetchFreshness } from "../freshness";
+import { fetchUserSettings, setUserSettings } from "../settings";
 import ClientsPage from "./ClientsPageHarness.svelte";
 
 vi.mock("../freshness", () => ({
   fetchFreshness: vi.fn(),
-  fetchFreshnessSettings: vi.fn(),
-  setFreshnessSettings: vi.fn(),
+}));
+
+vi.mock("../settings", () => ({
+  fetchUserSettings: vi.fn(),
+  setUserSettings: vi.fn(),
 }));
 
 const mockedFetchFreshness = vi.mocked(fetchFreshness);
-const mockedFetchFreshnessSettings = vi.mocked(fetchFreshnessSettings);
-const mockedSetFreshnessSettings = vi.mocked(setFreshnessSettings);
+const mockedFetchUserSettings = vi.mocked(fetchUserSettings);
+const mockedSetUserSettings = vi.mocked(setUserSettings);
 
-function defaultSettings(overrides: Partial<FreshnessSettings> = {}): FreshnessSettings {
-  return { enabled: true, disclosureSeen: true, ...overrides };
+function defaultSettings(overrides: Partial<UserSettings> = {}): UserSettings {
+  return { locale: null, enabled: true, disclosureSeen: true, ...overrides };
 }
 
 function claudeNpmPresence(version: string): ClientPresence {
@@ -80,7 +84,7 @@ describe("ClientsPage freshness badge", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     document.body.innerHTML = "";
-    mockedFetchFreshnessSettings.mockResolvedValue(defaultSettings());
+    mockedFetchUserSettings.mockResolvedValue(defaultSettings());
   });
 
   it("shows the pending state before the freshness report resolves", async () => {
@@ -198,7 +202,7 @@ describe("ClientsPage freshness badge", () => {
   });
 
   it("does not fetch or render freshness data while the setting is disabled", async () => {
-    mockedFetchFreshnessSettings.mockResolvedValue(defaultSettings({ enabled: false }));
+    mockedFetchUserSettings.mockResolvedValue(defaultSettings({ enabled: false }));
 
     const app = mount(ClientsPage, {
       target: document.body,
@@ -218,9 +222,9 @@ describe("ClientsPage freshness badge", () => {
   });
 
   it("shows the first-run disclosure until dismissed, then persists the acknowledgement", async () => {
-    mockedFetchFreshnessSettings.mockResolvedValue(defaultSettings({ disclosureSeen: false }));
+    mockedFetchUserSettings.mockResolvedValue(defaultSettings({ disclosureSeen: false }));
     mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
-    mockedSetFreshnessSettings.mockResolvedValue(defaultSettings({ disclosureSeen: true }));
+    mockedSetUserSettings.mockResolvedValue(defaultSettings({ disclosureSeen: true }));
 
     const app = mount(ClientsPage, {
       target: document.body,
@@ -242,7 +246,7 @@ describe("ClientsPage freshness badge", () => {
     dismiss?.click();
     await flush();
 
-    expect(mockedSetFreshnessSettings).toHaveBeenCalledWith(true, true);
+    expect(mockedSetUserSettings).toHaveBeenCalledWith({ disclosureSeen: true });
     expect(visibleText()).not.toContain("Checking for newer versions");
 
     unmount(app);
@@ -259,7 +263,7 @@ describe("ClientsPage freshness badge", () => {
         },
       ],
     });
-    mockedSetFreshnessSettings
+    mockedSetUserSettings
       .mockResolvedValueOnce(defaultSettings({ enabled: false }))
       .mockResolvedValueOnce(defaultSettings({ enabled: true }));
 
@@ -305,7 +309,7 @@ describe("ClientsPage freshness badge", () => {
           resolveFreshness = resolve;
         }),
     );
-    mockedSetFreshnessSettings.mockResolvedValue(defaultSettings({ enabled: false }));
+    mockedSetUserSettings.mockResolvedValue(defaultSettings({ enabled: false }));
 
     const app = mount(ClientsPage, {
       target: document.body,
@@ -342,7 +346,7 @@ describe("ClientsPage freshness badge", () => {
 
   it("exposes a visible opt-out setting that disables the check on toggle", async () => {
     mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
-    mockedSetFreshnessSettings.mockResolvedValue(defaultSettings({ enabled: false }));
+    mockedSetUserSettings.mockResolvedValue(defaultSettings({ enabled: false }));
 
     const app = mount(ClientsPage, {
       target: document.body,
@@ -364,7 +368,7 @@ describe("ClientsPage freshness badge", () => {
     toggle?.click();
     await flush();
 
-    expect(mockedSetFreshnessSettings).toHaveBeenCalledWith(false, true);
+    expect(mockedSetUserSettings).toHaveBeenCalledWith({ enabled: false });
 
     unmount(app);
   });

@@ -4,8 +4,8 @@
 
 use vertice_core::model::{
     ClientInstallSlot, ClientInstallation, ClientKind, ClientPresenceStatus, Component,
-    ComponentId, ComponentKind, Freshness, FreshnessSettings, IssueSeverity, Location,
-    LocationOrigin, Scope, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
+    ComponentId, ComponentKind, Freshness, IssueSeverity, Location, LocationOrigin, Scope,
+    SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus, UserSettings,
 };
 use vertice_core::model::{ScanIssue, ScanReport};
 
@@ -378,25 +378,25 @@ fn freshness_is_exhaustively_matchable_without_a_wildcard_arm() {
     );
 }
 
-/// Slice 3's carried-over gap (flagged in Slice 2's apply-progress "Issues
-/// Found"): the frontend's opt-out switch and first-run disclosure need a
-/// typed, IPC-crossable settings shape distinct from `FreshnessReport` —
-/// `enabled` alone cannot tell the frontend whether the disclosure was
-/// already acknowledged. `FreshnessSettings` follows the same plain-data,
-/// camelCase-serialized, `TS`-derived pattern as every other type in this
-/// module.
+/// `add-locale-persistence`: the durable, whole-document user settings type
+/// replaces the former `FreshnessSettings` (superseded — `enabled` and
+/// `disclosure_seen` now live in this single durable document alongside the
+/// frontend's persisted `locale` choice). Same plain-data, camelCase-
+/// serialized, `TS`-derived pattern as every other type in this module.
 #[test]
-fn freshness_settings_round_trips_both_fields_camel_cased() {
-    let settings = FreshnessSettings {
+fn user_settings_round_trips_camel_cased() {
+    let settings = UserSettings {
+        locale: Some("es".to_string()),
         enabled: false,
         disclosure_seen: true,
     };
 
-    let json = serde_json::to_value(settings).expect("FreshnessSettings must serialize");
+    let json = serde_json::to_value(&settings).expect("UserSettings must serialize");
+    assert_eq!(json["locale"], "es");
     assert_eq!(json["enabled"], false);
     assert_eq!(json["disclosureSeen"], true);
 
-    let round_tripped: FreshnessSettings =
-        serde_json::from_value(json).expect("FreshnessSettings must deserialize its own output");
+    let round_tripped: UserSettings =
+        serde_json::from_value(json).expect("UserSettings must deserialize its own output");
     assert_eq!(round_tripped, settings);
 }

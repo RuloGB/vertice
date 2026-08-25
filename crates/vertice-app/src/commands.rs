@@ -9,8 +9,8 @@ use std::fmt::Display;
 use std::path::PathBuf;
 
 use vertice_core::model::{
-    ClientPresenceStatus, Freshness, FreshnessReport, FreshnessSettings, ScanError, ScanReport,
-    SearchRootStatus,
+    ClientPresenceStatus, Freshness, FreshnessReport, ScanError, ScanReport, SearchRootStatus,
+    UserSettings,
 };
 
 /// Run the core scan off the main thread, logging its start, end, and
@@ -159,8 +159,7 @@ pub async fn freshness(app: tauri::AppHandle) -> Result<FreshnessReport, ScanErr
 
 /// Resolve `app_data_dir()` and map the failure onto the existing internal
 /// `ScanError` variant, exactly as `freshness` already did inline — shared
-/// now that `freshness_settings`/`set_freshness_settings` need the same
-/// resolution.
+/// now that `user_settings`/`set_user_settings` need the same resolution.
 fn resolve_app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, ScanError> {
     tauri::Manager::path(app)
         .app_data_dir()
@@ -169,31 +168,34 @@ fn resolve_app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, ScanError> {
         })
 }
 
-/// `freshness_settings` command: read-only view of the persisted opt-out
-/// and disclosure-seen state (§8's document), independent of running any
-/// check. Closes the gap Slice 2 flagged: the frontend's opt-out switch and
-/// first-run disclosure need this to render *before* any `freshness`
-/// report has ever resolved.
+/// `user_settings` command: read-only view of the durable settings document
+/// (`locale`, `enabled`, `disclosure_seen`), independent of running any
+/// check. Creates no file as a side effect of reading.
 #[tauri::command]
-pub async fn freshness_settings(app: tauri::AppHandle) -> Result<FreshnessSettings, ScanError> {
+pub async fn user_settings(app: tauri::AppHandle) -> Result<UserSettings, ScanError> {
     let app_data_dir = resolve_app_data_dir(&app)?;
-    read_freshness_settings(app_data_dir).await
+    read_user_settings(app_data_dir).await
 }
 
-/// `set_freshness_settings` command: the only way to mutate `enabled` or
-/// `disclosure_seen`. Read-modify-write against the single persisted
-/// document (§11: one file, one write path); the frontend always sends the
-/// full desired state rather than a partial patch, so there is no
-/// ambiguity about which field changed. Returns the settings actually
-/// persisted, so the caller never has to guess whether the write landed.
+/// `set_user_settings` command: a partial patch, not a full-state write
+/// (user-settings spec "A Read Command And A Partial-Patch Write Command").
+/// Each field is independently optional; an omitted (`None`) field leaves
+/// its persisted value unchanged — never reset to a default. This is a
+/// deliberate departure from the project's prior always-send-full-state
+/// convention: two independent frontend owners write this document (the
+/// shell for `locale`, the clients page for `enabled`/`disclosure_seen`),
+/// and a stale full-state write from either could silently clobber the
+/// other's just-written field. Returns the settings actually persisted, so
+/// the caller never has to guess whether the write landed.
 #[tauri::command]
-pub async fn set_freshness_settings(
+pub async fn set_user_settings(
     app: tauri::AppHandle,
-    enabled: bool,
-    disclosure_seen: bool,
-) -> Result<FreshnessSettings, ScanError> {
+    locale: Option<String>,
+    enabled: Option<bool>,
+    disclosure_seen: Option<bool>,
+) -> Result<UserSettings, ScanError> {
     let app_data_dir = resolve_app_data_dir(&app)?;
-    write_freshness_settings(app_data_dir, enabled, disclosure_seen).await
+    write_user_settings(app_data_dir, locale, enabled, disclosure_seen).await
 }
 
 /// `log_file_path` command: returns the absolute path of the application
@@ -211,47 +213,51 @@ pub async fn log_file_path(app: tauri::AppHandle) -> Result<String, ScanError> {
         .into_owned())
 }
 
-/// The blocking-offloaded read behind `freshness_settings`, factored out so
-/// it is directly testable without an `AppHandle` (mirrors `run_scan`'s
-/// shape).
-async fn read_freshness_settings(app_data_dir: PathBuf) -> Result<FreshnessSettings, ScanError> {
+/// The blocking-offloaded read behind `user_settings`, factored out so it is
+/// directly testable without an `AppHandle` (mirrors `run_scan`'s shape).
+/// Reading never creates a file (user-settings spec "Reading settings does
+/// not create the file").
+async fn read_user_settings(app_data_dir: PathBuf) -> Result<UserSettings, ScanError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let store =
-            crate::freshness::cache::load(&crate::freshness::cache::store_path(&app_data_dir));
-        FreshnessSettings {
-            enabled: store.enabled,
-            disclosure_seen: store.disclosure_seen,
-        }
+        let path = crate::settings::store::store_path(&app_data_dir);
+        crate::settings::store::resolve(crate::settings::store::load(&path))
     })
     .await
     .map_err(map_join_error)
 }
 
-/// The blocking-offloaded write behind `set_freshness_settings`, factored
-/// out so it is directly testable without an `AppHandle`.
-async fn write_freshness_settings(
+/// The blocking-offloaded read-modify-write behind `set_user_settings`,
+/// factored out so it is directly testable without an `AppHandle`. Each
+/// `None` field leaves the persisted value unchanged — a true partial
+/// patch, not a full-state overwrite (user-settings spec Decision 3).
+async fn write_user_settings(
     app_data_dir: PathBuf,
-    enabled: bool,
-    disclosure_seen: bool,
-) -> Result<FreshnessSettings, ScanError> {
+    locale: Option<String>,
+    enabled: Option<bool>,
+    disclosure_seen: Option<bool>,
+) -> Result<UserSettings, ScanError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let path = crate::freshness::cache::store_path(&app_data_dir);
-        let mut store = crate::freshness::cache::load(&path);
-        store.enabled = enabled;
-        store.disclosure_seen = disclosure_seen;
+        let path = crate::settings::store::store_path(&app_data_dir);
+        let mut settings = crate::settings::store::resolve(crate::settings::store::load(&path));
+        if let Some(locale) = locale {
+            settings.locale = Some(locale);
+        }
+        if let Some(enabled) = enabled {
+            settings.enabled = enabled;
+        }
+        if let Some(disclosure_seen) = disclosure_seen {
+            settings.disclosure_seen = disclosure_seen;
+        }
         // Best-effort, matching `build_report`'s own cache-save tolerance:
-        // a write failure here would surface as a silently-reverted toggle
+        // a write failure here would surface as a silently-reverted change
         // on next read rather than a crash, which is preferable to
         // rejecting an otherwise-successful settings change. The result is
         // unaffected either way — only the silence becomes evidence
         // (design §9).
-        if let Err(err) = crate::freshness::cache::save(&path, &store) {
-            log::warn!("could not persist freshness store: {err}");
+        if let Err(err) = crate::settings::store::save(&path, &settings) {
+            log::warn!("could not persist settings store: {err}");
         }
-        FreshnessSettings {
-            enabled: store.enabled,
-            disclosure_seen: store.disclosure_seen,
-        }
+        settings
     })
     .await
     .map_err(map_join_error)
@@ -263,7 +269,6 @@ mod tests {
         log_freshness_report_with, log_scan_report_with, map_join_error, rescan, run_scan,
         run_scan_with, scan, scan_installations,
     };
-    use crate::freshness::cache::{self, FreshnessStore};
     use vertice_core::model::{
         ClientPresence, ClientPresenceStatus, Freshness, FreshnessCheck, FreshnessReport,
         FreshnessSubject, ScanReport, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
@@ -517,116 +522,105 @@ mod tests {
         assert!(emitted[0].1.contains(&reason));
     }
 
-    /// Regression: the settings-write path must create its own app data
-    /// directory. Unlike `temp_app_data_dir`, this deliberately does NOT
-    /// create the directory — standing in for a machine where
-    /// `app_data_dir()` has never existed (design §9, §14 A2: "the toggle
-    /// survives restart").
-    fn temp_app_data_dir_not_created(label: &str) -> std::path::PathBuf {
-        std::env::temp_dir().join(format!(
-            "vertice-commands-freshness-settings-not-created-{label}-{}",
-            std::process::id()
-        ))
-    }
-
-    #[test]
-    fn writing_settings_survives_a_never_created_app_data_directory() {
-        let app_data_dir = temp_app_data_dir_not_created("write-survives-restart");
-        assert!(!app_data_dir.exists());
-
-        let written = tauri::async_runtime::block_on(super::write_freshness_settings(
-            app_data_dir.clone(),
-            false,
-            true,
-        ))
-        .expect("writing settings must succeed even when the app data dir never existed");
-        assert!(!written.enabled);
-        assert!(written.disclosure_seen);
-
-        // Simulates a restart: a fresh read against the same path must
-        // observe exactly what was written, not the store's defaults.
-        let read_back =
-            tauri::async_runtime::block_on(super::read_freshness_settings(app_data_dir))
-                .expect("reading settings back must succeed");
-        assert_eq!(read_back, written);
-    }
-
     fn temp_app_data_dir(label: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "vertice-commands-freshness-settings-test-{label}-{}",
+            "vertice-commands-user-settings-test-{label}-{}",
             std::process::id()
         ));
         std::fs::create_dir_all(&dir).expect("temp test dir must be creatable");
         dir
     }
 
-    /// A never-before-touched app data dir reads as the default: enabled,
-    /// disclosure not yet seen — matching `FreshnessStore::default()` and
-    /// the spec's "enabled by default" requirement.
+    /// `add-locale-persistence`, Decision 3: `set_user_settings` is a
+    /// partial patch. A locale-only patch must not clobber an `enabled`
+    /// value another writer (the clients page) already persisted — a
+    /// stale full-state write from the shell would silently re-enable
+    /// outbound network requests the user had just turned off.
+    #[test]
+    fn a_locale_patch_does_not_clobber_enabled() {
+        let app_data_dir = temp_app_data_dir("locale-patch-no-clobber");
+
+        tauri::async_runtime::block_on(super::write_user_settings(
+            app_data_dir.clone(),
+            None,
+            Some(false),
+            None,
+        ))
+        .expect("persisting enabled must succeed");
+
+        let patched = tauri::async_runtime::block_on(super::write_user_settings(
+            app_data_dir,
+            Some("es".to_string()),
+            None,
+            None,
+        ))
+        .expect("patching locale must succeed");
+
+        assert_eq!(patched.locale, Some("es".to_string()));
+        assert!(!patched.enabled);
+    }
+
+    /// Regression: the settings-write path must create its own app data
+    /// directory. Mirrors the former `freshness_settings` equivalent this
+    /// change ports over (design §9, §14 A2: "the toggle survives
+    /// restart").
+    #[test]
+    fn writing_settings_survives_a_never_created_app_data_directory() {
+        let app_data_dir = std::env::temp_dir().join(format!(
+            "vertice-commands-user-settings-not-created-{}",
+            std::process::id()
+        ));
+        assert!(!app_data_dir.exists());
+
+        let written = tauri::async_runtime::block_on(super::write_user_settings(
+            app_data_dir.clone(),
+            None,
+            Some(false),
+            Some(true),
+        ))
+        .expect("writing settings must succeed even when the app data dir never existed");
+        assert!(!written.enabled);
+        assert!(written.disclosure_seen);
+
+        let read_back = tauri::async_runtime::block_on(super::read_user_settings(app_data_dir))
+            .expect("reading settings back must succeed");
+        assert_eq!(read_back, written);
+    }
+
+    /// A never-before-touched app data dir reads as the documented
+    /// `Missing`-outcome defaults: enabled, disclosure not yet seen, no
+    /// explicit locale.
     #[test]
     fn reading_settings_with_no_prior_store_yields_enabled_and_disclosure_not_seen() {
         let app_data_dir = temp_app_data_dir("read-default");
 
-        let settings = tauri::async_runtime::block_on(super::read_freshness_settings(app_data_dir))
+        let settings = tauri::async_runtime::block_on(super::read_user_settings(app_data_dir))
             .expect("reading settings must succeed against a fresh temp dir");
 
         assert!(settings.enabled);
         assert!(!settings.disclosure_seen);
+        assert_eq!(settings.locale, None);
     }
 
-    /// Writing settings persists both fields to the same document
-    /// `cache.rs` already owns, and a subsequent read observes exactly what
-    /// was written — the round trip the frontend's opt-out switch and
-    /// disclosure dismissal both depend on.
+    /// Writing settings persists all three fields, and a subsequent read
+    /// observes exactly what was written.
     #[test]
     fn writing_settings_persists_and_a_subsequent_read_observes_them() {
         let app_data_dir = temp_app_data_dir("write-roundtrip");
 
-        let written = tauri::async_runtime::block_on(super::write_freshness_settings(
+        let written = tauri::async_runtime::block_on(super::write_user_settings(
             app_data_dir.clone(),
-            false,
-            true,
+            Some("es".to_string()),
+            Some(false),
+            Some(true),
         ))
         .expect("writing settings must succeed against a fresh temp dir");
         assert!(!written.enabled);
         assert!(written.disclosure_seen);
+        assert_eq!(written.locale, Some("es".to_string()));
 
-        let read_back =
-            tauri::async_runtime::block_on(super::read_freshness_settings(app_data_dir))
-                .expect("reading settings back must succeed");
+        let read_back = tauri::async_runtime::block_on(super::read_user_settings(app_data_dir))
+            .expect("reading settings back must succeed");
         assert_eq!(read_back, written);
-    }
-
-    /// Writing settings does not clobber an existing cache entry — the
-    /// mutation touches only `enabled`/`disclosure_seen`, never `cache`
-    /// (design §11: one document, one write path, but not a full-document
-    /// overwrite of unrelated state).
-    #[test]
-    fn writing_settings_preserves_the_existing_cache_map() {
-        let app_data_dir = temp_app_data_dir("write-preserves-cache");
-        let path = cache::store_path(&app_data_dir);
-        let mut store = FreshnessStore::default();
-        store.cache.insert(
-            "npm:opencode-ai".to_string(),
-            cache::CacheEntry {
-                version: "1.18.21".to_string(),
-                fetched_at_unix_s: 1_000,
-            },
-        );
-        cache::save(&path, &store).expect("test setup save must succeed");
-
-        tauri::async_runtime::block_on(super::write_freshness_settings(
-            app_data_dir.clone(),
-            true,
-            true,
-        ))
-        .expect("writing settings must succeed");
-
-        let reloaded = cache::load(&path);
-        assert_eq!(
-            reloaded.cache.get("npm:opencode-ai").map(|e| &e.version),
-            Some(&"1.18.21".to_string())
-        );
-        assert!(reloaded.disclosure_seen);
     }
 }

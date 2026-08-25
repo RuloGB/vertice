@@ -37,7 +37,10 @@ export function formatMessage(message: string, params: MessageParams = {}): stri
   });
 }
 
-export function createI18n(initialLocale: SupportedLocale): I18nContext {
+export function createI18n(
+  initialLocale: SupportedLocale,
+  onLocaleChange?: (locale: SupportedLocale) => void,
+): I18nContext {
   let locale = $state<SupportedLocale>(initialLocale);
 
   return {
@@ -46,6 +49,15 @@ export function createI18n(initialLocale: SupportedLocale): I18nContext {
     },
     setLocale(nextLocale) {
       locale = nextLocale;
+      // Write-through, never awaited: a failed persist must not prevent
+      // the UI from switching (design "Decision 1"). The callback is
+      // invoked after the state update so it always observes the new
+      // locale, and a throwing callback never breaks the switch itself.
+      try {
+        onLocaleChange?.(nextLocale);
+      } catch {
+        // Deliberately swallowed — see above.
+      }
     },
     t(key, params) {
       return formatMessage(messageFor(locale, key), params);

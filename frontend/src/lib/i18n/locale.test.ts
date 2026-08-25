@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { catalogs, type Catalog } from "./catalogs";
 import { createI18n, formatMessage, resolveLocale } from "./locale.svelte";
 
@@ -181,6 +181,29 @@ describe("createI18n", () => {
     expect(i18n.t("toolbar.reload")).toBe("Reload");
 
     i18n.setLocale("es");
+
+    expect(i18n.locale).toBe("es");
+    expect(i18n.t("toolbar.reload")).toBe("Recargar");
+  });
+
+  it("invokes the onLocaleChange callback exactly once with the new locale, after switching translations", () => {
+    const onLocaleChange = vi.fn();
+    const i18n = createI18n("en", onLocaleChange);
+
+    i18n.setLocale("es");
+
+    expect(i18n.locale).toBe("es");
+    expect(onLocaleChange).toHaveBeenCalledTimes(1);
+    expect(onLocaleChange).toHaveBeenCalledWith("es");
+  });
+
+  it("still switches translations even when the onLocaleChange callback throws", () => {
+    const onLocaleChange = vi.fn().mockImplementation(() => {
+      throw new Error("write-through failed");
+    });
+    const i18n = createI18n("en", onLocaleChange);
+
+    expect(() => i18n.setLocale("es")).not.toThrow();
 
     expect(i18n.locale).toBe("es");
     expect(i18n.t("toolbar.reload")).toBe("Recargar");
