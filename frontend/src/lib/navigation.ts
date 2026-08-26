@@ -47,6 +47,7 @@ const ROUTES_WITH_CONTENT: ReadonlySet<RouteId> = new Set<RouteId>([
   "agents",
   "skills",
   "clients",
+  "mcp",
   "scan",
   "subscriptions",
 ]);

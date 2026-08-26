@@ -32,10 +32,10 @@ describe("navigation model", () => {
   });
 
   it("separates sections that render content from the empty placeholders", () => {
-    for (const route of ["home", "agents", "skills", "scan", "subscriptions"] satisfies RouteId[]) {
+    for (const route of ["home", "agents", "skills", "mcp", "scan", "subscriptions"] satisfies RouteId[]) {
       expect(hasContent(route), route).toBe(true);
     }
-    for (const route of ["mcp", "prompts"] satisfies RouteId[]) {
+    for (const route of ["prompts"] satisfies RouteId[]) {
       expect(hasContent(route), route).toBe(false);
     }
   });

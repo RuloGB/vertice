@@ -69,6 +69,58 @@ function agentFixture(): Component {
   };
 }
 
+function mcpStdioFixture(): Component {
+  return {
+    id: "mcp:filesystem",
+    name: "Filesystem",
+    kind: "mcp",
+    description: "Reads and writes files on the local machine",
+    scope: "user",
+    locations: [
+      {
+        path: "C:/fixtures/mcp-stdio.json",
+        root: "codex-mcp",
+        origin: "file",
+        mcpTransport: { stdio: { command: "npx", arg_count: 3, env_keys: ["API_TOKEN", "MCP_ROOT"] } },
+      },
+    ],
+    provenanceHint: null,
+  };
+}
+
+function mcpRemoteFixture(): Component {
+  return {
+    id: "mcp:search",
+    name: "Search",
+    kind: "mcp",
+    description: "Remote search endpoint",
+    scope: "user",
+    locations: [
+      {
+        path: "C:/fixtures/mcp-remote.json",
+        root: "opencode-mcp",
+        origin: "file",
+        mcpTransport: { remote: { url: "https://mcp.example.com", header_keys: ["Authorization"] } },
+      },
+    ],
+    provenanceHint: null,
+  };
+}
+
+function mcpDegradedFixture(): Component {
+  return {
+    id: "mcp:broken",
+    name: "Broken",
+    kind: "mcp",
+    description: null,
+    scope: "user",
+    locations: [
+      { path: "C:/fixtures/mcp-broken.json", root: "claude-mcp", origin: "file", mcpTransport: null },
+    ],
+    provenanceHint: null,
+  };
+}
+
 function componentFixtures(kind: "skill" | "agent", count: number): Component[] {
   return Array.from({ length: count }, (_, index) => {
     const number = String(index + 1).padStart(2, "0");
@@ -443,6 +495,111 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
+  it("lists only MCP servers on the MCP route and shows no placeholder, scanning once", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture(), mcpRemoteFixture()]),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    navigateTo("MCP");
+    await flushApp();
+
+    expect(document.title).toBe("Vertice v0.1.0 — MCP");
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+    expect(visibleText()).toContain("Filesystem");
+    expect(visibleText()).toContain("Search");
+    expect(visibleText()).not.toContain("Formatter");
+    expect(visibleText()).not.toContain("Reviewer");
+
+    expect(mockedScan).toHaveBeenCalledTimes(1);
+    expect(mockedRescan).not.toHaveBeenCalled();
+
+    unmount(app);
+  });
+
+  it("opens the MCP detail with stdio transport: command, argument count, and env key names only", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpStdioFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Filesystem"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Filesystem");
+    expect(detail?.textContent).toContain("C:/fixtures/mcp-stdio.json");
+    expect(detail?.textContent).toContain("Stdio");
+    expect(detail?.textContent).toContain("npx");
+    expect(detail?.textContent).toContain("3 arguments configured");
+    expect(detail?.textContent).toContain("Environment key names");
+    expect(detail?.textContent).toContain("API_TOKEN");
+    expect(detail?.textContent).toContain("MCP_ROOT");
+    expect(detail?.textContent).toContain("Names only");
+
+    unmount(app);
+  });
+
+  it("opens the MCP detail with remote transport: sanitized endpoint and header key names only", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpRemoteFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Search"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Search");
+    expect(detail?.textContent).toContain("Remote");
+    expect(detail?.textContent).toContain("https://mcp.example.com");
+    expect(detail?.textContent).toContain("Header key names");
+    expect(detail?.textContent).toContain("Authorization");
+    expect(detail?.textContent).toContain("Names only");
+
+    unmount(app);
+  });
+
+  it("marks a null transport as an un-capturable detail, never as a missing MCP", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpDegradedFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Broken"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Broken");
+    expect(detail?.textContent).toContain(
+      "Configured here, but its connection detail could not be safely captured.",
+    );
+    expect(detail?.textContent).not.toContain("Stdio");
+    expect(detail?.textContent).not.toContain("Remote");
+
+    unmount(app);
+  });
+
   it("paginates filtered Skills and Agents, including page size and first/last controls", async () => {
     mockedScan.mockResolvedValue(
       reportFixture([...componentFixtures("skill", 23), ...componentFixtures("agent", 12)]),
@@ -501,8 +658,10 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
-  it("keeps Agents and Skills search queries independent across navigation", async () => {
-    mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
+  it("keeps Agents, Skills and MCP search queries independent across navigation", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture()]),
+    );
 
     const app = mount(App, { target: document.body });
     await flushApp();
@@ -525,6 +684,11 @@ describe("App per-kind pages", () => {
     expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
     expect(visibleText()).toContain("Formatter");
 
+    navigateTo("MCP");
+    await flushApp();
+    expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
+    expect(visibleText()).toContain("Filesystem");
+
     navigateTo("Agents");
     await flushApp();
     expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe(
@@ -536,12 +700,14 @@ describe("App per-kind pages", () => {
   });
 
   it("renders a page-size selector alongside the language selector on either page", async () => {
-    mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture()]),
+    );
 
     const app = mount(App, { target: document.body });
     await flushApp();
 
-    for (const section of ["Agents", "Skills"]) {
+    for (const section of ["Agents", "Skills", "MCP"]) {
       navigateTo(section);
       await flushApp();
       const selects = Array.from(document.querySelectorAll("select"));
@@ -988,7 +1154,7 @@ describe("App shell navigation", () => {
     const app = mount(App, { target: document.body });
     await flushApp();
 
-    for (const section of ["MCP", "Prompts"]) {
+    for (const section of ["Prompts"]) {
       navigateTo(section);
       await flushApp();
 
@@ -1017,7 +1183,7 @@ describe("App shell navigation", () => {
       ["skills", "Skills"],
       ["agents", "Agents"],
       ["clients", "AI Clients"],
-      ["roots", "Scan"],
+      ["mcps", "MCP"],
     ] as const) {
       const tile = document.querySelector<HTMLButtonElement>(`[data-testid="home-stat-${key}"]`);
       expect(tile, key).not.toBeNull();
@@ -1028,6 +1194,23 @@ describe("App shell navigation", () => {
       navigateTo("Home");
       await flushApp();
     }
+
+    unmount(app);
+  });
+
+  it("counts scanned MCPs on the Home hero and no longer offers a scan-roots tile", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([mcpStdioFixture(), mcpRemoteFixture(), mcpDegradedFixture(), skillFixture()]),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const mcpsTile = document.querySelector('[data-testid="home-stat-mcps"]');
+    expect(mcpsTile).not.toBeNull();
+    expect(mcpsTile?.textContent).toContain("MCPs");
+    expect(mcpsTile?.textContent).toContain("3");
+    expect(document.querySelector('[data-testid="home-stat-roots"]')).toBeNull();
 
     unmount(app);
   });

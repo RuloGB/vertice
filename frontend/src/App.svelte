@@ -7,6 +7,7 @@
   import AgentsPage from "./lib/pages/AgentsPage.svelte";
   import ClientsPage from "./lib/pages/ClientsPage.svelte";
   import HomePage from "./lib/pages/HomePage.svelte";
+  import McpsPage from "./lib/pages/McpsPage.svelte";
   import PlaceholderPage from "./lib/pages/PlaceholderPage.svelte";
   import ScanPage from "./lib/pages/ScanPage.svelte";
   import SkillsPage from "./lib/pages/SkillsPage.svelte";
@@ -47,6 +48,7 @@
   // pre-filter the other page.
   let agentsQuery = $state("");
   let skillsQuery = $state("");
+  let mcpQuery = $state("");
   // Read once at startup: renewal countdowns must not shift mid-session.
   const today = new Date();
 
@@ -135,6 +137,17 @@
           query={skillsQuery}
           {incidents}
           onQueryChange={(value) => (skillsQuery = value)}
+          onReload={() => void runScan("reload")}
+          onNavigate={(next) => (route = next)}
+        />
+      {:else if route === "mcp"}
+        <McpsPage
+          {status}
+          {report}
+          {failureMessage}
+          query={mcpQuery}
+          {incidents}
+          onQueryChange={(value) => (mcpQuery = value)}
           onReload={() => void runScan("reload")}
           onNavigate={(next) => (route = next)}
         />
