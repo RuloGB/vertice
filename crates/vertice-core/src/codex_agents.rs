@@ -181,6 +181,7 @@ fn walk_agents_root(
                     path: Some(path),
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
+                    mcp_transport: None,
                 }],
                 provenance_hint: None,
             }),

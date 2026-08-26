@@ -39,7 +39,7 @@
     onComponentSelect,
   }: KindPageProps & { kind: ComponentKind } = $props();
 
-  const KIND_ROUTE = { agent: "agents", skill: "skills" } as const satisfies Record<
+  const KIND_ROUTE = { agent: "agents", skill: "skills", mcp: "mcp" } as const satisfies Record<
     ComponentKind,
     RouteId
   >;

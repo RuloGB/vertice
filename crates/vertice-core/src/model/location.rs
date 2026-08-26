@@ -5,9 +5,14 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::mcp::McpTransport;
+
 /// One place a `Component` was found. `path` is optional: a component
 /// reported without a backing file (`origin: Embedded`) is still
 /// representable and stays distinguishable from a file-backed one.
+///
+/// `Location` answers "where is this" for every kind, and, for MCP
+/// locations only, also "how is it reached" via `mcp_transport`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../frontend/src/bindings/")]
@@ -17,6 +22,13 @@ pub struct Location {
     /// `SearchRoot` — the same root is never duplicated once per location.
     pub root: SearchRootId,
     pub origin: LocationOrigin,
+    /// Connection detail, populated only for a `Location` produced by an
+    /// MCP adapter. `None` for a skill or agent location — always, and
+    /// unconditionally. For an MCP location, `None` means "configured
+    /// here, detail not safely capturable" (a degraded entry, paired with
+    /// a `Warning`), never "not an MCP location"; consumers MUST NOT infer
+    /// kind from this field.
+    pub mcp_transport: Option<McpTransport>,
 }
 
 /// How a `Location` was discovered.
@@ -72,6 +84,7 @@ pub enum SearchRootStatus {
 pub enum SearchRootKind {
     Skill,
     Agent,
+    Mcp,
 }
 
 #[cfg(test)]

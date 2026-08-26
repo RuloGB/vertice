@@ -28,11 +28,13 @@ fn pathless_and_present_path_locations_are_distinguishable() {
         path: None,
         root: root.clone(),
         origin: LocationOrigin::Embedded,
+        mcp_transport: None,
     };
     let with_path = Location {
         path: Some(std::path::PathBuf::from("/roots/root-a/skill/SKILL.md")),
         root,
         origin: LocationOrigin::File,
+        mcp_transport: None,
     };
 
     assert_ne!(pathless, with_path);
@@ -62,11 +64,13 @@ fn one_component_holds_multiple_locations_under_one_shared_id() {
                 path: Some(std::path::PathBuf::from("/roots/a/issue-creation/SKILL.md")),
                 root: SearchRootId("root-a".to_string()),
                 origin: LocationOrigin::File,
+                mcp_transport: None,
             },
             Location {
                 path: Some(std::path::PathBuf::from("/roots/b/issue-creation/SKILL.md")),
                 root: SearchRootId("root-b".to_string()),
                 origin: LocationOrigin::File,
+                mcp_transport: None,
             },
         ],
         provenance_hint: None,
@@ -135,6 +139,7 @@ fn populated_scan_report_round_trips_through_json() {
                 )),
                 root: root.id.clone(),
                 origin: LocationOrigin::File,
+                mcp_transport: None,
             }],
             provenance_hint: Some("claude-code".to_string()),
         }],
@@ -190,6 +195,7 @@ fn location_root_resolves_to_a_scanned_search_root() {
                     )),
                     root: root_a.id.clone(),
                     origin: LocationOrigin::File,
+                    mcp_transport: None,
                 },
                 Location {
                     path: Some(std::path::PathBuf::from(
@@ -197,6 +203,7 @@ fn location_root_resolves_to_a_scanned_search_root() {
                     )),
                     root: root_b.id.clone(),
                     origin: LocationOrigin::File,
+                    mcp_transport: None,
                 },
             ],
             provenance_hint: None,
@@ -242,6 +249,45 @@ fn scope_is_exhaustively_matchable_without_a_wildcard_arm() {
     assert_eq!(label(Scope::User), "user");
     assert_eq!(label(Scope::Project), "project");
     assert_eq!(label(Scope::Local), "local");
+}
+
+/// Spec (`domain-model`, `add-mcp-scanning`): `ComponentKind` Is a Closed,
+/// Exhaustively Matchable Enum admitting three variants.
+///
+/// The wildcard-free `match` below is the actual assertion: a fourth
+/// `ComponentKind` variant would break compilation here instead of silently
+/// falling into a catch-all arm.
+#[test]
+fn component_kind_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(kind: ComponentKind) -> &'static str {
+        match kind {
+            ComponentKind::Skill => "skill",
+            ComponentKind::Agent => "agent",
+            ComponentKind::Mcp => "mcp",
+        }
+    }
+
+    assert_eq!(label(ComponentKind::Skill), "skill");
+    assert_eq!(label(ComponentKind::Agent), "agent");
+    assert_eq!(label(ComponentKind::Mcp), "mcp");
+}
+
+/// Spec (`domain-model`, `add-mcp-scanning`): `SearchRootKind` Is a Closed,
+/// Exhaustively Matchable Enum admitting three variants, mirroring
+/// `ComponentKind`.
+#[test]
+fn search_root_kind_is_exhaustively_matchable_without_a_wildcard_arm() {
+    fn label(kind: SearchRootKind) -> &'static str {
+        match kind {
+            SearchRootKind::Skill => "skill",
+            SearchRootKind::Agent => "agent",
+            SearchRootKind::Mcp => "mcp",
+        }
+    }
+
+    assert_eq!(label(SearchRootKind::Skill), "skill");
+    assert_eq!(label(SearchRootKind::Agent), "agent");
+    assert_eq!(label(SearchRootKind::Mcp), "mcp");
 }
 
 /// Spec: `ClientKind` Is A Closed Enumeration Admitting Three Named Clients.

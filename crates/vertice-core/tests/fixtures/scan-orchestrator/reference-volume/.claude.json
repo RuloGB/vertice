@@ -1,0 +1,4206 @@
+{
+  "mcpServers": {
+    "server-0": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-0"
+      ]
+    },
+    "server-1": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-1"
+      ]
+    },
+    "server-2": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-2"
+      ]
+    },
+    "server-3": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-3"
+      ]
+    },
+    "server-4": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-4"
+      ]
+    },
+    "server-5": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-5"
+      ]
+    },
+    "server-6": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-6"
+      ]
+    },
+    "server-7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-7"
+      ]
+    },
+    "server-8": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-8"
+      ]
+    },
+    "server-9": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-9"
+      ]
+    },
+    "server-10": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-10"
+      ]
+    },
+    "server-11": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-11"
+      ]
+    },
+    "server-12": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-12"
+      ]
+    },
+    "server-13": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-13"
+      ]
+    },
+    "server-14": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-14"
+      ]
+    },
+    "server-15": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-15"
+      ]
+    },
+    "server-16": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-16"
+      ]
+    },
+    "server-17": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-17"
+      ]
+    },
+    "server-18": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-18"
+      ]
+    },
+    "server-19": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-19"
+      ]
+    },
+    "server-20": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-20"
+      ]
+    },
+    "server-21": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-21"
+      ]
+    },
+    "server-22": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-22"
+      ]
+    },
+    "server-23": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-23"
+      ]
+    },
+    "server-24": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-24"
+      ]
+    },
+    "server-25": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-25"
+      ]
+    },
+    "server-26": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-26"
+      ]
+    },
+    "server-27": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-27"
+      ]
+    },
+    "server-28": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-28"
+      ]
+    },
+    "server-29": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-29"
+      ]
+    },
+    "server-30": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-30"
+      ]
+    },
+    "server-31": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-31"
+      ]
+    },
+    "server-32": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-32"
+      ]
+    },
+    "server-33": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-33"
+      ]
+    },
+    "server-34": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-34"
+      ]
+    },
+    "server-35": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-35"
+      ]
+    },
+    "server-36": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-36"
+      ]
+    },
+    "server-37": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-37"
+      ]
+    },
+    "server-38": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-38"
+      ]
+    },
+    "server-39": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-39"
+      ]
+    },
+    "server-40": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-40"
+      ]
+    },
+    "server-41": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-41"
+      ]
+    },
+    "server-42": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-42"
+      ]
+    },
+    "server-43": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-43"
+      ]
+    },
+    "server-44": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-44"
+      ]
+    },
+    "server-45": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-45"
+      ]
+    },
+    "server-46": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-46"
+      ]
+    },
+    "server-47": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-47"
+      ]
+    },
+    "server-48": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-48"
+      ]
+    },
+    "server-49": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-49"
+      ]
+    },
+    "server-50": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-50"
+      ]
+    },
+    "server-51": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-51"
+      ]
+    },
+    "server-52": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-52"
+      ]
+    },
+    "server-53": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-53"
+      ]
+    },
+    "server-54": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-54"
+      ]
+    },
+    "server-55": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-55"
+      ]
+    },
+    "server-56": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-56"
+      ]
+    },
+    "server-57": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-57"
+      ]
+    },
+    "server-58": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-58"
+      ]
+    },
+    "server-59": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-59"
+      ]
+    },
+    "server-60": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-60"
+      ]
+    },
+    "server-61": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-61"
+      ]
+    },
+    "server-62": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-62"
+      ]
+    },
+    "server-63": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-63"
+      ]
+    },
+    "server-64": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-64"
+      ]
+    },
+    "server-65": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-65"
+      ]
+    },
+    "server-66": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-66"
+      ]
+    },
+    "server-67": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-67"
+      ]
+    },
+    "server-68": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-68"
+      ]
+    },
+    "server-69": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-69"
+      ]
+    },
+    "server-70": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-70"
+      ]
+    },
+    "server-71": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-71"
+      ]
+    },
+    "server-72": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-72"
+      ]
+    },
+    "server-73": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-73"
+      ]
+    },
+    "server-74": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-74"
+      ]
+    },
+    "server-75": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-75"
+      ]
+    },
+    "server-76": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-76"
+      ]
+    },
+    "server-77": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-77"
+      ]
+    },
+    "server-78": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-78"
+      ]
+    },
+    "server-79": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-79"
+      ]
+    },
+    "server-80": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-80"
+      ]
+    },
+    "server-81": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-81"
+      ]
+    },
+    "server-82": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-82"
+      ]
+    },
+    "server-83": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-83"
+      ]
+    },
+    "server-84": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-84"
+      ]
+    },
+    "server-85": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-85"
+      ]
+    },
+    "server-86": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-86"
+      ]
+    },
+    "server-87": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-87"
+      ]
+    },
+    "server-88": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-88"
+      ]
+    },
+    "server-89": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-89"
+      ]
+    },
+    "server-90": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-90"
+      ]
+    },
+    "server-91": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-91"
+      ]
+    },
+    "server-92": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-92"
+      ]
+    },
+    "server-93": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-93"
+      ]
+    },
+    "server-94": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-94"
+      ]
+    },
+    "server-95": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-95"
+      ]
+    },
+    "server-96": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-96"
+      ]
+    },
+    "server-97": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-97"
+      ]
+    },
+    "server-98": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-98"
+      ]
+    },
+    "server-99": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-99"
+      ]
+    },
+    "server-100": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-100"
+      ]
+    },
+    "server-101": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-101"
+      ]
+    },
+    "server-102": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-102"
+      ]
+    },
+    "server-103": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-103"
+      ]
+    },
+    "server-104": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-104"
+      ]
+    },
+    "server-105": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-105"
+      ]
+    },
+    "server-106": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-106"
+      ]
+    },
+    "server-107": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-107"
+      ]
+    },
+    "server-108": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-108"
+      ]
+    },
+    "server-109": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-109"
+      ]
+    },
+    "server-110": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-110"
+      ]
+    },
+    "server-111": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-111"
+      ]
+    },
+    "server-112": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-112"
+      ]
+    },
+    "server-113": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-113"
+      ]
+    },
+    "server-114": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-114"
+      ]
+    },
+    "server-115": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-115"
+      ]
+    },
+    "server-116": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-116"
+      ]
+    },
+    "server-117": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-117"
+      ]
+    },
+    "server-118": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-118"
+      ]
+    },
+    "server-119": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-119"
+      ]
+    },
+    "server-120": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-120"
+      ]
+    },
+    "server-121": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-121"
+      ]
+    },
+    "server-122": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-122"
+      ]
+    },
+    "server-123": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-123"
+      ]
+    },
+    "server-124": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-124"
+      ]
+    },
+    "server-125": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-125"
+      ]
+    },
+    "server-126": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-126"
+      ]
+    },
+    "server-127": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-127"
+      ]
+    },
+    "server-128": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-128"
+      ]
+    },
+    "server-129": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-129"
+      ]
+    },
+    "server-130": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-130"
+      ]
+    },
+    "server-131": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-131"
+      ]
+    },
+    "server-132": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-132"
+      ]
+    },
+    "server-133": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-133"
+      ]
+    },
+    "server-134": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-134"
+      ]
+    },
+    "server-135": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-135"
+      ]
+    },
+    "server-136": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-136"
+      ]
+    },
+    "server-137": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-137"
+      ]
+    },
+    "server-138": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-138"
+      ]
+    },
+    "server-139": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-139"
+      ]
+    },
+    "server-140": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-140"
+      ]
+    },
+    "server-141": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-141"
+      ]
+    },
+    "server-142": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-142"
+      ]
+    },
+    "server-143": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-143"
+      ]
+    },
+    "server-144": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-144"
+      ]
+    },
+    "server-145": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-145"
+      ]
+    },
+    "server-146": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-146"
+      ]
+    },
+    "server-147": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-147"
+      ]
+    },
+    "server-148": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-148"
+      ]
+    },
+    "server-149": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-149"
+      ]
+    },
+    "server-150": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-150"
+      ]
+    },
+    "server-151": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-151"
+      ]
+    },
+    "server-152": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-152"
+      ]
+    },
+    "server-153": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-153"
+      ]
+    },
+    "server-154": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-154"
+      ]
+    },
+    "server-155": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-155"
+      ]
+    },
+    "server-156": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-156"
+      ]
+    },
+    "server-157": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-157"
+      ]
+    },
+    "server-158": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-158"
+      ]
+    },
+    "server-159": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-159"
+      ]
+    },
+    "server-160": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-160"
+      ]
+    },
+    "server-161": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-161"
+      ]
+    },
+    "server-162": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-162"
+      ]
+    },
+    "server-163": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-163"
+      ]
+    },
+    "server-164": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-164"
+      ]
+    },
+    "server-165": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-165"
+      ]
+    },
+    "server-166": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-166"
+      ]
+    },
+    "server-167": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-167"
+      ]
+    },
+    "server-168": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-168"
+      ]
+    },
+    "server-169": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-169"
+      ]
+    },
+    "server-170": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-170"
+      ]
+    },
+    "server-171": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-171"
+      ]
+    },
+    "server-172": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-172"
+      ]
+    },
+    "server-173": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-173"
+      ]
+    },
+    "server-174": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-174"
+      ]
+    },
+    "server-175": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-175"
+      ]
+    },
+    "server-176": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-176"
+      ]
+    },
+    "server-177": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-177"
+      ]
+    },
+    "server-178": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-178"
+      ]
+    },
+    "server-179": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-179"
+      ]
+    },
+    "server-180": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-180"
+      ]
+    },
+    "server-181": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-181"
+      ]
+    },
+    "server-182": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-182"
+      ]
+    },
+    "server-183": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-183"
+      ]
+    },
+    "server-184": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-184"
+      ]
+    },
+    "server-185": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-185"
+      ]
+    },
+    "server-186": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-186"
+      ]
+    },
+    "server-187": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-187"
+      ]
+    },
+    "server-188": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-188"
+      ]
+    },
+    "server-189": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-189"
+      ]
+    },
+    "server-190": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-190"
+      ]
+    },
+    "server-191": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-191"
+      ]
+    },
+    "server-192": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-192"
+      ]
+    },
+    "server-193": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-193"
+      ]
+    },
+    "server-194": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-194"
+      ]
+    },
+    "server-195": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-195"
+      ]
+    },
+    "server-196": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-196"
+      ]
+    },
+    "server-197": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-197"
+      ]
+    },
+    "server-198": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-198"
+      ]
+    },
+    "server-199": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-199"
+      ]
+    },
+    "server-200": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-200"
+      ]
+    },
+    "server-201": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-201"
+      ]
+    },
+    "server-202": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-202"
+      ]
+    },
+    "server-203": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-203"
+      ]
+    },
+    "server-204": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-204"
+      ]
+    },
+    "server-205": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-205"
+      ]
+    },
+    "server-206": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-206"
+      ]
+    },
+    "server-207": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-207"
+      ]
+    },
+    "server-208": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-208"
+      ]
+    },
+    "server-209": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-209"
+      ]
+    },
+    "server-210": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-210"
+      ]
+    },
+    "server-211": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-211"
+      ]
+    },
+    "server-212": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-212"
+      ]
+    },
+    "server-213": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-213"
+      ]
+    },
+    "server-214": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-214"
+      ]
+    },
+    "server-215": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-215"
+      ]
+    },
+    "server-216": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-216"
+      ]
+    },
+    "server-217": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-217"
+      ]
+    },
+    "server-218": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-218"
+      ]
+    },
+    "server-219": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-219"
+      ]
+    },
+    "server-220": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-220"
+      ]
+    },
+    "server-221": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-221"
+      ]
+    },
+    "server-222": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-222"
+      ]
+    },
+    "server-223": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-223"
+      ]
+    },
+    "server-224": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-224"
+      ]
+    },
+    "server-225": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-225"
+      ]
+    },
+    "server-226": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-226"
+      ]
+    },
+    "server-227": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-227"
+      ]
+    },
+    "server-228": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-228"
+      ]
+    },
+    "server-229": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-229"
+      ]
+    },
+    "server-230": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-230"
+      ]
+    },
+    "server-231": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-231"
+      ]
+    },
+    "server-232": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-232"
+      ]
+    },
+    "server-233": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-233"
+      ]
+    },
+    "server-234": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-234"
+      ]
+    },
+    "server-235": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-235"
+      ]
+    },
+    "server-236": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-236"
+      ]
+    },
+    "server-237": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-237"
+      ]
+    },
+    "server-238": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-238"
+      ]
+    },
+    "server-239": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-239"
+      ]
+    },
+    "server-240": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-240"
+      ]
+    },
+    "server-241": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-241"
+      ]
+    },
+    "server-242": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-242"
+      ]
+    },
+    "server-243": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-243"
+      ]
+    },
+    "server-244": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-244"
+      ]
+    },
+    "server-245": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-245"
+      ]
+    },
+    "server-246": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-246"
+      ]
+    },
+    "server-247": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-247"
+      ]
+    },
+    "server-248": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-248"
+      ]
+    },
+    "server-249": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-249"
+      ]
+    },
+    "server-250": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-250"
+      ]
+    },
+    "server-251": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-251"
+      ]
+    },
+    "server-252": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-252"
+      ]
+    },
+    "server-253": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-253"
+      ]
+    },
+    "server-254": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-254"
+      ]
+    },
+    "server-255": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-255"
+      ]
+    },
+    "server-256": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-256"
+      ]
+    },
+    "server-257": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-257"
+      ]
+    },
+    "server-258": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-258"
+      ]
+    },
+    "server-259": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-259"
+      ]
+    },
+    "server-260": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-260"
+      ]
+    },
+    "server-261": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-261"
+      ]
+    },
+    "server-262": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-262"
+      ]
+    },
+    "server-263": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-263"
+      ]
+    },
+    "server-264": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-264"
+      ]
+    },
+    "server-265": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-265"
+      ]
+    },
+    "server-266": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-266"
+      ]
+    },
+    "server-267": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-267"
+      ]
+    },
+    "server-268": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-268"
+      ]
+    },
+    "server-269": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-269"
+      ]
+    },
+    "server-270": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-270"
+      ]
+    },
+    "server-271": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-271"
+      ]
+    },
+    "server-272": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-272"
+      ]
+    },
+    "server-273": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-273"
+      ]
+    },
+    "server-274": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-274"
+      ]
+    },
+    "server-275": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-275"
+      ]
+    },
+    "server-276": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-276"
+      ]
+    },
+    "server-277": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-277"
+      ]
+    },
+    "server-278": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-278"
+      ]
+    },
+    "server-279": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-279"
+      ]
+    },
+    "server-280": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-280"
+      ]
+    },
+    "server-281": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-281"
+      ]
+    },
+    "server-282": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-282"
+      ]
+    },
+    "server-283": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-283"
+      ]
+    },
+    "server-284": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-284"
+      ]
+    },
+    "server-285": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-285"
+      ]
+    },
+    "server-286": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-286"
+      ]
+    },
+    "server-287": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-287"
+      ]
+    },
+    "server-288": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-288"
+      ]
+    },
+    "server-289": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-289"
+      ]
+    },
+    "server-290": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-290"
+      ]
+    },
+    "server-291": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-291"
+      ]
+    },
+    "server-292": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-292"
+      ]
+    },
+    "server-293": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-293"
+      ]
+    },
+    "server-294": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-294"
+      ]
+    },
+    "server-295": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-295"
+      ]
+    },
+    "server-296": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-296"
+      ]
+    },
+    "server-297": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-297"
+      ]
+    },
+    "server-298": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-298"
+      ]
+    },
+    "server-299": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-299"
+      ]
+    },
+    "server-300": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-300"
+      ]
+    },
+    "server-301": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-301"
+      ]
+    },
+    "server-302": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-302"
+      ]
+    },
+    "server-303": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-303"
+      ]
+    },
+    "server-304": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-304"
+      ]
+    },
+    "server-305": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-305"
+      ]
+    },
+    "server-306": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-306"
+      ]
+    },
+    "server-307": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-307"
+      ]
+    },
+    "server-308": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-308"
+      ]
+    },
+    "server-309": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-309"
+      ]
+    },
+    "server-310": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-310"
+      ]
+    },
+    "server-311": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-311"
+      ]
+    },
+    "server-312": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-312"
+      ]
+    },
+    "server-313": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-313"
+      ]
+    },
+    "server-314": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-314"
+      ]
+    },
+    "server-315": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-315"
+      ]
+    },
+    "server-316": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-316"
+      ]
+    },
+    "server-317": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-317"
+      ]
+    },
+    "server-318": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-318"
+      ]
+    },
+    "server-319": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-319"
+      ]
+    },
+    "server-320": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-320"
+      ]
+    },
+    "server-321": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-321"
+      ]
+    },
+    "server-322": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-322"
+      ]
+    },
+    "server-323": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-323"
+      ]
+    },
+    "server-324": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-324"
+      ]
+    },
+    "server-325": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-325"
+      ]
+    },
+    "server-326": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-326"
+      ]
+    },
+    "server-327": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-327"
+      ]
+    },
+    "server-328": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-328"
+      ]
+    },
+    "server-329": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-329"
+      ]
+    },
+    "server-330": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-330"
+      ]
+    },
+    "server-331": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-331"
+      ]
+    },
+    "server-332": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-332"
+      ]
+    },
+    "server-333": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-333"
+      ]
+    },
+    "server-334": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-334"
+      ]
+    },
+    "server-335": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-335"
+      ]
+    },
+    "server-336": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-336"
+      ]
+    },
+    "server-337": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-337"
+      ]
+    },
+    "server-338": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-338"
+      ]
+    },
+    "server-339": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-339"
+      ]
+    },
+    "server-340": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-340"
+      ]
+    },
+    "server-341": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-341"
+      ]
+    },
+    "server-342": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-342"
+      ]
+    },
+    "server-343": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-343"
+      ]
+    },
+    "server-344": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-344"
+      ]
+    },
+    "server-345": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-345"
+      ]
+    },
+    "server-346": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-346"
+      ]
+    },
+    "server-347": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-347"
+      ]
+    },
+    "server-348": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-348"
+      ]
+    },
+    "server-349": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-349"
+      ]
+    },
+    "server-350": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-350"
+      ]
+    },
+    "server-351": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-351"
+      ]
+    },
+    "server-352": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-352"
+      ]
+    },
+    "server-353": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-353"
+      ]
+    },
+    "server-354": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-354"
+      ]
+    },
+    "server-355": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-355"
+      ]
+    },
+    "server-356": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-356"
+      ]
+    },
+    "server-357": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-357"
+      ]
+    },
+    "server-358": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-358"
+      ]
+    },
+    "server-359": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-359"
+      ]
+    },
+    "server-360": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-360"
+      ]
+    },
+    "server-361": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-361"
+      ]
+    },
+    "server-362": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-362"
+      ]
+    },
+    "server-363": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-363"
+      ]
+    },
+    "server-364": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-364"
+      ]
+    },
+    "server-365": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-365"
+      ]
+    },
+    "server-366": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-366"
+      ]
+    },
+    "server-367": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-367"
+      ]
+    },
+    "server-368": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-368"
+      ]
+    },
+    "server-369": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-369"
+      ]
+    },
+    "server-370": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-370"
+      ]
+    },
+    "server-371": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-371"
+      ]
+    },
+    "server-372": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-372"
+      ]
+    },
+    "server-373": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-373"
+      ]
+    },
+    "server-374": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-374"
+      ]
+    },
+    "server-375": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-375"
+      ]
+    },
+    "server-376": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-376"
+      ]
+    },
+    "server-377": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-377"
+      ]
+    },
+    "server-378": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-378"
+      ]
+    },
+    "server-379": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-379"
+      ]
+    },
+    "server-380": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-380"
+      ]
+    },
+    "server-381": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-381"
+      ]
+    },
+    "server-382": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-382"
+      ]
+    },
+    "server-383": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-383"
+      ]
+    },
+    "server-384": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-384"
+      ]
+    },
+    "server-385": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-385"
+      ]
+    },
+    "server-386": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-386"
+      ]
+    },
+    "server-387": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-387"
+      ]
+    },
+    "server-388": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-388"
+      ]
+    },
+    "server-389": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-389"
+      ]
+    },
+    "server-390": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-390"
+      ]
+    },
+    "server-391": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-391"
+      ]
+    },
+    "server-392": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-392"
+      ]
+    },
+    "server-393": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-393"
+      ]
+    },
+    "server-394": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-394"
+      ]
+    },
+    "server-395": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-395"
+      ]
+    },
+    "server-396": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-396"
+      ]
+    },
+    "server-397": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-397"
+      ]
+    },
+    "server-398": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-398"
+      ]
+    },
+    "server-399": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-399"
+      ]
+    },
+    "server-400": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-400"
+      ]
+    },
+    "server-401": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-401"
+      ]
+    },
+    "server-402": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-402"
+      ]
+    },
+    "server-403": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-403"
+      ]
+    },
+    "server-404": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-404"
+      ]
+    },
+    "server-405": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-405"
+      ]
+    },
+    "server-406": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-406"
+      ]
+    },
+    "server-407": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-407"
+      ]
+    },
+    "server-408": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-408"
+      ]
+    },
+    "server-409": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-409"
+      ]
+    },
+    "server-410": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-410"
+      ]
+    },
+    "server-411": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-411"
+      ]
+    },
+    "server-412": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-412"
+      ]
+    },
+    "server-413": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-413"
+      ]
+    },
+    "server-414": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-414"
+      ]
+    },
+    "server-415": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-415"
+      ]
+    },
+    "server-416": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-416"
+      ]
+    },
+    "server-417": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-417"
+      ]
+    },
+    "server-418": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-418"
+      ]
+    },
+    "server-419": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-419"
+      ]
+    },
+    "server-420": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-420"
+      ]
+    },
+    "server-421": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-421"
+      ]
+    },
+    "server-422": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-422"
+      ]
+    },
+    "server-423": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-423"
+      ]
+    },
+    "server-424": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-424"
+      ]
+    },
+    "server-425": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-425"
+      ]
+    },
+    "server-426": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-426"
+      ]
+    },
+    "server-427": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-427"
+      ]
+    },
+    "server-428": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-428"
+      ]
+    },
+    "server-429": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-429"
+      ]
+    },
+    "server-430": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-430"
+      ]
+    },
+    "server-431": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-431"
+      ]
+    },
+    "server-432": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-432"
+      ]
+    },
+    "server-433": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-433"
+      ]
+    },
+    "server-434": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-434"
+      ]
+    },
+    "server-435": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-435"
+      ]
+    },
+    "server-436": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-436"
+      ]
+    },
+    "server-437": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-437"
+      ]
+    },
+    "server-438": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-438"
+      ]
+    },
+    "server-439": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-439"
+      ]
+    },
+    "server-440": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-440"
+      ]
+    },
+    "server-441": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-441"
+      ]
+    },
+    "server-442": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-442"
+      ]
+    },
+    "server-443": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-443"
+      ]
+    },
+    "server-444": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-444"
+      ]
+    },
+    "server-445": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-445"
+      ]
+    },
+    "server-446": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-446"
+      ]
+    },
+    "server-447": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-447"
+      ]
+    },
+    "server-448": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-448"
+      ]
+    },
+    "server-449": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-449"
+      ]
+    },
+    "server-450": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-450"
+      ]
+    },
+    "server-451": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-451"
+      ]
+    },
+    "server-452": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-452"
+      ]
+    },
+    "server-453": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-453"
+      ]
+    },
+    "server-454": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-454"
+      ]
+    },
+    "server-455": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-455"
+      ]
+    },
+    "server-456": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-456"
+      ]
+    },
+    "server-457": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-457"
+      ]
+    },
+    "server-458": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-458"
+      ]
+    },
+    "server-459": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-459"
+      ]
+    },
+    "server-460": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-460"
+      ]
+    },
+    "server-461": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-461"
+      ]
+    },
+    "server-462": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-462"
+      ]
+    },
+    "server-463": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-463"
+      ]
+    },
+    "server-464": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-464"
+      ]
+    },
+    "server-465": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-465"
+      ]
+    },
+    "server-466": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-466"
+      ]
+    },
+    "server-467": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-467"
+      ]
+    },
+    "server-468": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-468"
+      ]
+    },
+    "server-469": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-469"
+      ]
+    },
+    "server-470": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-470"
+      ]
+    },
+    "server-471": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-471"
+      ]
+    },
+    "server-472": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-472"
+      ]
+    },
+    "server-473": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-473"
+      ]
+    },
+    "server-474": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-474"
+      ]
+    },
+    "server-475": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-475"
+      ]
+    },
+    "server-476": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-476"
+      ]
+    },
+    "server-477": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-477"
+      ]
+    },
+    "server-478": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-478"
+      ]
+    },
+    "server-479": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-479"
+      ]
+    },
+    "server-480": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-480"
+      ]
+    },
+    "server-481": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-481"
+      ]
+    },
+    "server-482": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-482"
+      ]
+    },
+    "server-483": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-483"
+      ]
+    },
+    "server-484": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-484"
+      ]
+    },
+    "server-485": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-485"
+      ]
+    },
+    "server-486": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-486"
+      ]
+    },
+    "server-487": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-487"
+      ]
+    },
+    "server-488": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-488"
+      ]
+    },
+    "server-489": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-489"
+      ]
+    },
+    "server-490": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-490"
+      ]
+    },
+    "server-491": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-491"
+      ]
+    },
+    "server-492": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-492"
+      ]
+    },
+    "server-493": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-493"
+      ]
+    },
+    "server-494": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-494"
+      ]
+    },
+    "server-495": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-495"
+      ]
+    },
+    "server-496": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-496"
+      ]
+    },
+    "server-497": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-497"
+      ]
+    },
+    "server-498": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-498"
+      ]
+    },
+    "server-499": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "pkg-499"
+      ]
+    }
+  },
+  "projects": {
+    "/home/example/project-0": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-1": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-2": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-3": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-4": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-5": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-6": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-7": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-8": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-9": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-10": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-11": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-12": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-13": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-14": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-15": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-16": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-17": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-18": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-19": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-20": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-21": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-22": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-23": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-24": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-25": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-26": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-27": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-28": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-29": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-30": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-31": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-32": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-33": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-34": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-35": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-36": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-37": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-38": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-39": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-40": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-41": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-42": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-43": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-44": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-45": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-46": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-47": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-48": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    },
+    "/home/example/project-49": {
+      "disabledMcpjsonServers": [],
+      "enabledMcpjsonServers": []
+    }
+  }
+}

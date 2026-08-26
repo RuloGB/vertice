@@ -47,8 +47,8 @@ function skillFixture(): Component {
     description: "Formats source files",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file" },
-      { path: null, root: "embedded-skills", origin: "embedded" },
+      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file", mcpTransport: null },
+      { path: null, root: "embedded-skills", origin: "embedded", mcpTransport: null },
     ],
     provenanceHint: null,
   };
@@ -62,8 +62,8 @@ function agentFixture(): Component {
     description: "Reviews pull requests",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file" },
-      { path: null, root: "embedded-agents", origin: "embedded" },
+      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file", mcpTransport: null },
+      { path: null, root: "embedded-agents", origin: "embedded", mcpTransport: null },
     ],
     provenanceHint: null,
   };
@@ -78,7 +78,14 @@ function componentFixtures(kind: "skill" | "agent", count: number): Component[] 
       kind,
       description: null,
       scope: "user",
-      locations: [{ path: `C:/fixtures/${kind}-${number}`, root: `claude-${kind}s`, origin: "file" }],
+      locations: [
+        {
+          path: `C:/fixtures/${kind}-${number}`,
+          root: `claude-${kind}s`,
+          origin: "file",
+          mcpTransport: null,
+        },
+      ],
       provenanceHint: null,
     };
   });
@@ -660,7 +667,7 @@ describe("App per-kind pages", () => {
       ...agentFixture(),
       id: "agent:null-path",
       name: "Null Path Agent",
-      locations: [{ path: null, root: "claude-agents", origin: "file" }],
+      locations: [{ path: null, root: "claude-agents", origin: "file", mcpTransport: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([agentFixture(), nullPathFileComponent]));
 
@@ -695,7 +702,7 @@ describe("App per-kind pages", () => {
       ...skillFixture(),
       id: "skill:embedded-path",
       name: "Embedded Path Skill",
-      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded" }],
+      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded", mcpTransport: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([embeddedComponent]));
 

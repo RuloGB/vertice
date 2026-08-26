@@ -1,0 +1,5 @@
+[mcp_servers.broken-field]
+command = 42
+
+[mcp_servers.github]
+command = "npx"

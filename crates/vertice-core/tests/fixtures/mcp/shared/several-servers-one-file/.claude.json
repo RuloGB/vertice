@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "gamma": {
+      "type": "stdio",
+      "command": "gamma-cli"
+    },
+    "alpha": {
+      "type": "stdio",
+      "command": "alpha-cli"
+    },
+    "beta": {
+      "type": "stdio",
+      "command": "beta-cli"
+    }
+  }
+}

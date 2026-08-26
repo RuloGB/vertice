@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["--token=ghp_FAKE1111111111111111111111111111111111"],
+      "env": {
+        "GITHUB_TOKEN": "ghp_FAKE0000000000000000000000000000000000"
+      }
+    }
+  }
+}

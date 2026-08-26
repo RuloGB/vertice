@@ -5,4 +5,4 @@
  * adding a variant is a breaking change that must be reviewed everywhere
  * this enum is matched.
  */
-export type ComponentKind = "skill" | "agent";
+export type ComponentKind = "skill" | "agent" | "mcp";

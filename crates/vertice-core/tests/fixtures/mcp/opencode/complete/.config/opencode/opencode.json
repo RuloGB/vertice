@@ -1,0 +1,8 @@
+{
+  "mcp": {
+    "docs": {
+      "type": "local",
+      "command": ["npx", "-y", "pkg"]
+    }
+  }
+}

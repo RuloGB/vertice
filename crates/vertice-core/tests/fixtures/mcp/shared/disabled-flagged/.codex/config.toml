@@ -1,0 +1,3 @@
+[mcp_servers.codex-disabled]
+command = "codex-disabled-cli"
+enabled = false

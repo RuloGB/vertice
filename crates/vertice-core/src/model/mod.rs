@@ -27,6 +27,7 @@ mod freshness;
 mod identity;
 mod installation;
 mod location;
+mod mcp;
 mod presence;
 mod report;
 mod settings;
@@ -40,6 +41,7 @@ pub use installation::{ClientInstallation, ClientKind};
 pub use location::{
     Location, LocationOrigin, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
 };
+pub use mcp::McpTransport;
 pub use presence::{ClientPresence, ClientPresenceStatus};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};
 pub use settings::UserSettings;

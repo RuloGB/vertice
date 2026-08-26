@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "github": {
+      "environment": {
+        "GITHUB_TOKEN": "ghp_FAKE0000000000000000000000000000000000"
+      }
+    }
+  }
+}

@@ -65,20 +65,20 @@ pub fn skill_roots(home: &Path) -> [ResolvedRoot; 4] {
             home,
             "claude-skills",
             SearchRootKind::Skill,
-            [".claude", "skills"],
+            &[".claude", "skills"],
         ),
         resolve_single(
             home,
             "agents-skills",
             SearchRootKind::Skill,
-            [".agents", "skills"],
+            &[".agents", "skills"],
         ),
         resolve_opencode(home),
         resolve_single(
             home,
             "codex-skills",
             SearchRootKind::Skill,
-            [".codex", "skills"],
+            &[".codex", "skills"],
         ),
     ]
 }
@@ -91,7 +91,7 @@ pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
         home,
         "claude-agents",
         SearchRootKind::Agent,
-        [".claude", "agents"],
+        &[".claude", "agents"],
     );
 
     let mut embedded_path = home.to_path_buf();
@@ -112,12 +112,13 @@ pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
     [agents, embedded]
 }
 
-/// Resolve a root with exactly one scan path (Claude Code, Agents).
-fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: [&str; 2]) -> ResolvedRoot {
-    let mut path = home.to_path_buf();
-    for segment in suffix {
-        path.push(segment);
-    }
+/// Resolve a root with exactly one scan path (Claude Code, Agents, and,
+/// design §5.1/§5.3, the single-file `codex-mcp` root). `suffix` takes a
+/// slice rather than a fixed-size array so it fits both the one-segment
+/// `<home>/.claude.json` shape and every existing two-segment shape with one
+/// signature (design §5.1).
+fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: &[&str]) -> ResolvedRoot {
+    let path = push_segments(home, suffix);
 
     let status = probe(&path);
 
@@ -130,6 +131,85 @@ fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: [&str; 2]
         },
         scan_paths: vec![path],
     }
+}
+
+/// Build `home` plus every segment in `suffix`, pushed one at a time — no
+/// OS config-directory convention, no environment read (design §9).
+fn push_segments(home: &Path, suffix: &[&str]) -> PathBuf {
+    let mut path = home.to_path_buf();
+    for segment in suffix {
+        path.push(segment);
+    }
+    path
+}
+
+/// Resolve a two-file root: `base` is the merge base and the displayed
+/// `SearchRoot.path`; `overlay` wins at the leaf (design §5.1/§5.2).
+/// `status` is `Found` if EITHER file exists. Names, once, the status fold
+/// that `resolve_opencode`/`opencode_agent_root` each already wrote inline
+/// (design §5.1) — used here by the two new multi-file MCP roots.
+fn resolve_pair(
+    home: &Path,
+    id: &str,
+    kind: SearchRootKind,
+    base: &[&str],
+    overlay: &[&str],
+) -> ResolvedRoot {
+    let base_path = push_segments(home, base);
+    let overlay_path = push_segments(home, overlay);
+
+    let status = match (probe(&base_path), probe(&overlay_path)) {
+        (SearchRootStatus::Found, _) | (_, SearchRootStatus::Found) => SearchRootStatus::Found,
+        _ => SearchRootStatus::NotFound,
+    };
+
+    ResolvedRoot {
+        root: SearchRoot {
+            id: SearchRootId(id.to_string()),
+            path: base_path.clone(),
+            kind,
+            status,
+        },
+        scan_paths: vec![base_path, overlay_path],
+    }
+}
+
+/// Resolve the Claude Code MCP root under `home` (design §5.1, M1/M2): a
+/// two-path root, `~/.claude.json` (the machine-written store, base) merged
+/// with `~/.claude/settings.json` (the hand-authored overlay, winning at the
+/// leaf per §5.2's A10). `status` is `Found` if either file exists.
+pub fn claude_mcp_root(home: &Path) -> ResolvedRoot {
+    resolve_pair(
+        home,
+        "claude-mcp",
+        SearchRootKind::Mcp,
+        &[".claude.json"],
+        &[".claude", "settings.json"],
+    )
+}
+
+/// Resolve the OpenCode MCP root under `home` (design §5.1, M8): the same
+/// two files, same merge order, as `opencode_agent_root` — one different
+/// `SearchRootKind`, one different root id, over the same bytes.
+pub fn opencode_mcp_root(home: &Path) -> ResolvedRoot {
+    resolve_pair(
+        home,
+        "opencode-mcp",
+        SearchRootKind::Mcp,
+        &[".config", "opencode", "opencode.json"],
+        &[".config", "opencode", "opencode.jsonc"],
+    )
+}
+
+/// Resolve the Codex MCP root under `home` (design §5.1, M5): a single file,
+/// `resolve_single`'s shape, like `codex_agent_root`.
+pub fn codex_mcp_root(home: &Path) -> ResolvedRoot {
+    resolve_single(
+        home,
+        "codex-mcp",
+        SearchRootKind::Mcp,
+        &[".codex", "config.toml"],
+    )
 }
 
 /// Resolve the OpenCode root. `~/.config/opencode/skills/` (plural) is the
@@ -207,7 +287,7 @@ pub fn codex_agent_root(home: &Path) -> ResolvedRoot {
         home,
         "codex-agents",
         SearchRootKind::Agent,
-        [".codex", "agents"],
+        &[".codex", "agents"],
     )
 }
 
@@ -398,6 +478,73 @@ mod tests {
         let err = resolve_home(None).expect_err("None must fail");
 
         assert!(matches!(err, ScanError::Internal { .. }));
+    }
+
+    /// `claude_mcp_root` is a two-path root, base then overlay, in merge
+    /// order (design §5.1/§5.2).
+    #[test]
+    fn claude_mcp_root_resolves_to_two_files_in_merge_order() {
+        let home = PathBuf::from("/home/example");
+
+        let resolved = claude_mcp_root(&home);
+
+        assert_eq!(resolved.root.id, SearchRootId("claude-mcp".to_string()));
+        assert_eq!(resolved.root.kind, SearchRootKind::Mcp);
+        assert!(resolved.root.path.ends_with(".claude.json"));
+
+        assert_eq!(resolved.scan_paths.len(), 2);
+        assert!(resolved.scan_paths[0].ends_with(".claude.json"));
+        assert!(resolved.scan_paths[1].ends_with("settings.json"));
+    }
+
+    /// `opencode_mcp_root` reads the same two files, in the same merge
+    /// order, as `opencode_agent_root` (design §5.1).
+    #[test]
+    fn opencode_mcp_root_resolves_to_two_files_in_merge_order() {
+        let home = PathBuf::from("/home/example");
+
+        let resolved = opencode_mcp_root(&home);
+
+        assert_eq!(resolved.root.id, SearchRootId("opencode-mcp".to_string()));
+        assert_eq!(resolved.root.kind, SearchRootKind::Mcp);
+        assert!(resolved.root.path.ends_with("opencode.json"));
+
+        assert_eq!(resolved.scan_paths.len(), 2);
+        assert!(resolved.scan_paths[0].ends_with("opencode.json"));
+        assert!(resolved.scan_paths[1].ends_with("opencode.jsonc"));
+    }
+
+    /// `codex_mcp_root` is a single-file root, like `codex_agent_root`
+    /// (design §5.1).
+    #[test]
+    fn codex_mcp_root_resolves_to_one_file() {
+        let home = PathBuf::from("/home/example");
+
+        let resolved = codex_mcp_root(&home);
+
+        assert_eq!(resolved.root.id, SearchRootId("codex-mcp".to_string()));
+        assert_eq!(resolved.root.kind, SearchRootKind::Mcp);
+        assert!(resolved.root.path.ends_with("config.toml"));
+        assert_eq!(resolved.scan_paths.len(), 1);
+    }
+
+    /// All three MCP root ids are hardcoded and never path-derived.
+    #[test]
+    fn mcp_root_ids_are_stable_and_never_path_derived() {
+        let alice = (
+            claude_mcp_root(&PathBuf::from("/home/alice")),
+            opencode_mcp_root(&PathBuf::from("/home/alice")),
+            codex_mcp_root(&PathBuf::from("/home/alice")),
+        );
+        let bob = (
+            claude_mcp_root(&PathBuf::from("/home/bob")),
+            opencode_mcp_root(&PathBuf::from("/home/bob")),
+            codex_mcp_root(&PathBuf::from("/home/bob")),
+        );
+
+        assert_eq!(alice.0.root.id, bob.0.root.id);
+        assert_eq!(alice.1.root.id, bob.1.root.id);
+        assert_eq!(alice.2.root.id, bob.2.root.id);
     }
 
     #[cfg(unix)]

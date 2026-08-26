@@ -1,5 +1,11 @@
 {
   "agent": {
     "open-reviewer": { "description": "OpenCode reviewer." }
+  },
+  "mcp": {
+    "opencode-example": {
+      "type": "local",
+      "command": ["npx", "-y", "opencode-example"]
+    }
   }
 }

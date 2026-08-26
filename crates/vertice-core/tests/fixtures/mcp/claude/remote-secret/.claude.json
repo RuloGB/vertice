@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "github": {
+      "url": "https://mcp.example.test",
+      "headers": {
+        "Authorization": "Bearer sk-FAKE-0000000000000000000000000"
+      }
+    }
+  }
+}

@@ -457,6 +457,125 @@ mod tests {
         );
     }
 
+    /// Anchor 0.2 (`add-mcp-scanning` `tasks.md`, `design.md` §12), closed
+    /// GREEN here in Slice 3 (task 3.10): `log_scan_report_with` is
+    /// private to this module, so the real assertion lives here rather
+    /// than in the `tests/mcp_log_redaction.rs` integration stub, which
+    /// records that decision (design §12 item 2's own hedge). A `claude/
+    /// stdio-secret`-shaped `ScanReport` — built from
+    /// `vertice_core::mcp_claude::scan` against the real fixture — never
+    /// emits a `FAKE`-vocabulary secret through the log-capturing closure.
+    /// Scoped honestly: today's logger reads only `root.path` and
+    /// `record.label`, never `report.issues`, so this exercises the
+    /// `root.path` half for real and the `ScanIssue.reason` half only as
+    /// forward-looking defense in depth (design §7.2/§10.2's hedge).
+    #[test]
+    fn mcp_secrets_never_reach_the_scan_report_log() {
+        let mut fixture_home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        fixture_home.pop();
+        fixture_home.push("vertice-core");
+        fixture_home.push("tests");
+        fixture_home.push("fixtures");
+        fixture_home.push("mcp");
+        fixture_home.push("claude");
+        fixture_home.push("stdio-secret");
+
+        let mcp_scan = vertice_core::mcp_claude::scan(&fixture_home);
+        assert!(
+            !mcp_scan.components.is_empty(),
+            "the stdio-secret fixture must yield at least one component"
+        );
+
+        let report = scan_report_fixture(mcp_scan.roots.clone(), None);
+        let report = ScanReport {
+            components: mcp_scan.components,
+            issues: mcp_scan.issues,
+            ..report
+        };
+
+        let mut emitted = String::new();
+        log_scan_report_with(&report, |_level, message| {
+            emitted.push_str(message);
+        });
+
+        assert!(!emitted.contains("FAKE"));
+    }
+
+    /// `add-mcp-scanning` `tasks.md` 7.6: the final, whole-tree run of the
+    /// log half of the `FAKE` guard (design §10.2) — every secret-bearing
+    /// fixture, across all three clients, folded into one `ScanReport` and
+    /// logged together, not just the Claude-only Slice-3 subset
+    /// `mcp_secrets_never_reach_the_scan_report_log` already covers.
+    #[test]
+    fn mcp_secrets_never_reach_the_scan_report_log_across_the_full_fixture_tree() {
+        let secret_bearing: [(&str, &str); 8] = [
+            ("claude", "stdio-secret"),
+            ("claude", "remote-secret"),
+            ("claude", "remote-dirty-url"),
+            ("claude", "remote-userinfo-ambiguous-url"),
+            ("claude", "malformed-secret-adjacent"),
+            ("opencode", "stdio-secret"),
+            ("opencode", "remote-secret"),
+            ("opencode", "malformed-secret-adjacent"),
+        ];
+
+        let mut components = Vec::new();
+        let mut issues = Vec::new();
+        let mut roots = Vec::new();
+
+        for (client, case) in secret_bearing {
+            let mut fixture_home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            fixture_home.pop();
+            fixture_home.push("vertice-core");
+            fixture_home.push("tests");
+            fixture_home.push("fixtures");
+            fixture_home.push("mcp");
+            fixture_home.push(client);
+            fixture_home.push(case);
+
+            let scan = match client {
+                "claude" => vertice_core::mcp_claude::scan(&fixture_home),
+                "opencode" => vertice_core::mcp_opencode::scan(&fixture_home),
+                _ => unreachable!("only claude/opencode carry secret-bearing cases in this table"),
+            };
+            components.extend(scan.components);
+            issues.extend(scan.issues);
+            roots.extend(scan.roots);
+        }
+
+        for case in ["stdio-secret", "remote-secret", "malformed-secret-adjacent"] {
+            let mut fixture_home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            fixture_home.pop();
+            fixture_home.push("vertice-core");
+            fixture_home.push("tests");
+            fixture_home.push("fixtures");
+            fixture_home.push("mcp");
+            fixture_home.push("codex");
+            fixture_home.push(case);
+
+            let scan = vertice_core::mcp_codex::scan(&fixture_home);
+            components.extend(scan.components);
+            issues.extend(scan.issues);
+            roots.extend(scan.roots);
+        }
+
+        assert!(!components.is_empty());
+
+        let report = scan_report_fixture(roots, None);
+        let report = ScanReport {
+            components,
+            issues,
+            ..report
+        };
+
+        let mut emitted = String::new();
+        log_scan_report_with(&report, |_level, message| {
+            emitted.push_str(message);
+        });
+
+        assert!(!emitted.contains("FAKE"));
+    }
+
     /// application-logging spec "A missing root and an undetected client
     /// are both logged": one WARN line per `NotFound` root and one per
     /// `NotDetected` client, each carrying the concrete value (design §14

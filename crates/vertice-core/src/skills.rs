@@ -135,6 +135,7 @@ fn walk_one(
                     path: Some(path),
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
+                    mcp_transport: None,
                 }],
                 provenance_hint: None,
             }),

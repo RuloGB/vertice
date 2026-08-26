@@ -5,10 +5,10 @@ import type { Location } from "./Location";
 import type { Scope } from "./Scope";
 
 /**
- * One logical AI component (a skill or an agent), aggregated across every
- * location it was found in. Discovering the same component under N search
- * roots yields ONE `Component` with N `Location` entries sharing one `id`,
- * never N separate components.
+ * One logical AI component (a skill, an agent, or an MCP server),
+ * aggregated across every location it was found in. Discovering the same
+ * component under N search roots yields ONE `Component` with N `Location`
+ * entries sharing one `id`, never N separate components.
  */
 export type Component = { id: ComponentId, 
 /**
