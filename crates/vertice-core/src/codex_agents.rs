@@ -76,6 +76,7 @@ fn walk_agents_root(
         return;
     };
     let root_id = &resolved.root.id;
+    let client = resolved.root.client;
 
     let metadata = match std::fs::symlink_metadata(scan_path) {
         Ok(metadata) => metadata,
@@ -182,6 +183,7 @@ fn walk_agents_root(
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
                     mcp_transport: None,
+                    client,
                 }],
                 provenance_hint: None,
             }),

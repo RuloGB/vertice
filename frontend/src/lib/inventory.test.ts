@@ -9,6 +9,7 @@ function locationFixture(path: string | null): Location {
     root: "claude-skills",
     origin: path === null ? "embedded" : "file",
     mcpTransport: null,
+    client: null,
   };
 }
 

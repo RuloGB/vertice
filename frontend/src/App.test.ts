@@ -47,8 +47,8 @@ function skillFixture(): Component {
     description: "Formats source files",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file", mcpTransport: null },
-      { path: null, root: "embedded-skills", origin: "embedded", mcpTransport: null },
+      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file", mcpTransport: null, client: null },
+      { path: null, root: "embedded-skills", origin: "embedded", mcpTransport: null, client: null },
     ],
     provenanceHint: null,
   };
@@ -62,8 +62,8 @@ function agentFixture(): Component {
     description: "Reviews pull requests",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file", mcpTransport: null },
-      { path: null, root: "embedded-agents", origin: "embedded", mcpTransport: null },
+      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file", mcpTransport: null, client: null },
+      { path: null, root: "embedded-agents", origin: "embedded", mcpTransport: null, client: null },
     ],
     provenanceHint: null,
   };
@@ -82,6 +82,7 @@ function mcpStdioFixture(): Component {
         root: "codex-mcp",
         origin: "file",
         mcpTransport: { stdio: { command: "npx", arg_count: 3, env_keys: ["API_TOKEN", "MCP_ROOT"] } },
+        client: null,
       },
     ],
     provenanceHint: null,
@@ -101,6 +102,7 @@ function mcpRemoteFixture(): Component {
         root: "opencode-mcp",
         origin: "file",
         mcpTransport: { remote: { url: "https://mcp.example.com", header_keys: ["Authorization"] } },
+        client: null,
       },
     ],
     provenanceHint: null,
@@ -115,7 +117,7 @@ function mcpDegradedFixture(): Component {
     description: null,
     scope: "user",
     locations: [
-      { path: "C:/fixtures/mcp-broken.json", root: "claude-mcp", origin: "file", mcpTransport: null },
+      { path: "C:/fixtures/mcp-broken.json", root: "claude-mcp", origin: "file", mcpTransport: null, client: null },
     ],
     provenanceHint: null,
   };
@@ -136,6 +138,7 @@ function componentFixtures(kind: "skill" | "agent", count: number): Component[] 
           root: `claude-${kind}s`,
           origin: "file",
           mcpTransport: null,
+          client: null,
         },
       ],
       provenanceHint: null,
@@ -157,7 +160,7 @@ function reportFixture(components: Component[] = [skillFixture()]): ScanReport {
 function cleanReportFixture(): ScanReport {
   return {
     ...reportFixture([skillFixture(), agentFixture()]),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     installations: [{ client: "claudeCode", version: "1.0.0", path: "C:/clients/claude" }],
     clientPresence: [
       {
@@ -176,7 +179,7 @@ function notFoundOnlyReportFixture(): ScanReport {
   return {
     ...reportFixture(),
     rootsScanned: [
-      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound" },
+      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound", client: null },
     ],
     issues: [],
   };
@@ -185,7 +188,7 @@ function notFoundOnlyReportFixture(): ScanReport {
 function issuesOnlyReportFixture(): ScanReport {
   return {
     ...reportFixture(),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     issues: [
       {
         severity: "error",
@@ -200,7 +203,7 @@ function mixedReportFixture(): ScanReport {
   return {
     ...reportFixture(),
     rootsScanned: [
-      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound" },
+      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound", client: null },
     ],
     issues: [
       { severity: "warning", path: null, reason: "search root claude-skills was not found" },
@@ -225,7 +228,7 @@ function mixedReportFixture(): ScanReport {
 function threeRowClientPresenceFixture(): ScanReport {
   return {
     ...reportFixture(),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     clientPresence: [
       {
         slot: "claudeCodeNpm",
@@ -833,7 +836,7 @@ describe("App per-kind pages", () => {
       ...agentFixture(),
       id: "agent:null-path",
       name: "Null Path Agent",
-      locations: [{ path: null, root: "claude-agents", origin: "file", mcpTransport: null }],
+      locations: [{ path: null, root: "claude-agents", origin: "file", mcpTransport: null, client: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([agentFixture(), nullPathFileComponent]));
 
@@ -868,7 +871,7 @@ describe("App per-kind pages", () => {
       ...skillFixture(),
       id: "skill:embedded-path",
       name: "Embedded Path Skill",
-      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded", mcpTransport: null }],
+      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded", mcpTransport: null, client: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([embeddedComponent]));
 

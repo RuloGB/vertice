@@ -162,6 +162,9 @@ export type Catalog = {
     aiClientsEmpty: string;
     noDescription: string;
   };
+  aiClients: {
+    shared: string;
+  };
   transport: {
     stdio: string;
     remote: string;
@@ -371,6 +374,9 @@ export const catalogs = {
       keysNote: "Names only — values are never captured.",
       unavailable: "Configured here, but its connection detail could not be safely captured.",
     },
+    aiClients: {
+      shared: "Shared",
+    },
   },
   es: {
     app: {
@@ -566,6 +572,9 @@ export const catalogs = {
       keysNote: "Solo nombres: nunca se capturan valores.",
       unavailable:
         "Configurado aquí, pero su detalle de conexión no pudo capturarse con seguridad.",
+    },
+    aiClients: {
+      shared: "Compartido",
     },
   },
 } as const satisfies Record<SupportedLocale, Catalog>;
