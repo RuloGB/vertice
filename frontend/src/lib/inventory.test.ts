@@ -4,7 +4,12 @@ import type { Location } from "../bindings/Location";
 import { isDuplicate } from "./inventory";
 
 function locationFixture(path: string | null): Location {
-  return { path, root: "claude-skills", origin: path === null ? "embedded" : "file" };
+  return {
+    path,
+    root: "claude-skills",
+    origin: path === null ? "embedded" : "file",
+    mcpTransport: null,
+  };
 }
 
 function componentWithLocations(locations: Location[]): Component {

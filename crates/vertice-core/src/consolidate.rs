@@ -18,7 +18,7 @@ use crate::model::{Component, Location};
 /// this module must never do. `codex-skills` lands at index 3 (inside
 /// `skill_roots`), not last overall — see
 /// `openspec/changes/2026-08-23-add-codex-client-support/design.md` §0/§6.2.
-const ROOT_ORDER: [&str; 8] = [
+const ROOT_ORDER: [&str; 11] = [
     "claude-skills",
     "agents-skills",
     "opencode-skills",
@@ -27,6 +27,9 @@ const ROOT_ORDER: [&str; 8] = [
     "claude-embedded-agents",
     "opencode-agents",
     "codex-agents",
+    "claude-mcp",
+    "opencode-mcp",
+    "codex-mcp",
 ];
 
 /// Rank of a root id in `ROOT_ORDER`; an unknown id (a future root not yet
@@ -156,6 +159,7 @@ mod tests {
             } else {
                 LocationOrigin::Embedded
             },
+            mcp_transport: None,
         }
     }
 
@@ -199,6 +203,9 @@ mod tests {
         }
         expected.push(crate::roots::opencode_agent_root(&home).root.id.0.clone());
         expected.push(crate::roots::codex_agent_root(&home).root.id.0.clone());
+        expected.push(crate::roots::claude_mcp_root(&home).root.id.0.clone());
+        expected.push(crate::roots::opencode_mcp_root(&home).root.id.0.clone());
+        expected.push(crate::roots::codex_mcp_root(&home).root.id.0.clone());
 
         let actual: Vec<String> = ROOT_ORDER.iter().map(|s| s.to_string()).collect();
 

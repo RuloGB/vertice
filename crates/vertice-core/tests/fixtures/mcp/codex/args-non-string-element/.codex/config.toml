@@ -1,0 +1,3 @@
+[mcp_servers.github]
+command = "npx"
+args = ["--flag", 42]

@@ -1,0 +1,6 @@
+[mcp_servers.github]
+command = "npx"
+
+[mcp_servers.github.env]
+GITHUB_TOKEN = "ghp_FAKE0000000000000000000000000000000000"
+this is not valid toml

@@ -1,0 +1,3 @@
+[mcp_servers.github]
+command = 42
+url = "https://mcp.example.test"

@@ -1,0 +1,7 @@
+{
+  "mcp": {
+    "github": {
+      "command": ["npx", "-y", "github"]
+    }
+  }
+}

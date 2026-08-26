@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "stdio",
+      "command": "claude-github-cli",
+      "args": ["--scope", "user"]
+    }
+  }
+}

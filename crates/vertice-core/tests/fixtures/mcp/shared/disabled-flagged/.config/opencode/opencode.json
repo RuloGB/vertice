@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "opencode-disabled": {
+      "type": "local",
+      "command": ["opencode-disabled-cli"],
+      "enabled": false
+    }
+  }
+}

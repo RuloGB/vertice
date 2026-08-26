@@ -27,22 +27,34 @@ fn scan_for(home: &Path, platform: HostPlatform) -> ScanReport {
     let agents = crate::agents::scan(home);
     let opencode_agents = crate::opencode_agents::scan(home);
     let codex_agents = crate::codex_agents::scan(home);
+    let claude_mcp = crate::mcp_claude::scan(home);
+    let opencode_mcp = crate::mcp_opencode::scan(home);
+    let codex_mcp = crate::mcp_codex::scan(home);
     let installations = crate::installations::scan_for(home, platform);
 
     let mut roots_scanned = skills.roots;
     roots_scanned.extend(agents.roots);
     roots_scanned.extend(opencode_agents.roots);
     roots_scanned.extend(codex_agents.roots);
+    roots_scanned.extend(claude_mcp.roots);
+    roots_scanned.extend(opencode_mcp.roots);
+    roots_scanned.extend(codex_mcp.roots);
 
     let mut components = skills.components;
     components.extend(agents.components);
     components.extend(opencode_agents.components);
     components.extend(codex_agents.components);
+    components.extend(claude_mcp.components);
+    components.extend(opencode_mcp.components);
+    components.extend(codex_mcp.components);
 
     let mut issues = skills.issues;
     issues.extend(agents.issues);
     issues.extend(opencode_agents.issues);
     issues.extend(codex_agents.issues);
+    issues.extend(claude_mcp.issues);
+    issues.extend(opencode_mcp.issues);
+    issues.extend(codex_mcp.issues);
     issues.extend(installations.issues);
     append_missing_root_issues(&roots_scanned, &mut issues);
 
@@ -95,9 +107,9 @@ mod tests {
     fn complete_fixture_consolidates_all_adapter_output_into_one_report() {
         let report = scan_for(&fixture_home("complete"), HostPlatform::Windows);
 
-        assert_eq!(report.roots_scanned.len(), 8);
+        assert_eq!(report.roots_scanned.len(), 11);
         assert_eq!(report.installations.len(), 4);
-        assert_eq!(report.components.len(), 12);
+        assert_eq!(report.components.len(), 15);
         let shared = report
             .components
             .iter()
@@ -135,7 +147,7 @@ mod tests {
     fn missing_roots_and_clients_are_visible_diagnostics() {
         let report = scan_for(&fixture_home("missing-root-client"), HostPlatform::Windows);
 
-        assert_eq!(report.roots_scanned.len(), 8);
+        assert_eq!(report.roots_scanned.len(), 11);
         assert!(report
             .roots_scanned
             .iter()
@@ -146,7 +158,7 @@ mod tests {
                 .iter()
                 .filter(|issue| issue.path.is_none() && issue.severity == IssueSeverity::Warning)
                 .count(),
-            8
+            11
         );
 
         let client_presence = report
@@ -184,6 +196,30 @@ mod tests {
             .collect();
         assert_eq!(shared.len(), 1, "one Component for the shared identity");
         assert_eq!(shared[0].locations.len(), 2, "one Location per root");
+    }
+
+    /// scan-orchestration: an MCP server named `github`, configured in all
+    /// three clients with a different command each, consolidates into one
+    /// `Component { kind: Mcp }` carrying three `Location`s, each retaining
+    /// its own `McpTransport` (`specs/scan-orchestration/spec.md:43-47`,
+    /// design §5.3, §8). Mirrors `mcp_redaction.rs`'s anchor 0.9, exercised
+    /// here through the real orchestrator instead of the three adapters
+    /// called directly.
+    #[test]
+    fn mcp_same_name_three_clients_consolidates_into_one_component_three_transports() {
+        let report = scan_for(
+            &fixture_home("mcp-same-name-three-clients"),
+            HostPlatform::Windows,
+        );
+
+        let github: Vec<_> = report
+            .components
+            .iter()
+            .filter(|c| c.name == "github")
+            .collect();
+        assert_eq!(github.len(), 1, "one Component for the shared identity");
+        assert_eq!(github[0].locations.len(), 3, "one Location per client");
+        assert_eq!(github[0].kind, crate::model::ComponentKind::Mcp);
     }
 
     /// scan-orchestration: a malformed Codex agent `.toml` file does not

@@ -1,0 +1,5 @@
+[mcp_servers.github]
+url = "https://mcp.example.test"
+
+[mcp_servers.github.http_headers]
+Authorization = "Bearer sk-FAKE-0000000000000000000000000"

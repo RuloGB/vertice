@@ -1,0 +1,8 @@
+{
+  "mcp": {
+    "github": {
+      "command": [42],
+      "url": "https://mcp.example.test"
+    }
+  }
+}

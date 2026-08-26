@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "github": {
+      "command": ["npx"],
+      "environment": {
+        "GITHUB_TOKEN": "ghp_FAKE0000000000000000000000000000000000",
+        "BAD": "\uZZZZ"
+      }
+    }
+  }
+}

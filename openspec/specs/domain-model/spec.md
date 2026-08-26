@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the core domain types shared by all adapters and the frontend, the deterministic identity rule that makes aggregation possible (T8), the `ScanIssue`/`ScanReport` error and result contract, and the Rust-to-TypeScript type generation surface. Traces to T2 of the completed PoC roadmap and enables CA-2, CA-3, CA-4, CA-5, CA-13. This spec performs zero disk I/O; scenarios are fixture-free. `add-client-version-freshness` (2026-08-24) grew the type enumeration by six: `Freshness`, `FreshnessSubject`, `FreshnessCheck`, `FreshnessReport`, `ClientInstallSlot`, and `FreshnessSettings`, plus the modified `ClientPresence` (gains `slot: ClientInstallSlot`).
+Defines the core domain types shared by all adapters and the frontend, the deterministic identity rule that makes aggregation possible (T8), the `ScanIssue`/`ScanReport` error and result contract, and the Rust-to-TypeScript type generation surface. Traces to T2 of the completed PoC roadmap and enables CA-2, CA-3, CA-4, CA-5, CA-13. This spec performs zero disk I/O; scenarios are fixture-free. `add-client-version-freshness` (2026-08-24) grew the type enumeration by six: `Freshness`, `FreshnessSubject`, `FreshnessCheck`, `FreshnessReport`, `ClientInstallSlot`, and `FreshnessSettings`, plus the modified `ClientPresence` (gains `slot: ClientInstallSlot`). `add-mcp-scanning` (2026-08-26) added a third `ComponentKind`/`SearchRootKind` variant, `Mcp`, and a new closed type, `McpTransport`, carried optionally on `Location.mcp_transport`.
 
 ## Requirements
 
@@ -44,6 +44,59 @@ Defines the core domain types shared by all adapters and the frontend, the deter
 - WHEN both are compared
 - THEN they are unequal, and each preserves its own path state independently
 
+### Requirement: Location Carries An Optional, Kind-Conditional Transport
+
+`Location` MUST gain `mcp_transport: Option<McpTransport>`. It MUST be
+`None` for every `Location` produced by a skill or agent adapter. It MUST be
+`Some(_)` for every `Location` produced by an MCP adapter from an entry the
+adapter fully understood. This is the only placement for connection detail;
+`Component` MUST NOT gain any `command`/`args`/`env`/`url`/`headers` field,
+and no sibling payload keyed by `ComponentId` MUST be introduced for this
+purpose.
+
+**Degraded entries are the one exception, and it is deliberate.** An MCP
+entry that the adapter could not fully understand — wrong-typed, matching
+neither the stdio nor the remote shape, or carrying a URL that the
+sanitization rule refuses — MUST still yield a `Location`, with
+`mcp_transport: None` and an accompanying `IssueSeverity::Warning`. `None`
+on an MCP location therefore means "this server is configured here, but its
+connection detail could not be captured safely", never "this is not an MCP
+location". Dropping the entry instead would hide a configured server from an
+inventory, and emitting a partially-understood transport would risk emitting
+an unredacted value; reporting the location without the detail is the only
+option that does neither.
+
+Consumers MUST NOT infer a location's kind from `mcp_transport`. The kind is
+carried by `Component::kind` and by `SearchRoot::kind`, which stay
+authoritative.
+
+#### Scenario: A skill or agent location carries no transport
+
+- GIVEN any `Location` produced by the skill or agent adapters
+- WHEN it is inspected
+- THEN `mcp_transport` is `None`
+
+#### Scenario: An understood MCP entry carries its own transport
+
+- GIVEN a `Location` produced by an MCP adapter from an entry it fully understood
+- WHEN it is inspected
+- THEN `mcp_transport` is `Some(_)`, populated with that location's own `McpTransport`
+
+#### Scenario: A wrong-typed MCP entry still yields a location, without a transport
+
+- GIVEN an MCP config entry whose value is wrong-typed, or matches neither the stdio nor the remote shape
+- WHEN the adapter processes it
+- THEN a `Location` is still produced for that entry, with `mcp_transport` set to `None`
+- AND exactly one `ScanIssue` at `IssueSeverity::Warning` accompanies it
+- AND the entry is not dropped from the report
+
+#### Scenario: A URL the sanitization rule refuses degrades the same way
+
+- GIVEN a remote MCP entry whose `url` cannot be safely reduced to scheme, host and port
+- WHEN the adapter processes it
+- THEN `mcp_transport` is `None` and a `Warning` is emitted
+- AND neither the original URL nor any part of it appears anywhere in the report or the log
+
 ### Requirement: SearchRoot Distinguishes Absent From Present
 
 `SearchRoot` (or an adjacent type it references) MUST be able to represent that a root path was resolved and looked for on disk but does not exist, distinguishable from a root that exists and produced zero components, and from a root that exists and produced one or more components. This state MUST be reportable by path alone; `SearchRoot` MUST NOT carry a client display name or label — client identification for UI purposes is derived elsewhere from `SearchRootKind`.
@@ -65,6 +118,27 @@ Defines the core domain types shared by all adapters and the frontend, the deter
 - GIVEN a `SearchRoot` for a root that exists and produced components
 - WHEN its `id`, `path`, and `kind` fields are inspected
 - THEN they hold the same values and types as before this change
+
+### Requirement: SearchRootKind Mirrors ComponentKind 1:1, Now For Three Kinds
+
+`SearchRootKind` MUST admit exactly one variant per `ComponentKind` variant,
+preserving the documented rationale that clients organize search roots per
+component kind. Adding `ComponentKind::Mcp` MUST be accompanied by adding
+`SearchRootKind::Mcp` in the same change; the mirror MUST NOT be left
+broken, and an MCP root MUST NOT be labeled `Agent` or any other existing
+variant.
+
+#### Scenario: SearchRootKind has exactly as many variants as ComponentKind
+
+- GIVEN `ComponentKind` and `SearchRootKind`
+- WHEN their variant sets are compared
+- THEN both admit exactly three variants, one per kind, with matching names
+
+#### Scenario: An MCP search root carries SearchRootKind::Mcp, not Agent
+
+- GIVEN a `SearchRoot` resolved for an MCP configuration source
+- WHEN its `kind` field is inspected
+- THEN it is `SearchRootKind::Mcp`, never `SearchRootKind::Agent`
 
 ### Requirement: Component Holds Multiple Locations As One Entity
 
@@ -94,13 +168,41 @@ Defines the core domain types shared by all adapters and the frontend, the deter
 
 ### Requirement: ComponentKind Is a Closed Enumeration
 
-`ComponentKind` MUST be a closed enum (no `#[non_exhaustive]`) admitting exactly the PoC-defined variants (`Skill`, `Agent`).
+`ComponentKind` MUST be a closed enum (no `#[non_exhaustive]`) admitting
+exactly the variants `Skill`, `Agent`, and `Mcp`.
 
 #### Scenario: ComponentKind is exhaustively matchable
 
 - GIVEN a `match` over every `ComponentKind` variant with no wildcard arm
 - WHEN the code is compiled
 - THEN compilation succeeds
+
+#### Scenario: Mcp is a fully representable kind
+
+- GIVEN a `Component` constructed with `kind: ComponentKind::Mcp`
+- WHEN it is inspected
+- THEN it is a valid, representable value, structurally identical in shape to one carrying `Skill` or `Agent`
+
+### Requirement: McpTransport Is A Closed, Value-Free Enum
+
+`McpTransport` MUST be a closed enum (no `#[non_exhaustive]`) with exactly
+two variants: `Stdio { command: String, arg_count: usize, env_keys: Vec<String> }`
+and `Remote { url: String, header_keys: Vec<String> }`. Neither variant MAY
+declare a field capable of holding an individual argument value, an `env`
+value, or a `headers` value — the type itself MUST make that redaction
+structurally unreachable, not conventional.
+
+#### Scenario: McpTransport has no field capable of holding a secret value
+
+- GIVEN the `McpTransport` type definition
+- WHEN its fields are inspected
+- THEN no field is a value-carrying map or a per-argument string; only key names, a command string, a URL, and a count are representable
+
+#### Scenario: McpTransport is exhaustively matchable
+
+- GIVEN a `match` over every `McpTransport` variant with no wildcard arm
+- WHEN the code is compiled
+- THEN compilation succeeds, proving the enum is closed
 
 ### Requirement: ScanIssue Severity Has Two Non-Aborting Levels
 
@@ -130,9 +232,17 @@ Defines the core domain types shared by all adapters and the frontend, the deter
 
 ### Requirement: provenance_hint Is Opaque, Not a Discriminator
 
-`Component.provenance_hint` MUST be typed as `Option<String>`. Consumers MUST NOT branch on its value to drive behavior; any machine-readable classification of a location's origin MUST live on `Location.origin` instead.
+`Component.provenance_hint` MUST be typed as `Option<String>`. Consumers
+MUST NOT branch on its value to drive behavior; any machine-readable
+classification of a location's origin MUST live on `Location.origin`
+instead. No MCP-specific state — including a server's enabled/disabled
+indicator — MUST ever be encoded in `provenance_hint`; that opacity
+requirement applies to every `ComponentKind`, including `Mcp`.
 
-The absence of a provenance hint MUST be represented as `None`, never as an empty `String`. An empty string is a sentinel value, and the model already rejects sentinels elsewhere (`Location.path` uses `Option` for the same reason).
+The absence of a provenance hint MUST be represented as `None`, never as an
+empty `String`. An empty string is a sentinel value, and the model already
+rejects sentinels elsewhere (`Location.path` uses `Option` for the same
+reason).
 
 #### Scenario: provenance_hint is an optional plain string, not an enum
 
@@ -145,6 +255,12 @@ The absence of a provenance hint MUST be represented as `None`, never as an empt
 - GIVEN a `Component` whose adapter reported no provenance information
 - WHEN it is constructed with `provenance_hint: None`
 - THEN it is distinguishable from a component carrying `Some("")` and from one carrying `Some("claude-code")`
+
+#### Scenario: An MCP server's disabled state is never encoded in provenance_hint
+
+- GIVEN an MCP `Component` built from a config entry carrying a disabled indicator
+- WHEN `provenance_hint` is inspected
+- THEN it contains no representation of that disabled state
 
 ### Requirement: ClientKind Is A Closed Enumeration Admitting Three Named Clients
 
@@ -208,7 +324,19 @@ This field MUST NOT replace or narrow `ScanReport.installations`, which is uncha
 
 ### Requirement: Rust Types Generate a Matching TypeScript Contract
 
-All core types — `Component`, `ComponentKind`, `Scope`, `Location`, `SearchRoot`, `ClientInstallation`, `ClientPresence`, `ClientPresenceStatus`, `ScanIssue`, `ScanReport`, `ClientKind`, `Freshness`, `FreshnessSubject`, `FreshnessCheck`, `FreshnessReport`, `ClientInstallSlot`, and `FreshnessSettings` — and their nested enums MUST derive `Serialize`, `Deserialize`, and `TS`. Generated TypeScript bindings MUST be checked into `frontend/src/bindings/` and MUST structurally mirror the Rust definitions: field names, optionality, and closed union variants. Every new or modified `.ts` binding, including `ClientPresence.ts`'s new `slot` field, MUST land in the same commit as its Rust type change; CI's drift gate MUST fail if it is not regenerated.
+All core types — `Component`, `ComponentKind`, `Scope`, `Location`,
+`SearchRoot`, `SearchRootKind`, `McpTransport`, `ClientInstallation`,
+`ClientPresence`, `ClientPresenceStatus`, `ScanIssue`, `ScanReport`,
+`ClientKind`, `Freshness`, `FreshnessSubject`, `FreshnessCheck`,
+`FreshnessReport`, `ClientInstallSlot`, and `FreshnessSettings` — and their
+nested enums MUST derive `Serialize`, `Deserialize`, and `TS`. Generated
+TypeScript bindings MUST be checked into `frontend/src/bindings/` and MUST
+structurally mirror the Rust definitions: field names, optionality, and
+closed union variants. Every new or modified `.ts` binding, including the
+new `McpTransport.ts`, `ComponentKind.ts`'s third variant, `SearchRootKind.ts`'s
+third variant, `Location.ts`'s new `mcpTransport` field, and `ClientPresence.ts`'s
+`slot` field, MUST land in the same commit as its Rust type change; CI's
+drift gate MUST fail if it is not regenerated.
 
 #### Scenario: Struct exports a TypeScript binding
 
@@ -266,6 +394,30 @@ All core types — `Component`, `ComponentKind`, `Scope`, `Location`, `SearchRoo
 - GIVEN `ClientPresence` gains `pub slot: ClientInstallSlot`
 - WHEN `frontend/src/bindings/ClientPresence.ts` is regenerated
 - THEN it declares a `slot: ClientInstallSlot` field alongside its existing `label`, `probedPaths`, `status`, and `installations` fields
+
+#### Scenario: ComponentKind's binding reflects three variants including mcp
+
+- GIVEN `ComponentKind` gains the `Mcp` variant and its export test runs
+- WHEN `frontend/src/bindings/ComponentKind.ts` is inspected
+- THEN it declares the union `"skill" | "agent" | "mcp"`
+
+#### Scenario: SearchRootKind's binding mirrors ComponentKind's three variants
+
+- GIVEN `SearchRootKind` gains the `Mcp` variant and its export test runs
+- WHEN `frontend/src/bindings/SearchRootKind.ts` is inspected
+- THEN it declares a union with exactly three variants, one per `ComponentKind` variant
+
+#### Scenario: McpTransport exports a closed union binding with no value-carrying field
+
+- GIVEN `McpTransport` derives `TS` and its export test runs
+- WHEN `frontend/src/bindings/McpTransport.ts` is inspected
+- THEN it declares a closed union mirroring `Stdio { command, argCount, envKeys }` and `Remote { url, headerKeys }`, with no field shaped to hold an argument or map value
+
+#### Scenario: Location's binding gains the optional mcpTransport field
+
+- GIVEN `Location` gains `mcp_transport: Option<McpTransport>`
+- WHEN `frontend/src/bindings/Location.ts` is regenerated
+- THEN it declares `mcpTransport: McpTransport | null` alongside its existing fields
 
 #### Scenario: A forgotten binding fails the CI drift gate
 

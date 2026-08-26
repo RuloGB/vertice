@@ -1,0 +1,4 @@
+This home deliberately carries none of the three MCP config files
+(.claude.json, .config/opencode/opencode.json, .codex/config.toml).
+Present only so git tracks this directory (it does not track empty
+directories) — see design.md §10.1.

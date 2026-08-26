@@ -1,0 +1,8 @@
+{
+  "mcp": {
+    "github": {
+      "type": "local",
+      "command": []
+    }
+  }
+}

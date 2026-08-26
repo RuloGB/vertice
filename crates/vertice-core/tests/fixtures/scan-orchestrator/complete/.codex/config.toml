@@ -1,0 +1,3 @@
+[mcp_servers.codex-example]
+command = "npx"
+args = ["-y", "codex-example"]
