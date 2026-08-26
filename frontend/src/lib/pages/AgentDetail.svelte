@@ -3,6 +3,7 @@
   import { useI18n } from "../i18n/locale.svelte";
   import { isDuplicate } from "../inventory";
   import LocationList from "../LocationList.svelte";
+  import { CLIENT_LABEL, groupLocationsByClient } from "../clientGroups";
 
   const i18n = useI18n();
 
@@ -10,6 +11,7 @@
 
   const duplicate = $derived(isDuplicate(component));
   const embedded = $derived(component.locations.some(({ origin }) => origin === "embedded"));
+  const clientGroups = $derived(groupLocationsByClient(component.locations));
 </script>
 
 <section class="flex flex-col gap-6">
@@ -65,11 +67,26 @@
       <h2 class="text-sm font-semibold uppercase tracking-wider text-content-subtle">
         {i18n.t("agentDetail.aiClients")}
       </h2>
-      <div
-        class="rounded-control border border-dashed border-stroke-strong bg-canvas/35 p-4 text-center text-sm text-content-subtle"
-      >
-        {i18n.t("agentDetail.aiClientsEmpty")}
-      </div>
+      {#if component.locations.length === 0}
+        <div
+          class="rounded-control border border-dashed border-stroke-strong bg-canvas/35 p-4 text-center text-sm text-content-subtle"
+        >
+          {i18n.t("agentDetail.aiClientsEmpty")}
+        </div>
+      {:else}
+        <ul class="flex flex-col gap-2">
+          {#each clientGroups as group (group.client)}
+            <li
+              class="flex items-center justify-between rounded-control bg-canvas/35 px-3 py-2.5"
+            >
+              <span class="text-sm text-content">
+                {group.client !== null ? CLIENT_LABEL[group.client] : i18n.t("aiClients.shared")}
+              </span>
+              <span class="text-xs text-content-subtle">{group.count}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
     </div>
   </article>
 </section>
