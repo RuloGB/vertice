@@ -5,4 +5,4 @@
  * `ComponentKind` because clients organize search roots per component kind
  * (e.g. a `skills/` directory and a separate `agents/` directory).
  */
-export type SearchRootKind = "skill" | "agent";
+export type SearchRootKind = "skill" | "agent" | "mcp";

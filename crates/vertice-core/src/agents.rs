@@ -188,6 +188,7 @@ fn walk_agents_root(
                     path: Some(path),
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
+                    mcp_transport: None,
                 }],
                 provenance_hint: None,
             }),
@@ -211,6 +212,7 @@ fn emit_embedded_components(embedded_root_id: &SearchRootId, components: &mut Ve
                 path: None,
                 root: embedded_root_id.clone(),
                 origin: LocationOrigin::Embedded,
+                mcp_transport: None,
             }],
             provenance_hint: None,
         });

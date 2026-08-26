@@ -42,6 +42,7 @@ impl ComponentKind {
         match self {
             ComponentKind::Skill => "skill",
             ComponentKind::Agent => "agent",
+            ComponentKind::Mcp => "mcp",
         }
     }
 }

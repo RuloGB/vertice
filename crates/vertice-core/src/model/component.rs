@@ -6,10 +6,10 @@ use ts_rs::TS;
 use super::identity::ComponentId;
 use super::location::Location;
 
-/// One logical AI component (a skill or an agent), aggregated across every
-/// location it was found in. Discovering the same component under N search
-/// roots yields ONE `Component` with N `Location` entries sharing one `id`,
-/// never N separate components.
+/// One logical AI component (a skill, an agent, or an MCP server),
+/// aggregated across every location it was found in. Discovering the same
+/// component under N search roots yields ONE `Component` with N `Location`
+/// entries sharing one `id`, never N separate components.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../frontend/src/bindings/")]
@@ -40,6 +40,7 @@ pub struct Component {
 pub enum ComponentKind {
     Skill,
     Agent,
+    Mcp,
 }
 
 /// Closed set of scopes a component can be discovered at. The PoC only ever
