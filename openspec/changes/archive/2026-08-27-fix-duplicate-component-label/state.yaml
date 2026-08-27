@@ -1,0 +1,14 @@
+change: fix-duplicate-component-label
+artifact_store: openspec
+execution_mode: interactive
+delivery_strategy: ask-on-risk
+strict_tdd: true
+phases:
+  exploration: done
+  proposal: done
+  spec: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: in_progress

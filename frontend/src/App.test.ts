@@ -349,7 +349,7 @@ describe("App locale switching", () => {
       "Search by name",
     );
     expect(visibleText()).toContain("Reload");
-    expect(visibleText()).toContain("Duplicate");
+    expect(visibleText()).not.toContain("Duplicate");
     expect(visibleText()).toContain("Formatter");
     expect(visibleText()).toContain("Formats source files");
 
@@ -367,10 +367,12 @@ describe("App locale switching", () => {
       "Buscar por nombre",
     );
     expect(visibleText()).toContain("Recargar");
-    expect(visibleText()).toContain("Duplicado");
-    expect(document.querySelector("[title]")?.getAttribute("title")).toBe(
-      "Encontrado en 2 ubicaciones",
-    );
+    expect(visibleText()).not.toContain("Duplicado");
+    expect(
+      Array.from(document.querySelectorAll("[title]")).some(
+        (element) => element.getAttribute("title") === "Encontrado en 2 ubicaciones",
+      ),
+    ).toBe(false);
     expect(visibleText()).toContain("Formatter");
     expect(visibleText()).toContain("Formats source files");
 

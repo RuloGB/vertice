@@ -96,13 +96,18 @@ For `name`, `description`, `provenance_hint`, and `scope`, the merged component 
 
 ### Requirement: Duplication Is Derived, Not Stored
 
-The consolidated model MUST introduce no new field. Whether a component is duplicated MUST be derivable as `locations.len() > 1`. `crates/vertice-core/src/model/` and `frontend/src/bindings/` MUST remain byte-identical to their pre-change state.
+The consolidated model MUST introduce no new field. Whether a component is
+duplicated for technical consolidation purposes MUST be derivable as
+`locations.len() > 1`. This requirement defines consolidation output only and
+MUST NOT be read as the frontend duplicate-badge contract. `crates/vertice-core/src/model/`
+and `frontend/src/bindings/` MUST remain byte-identical to their pre-change state.
 
 #### Scenario: A single-location component is not marked as duplicated
 
 - GIVEN a component with exactly one location after consolidation
 - WHEN its duplication status is derived
-- THEN `locations.len() > 1` evaluates to `false`, using no additional field
+- THEN `locations.len() > 1` evaluates to `false`
+- AND no additional field is introduced
 
 ### Requirement: Deterministic Output Ordering
 
