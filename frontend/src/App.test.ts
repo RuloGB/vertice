@@ -7,6 +7,7 @@ import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
 import { fetchLogFilePath } from "./lib/appLog";
+import { createPrompt, deletePrompt, fetchPrompts, updatePrompt } from "./lib/prompts";
 import { fetchFreshness } from "./lib/freshness";
 import { rescan, scan } from "./lib/scan";
 import { fetchUserSettings, setUserSettings } from "./lib/settings";
@@ -28,6 +29,13 @@ vi.mock("./lib/settings", () => ({
   setUserSettings: vi.fn(),
 }));
 
+vi.mock("./lib/prompts", () => ({
+  createPrompt: vi.fn(),
+  deletePrompt: vi.fn(),
+  fetchPrompts: vi.fn(),
+  updatePrompt: vi.fn(),
+}));
+
 vi.mock("./lib/appLog", () => ({
   fetchLogFilePath: vi.fn(),
 }));
@@ -38,6 +46,10 @@ const mockedFetchFreshness = vi.mocked(fetchFreshness);
 const mockedFetchUserSettings = vi.mocked(fetchUserSettings);
 const mockedSetUserSettings = vi.mocked(setUserSettings);
 const mockedFetchLogFilePath = vi.mocked(fetchLogFilePath);
+const mockedFetchPrompts = vi.mocked(fetchPrompts);
+const mockedCreatePrompt = vi.mocked(createPrompt);
+const mockedUpdatePrompt = vi.mocked(updatePrompt);
+const mockedDeletePrompt = vi.mocked(deletePrompt);
 
 function skillFixture(): Component {
   return {
@@ -1153,25 +1165,30 @@ describe("App shell navigation", () => {
     unmount(app);
   });
 
-  it("renders an explicit empty state for each section with no backend source", async () => {
+  it("renders the Prompts route as a local prompt library", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    mockedFetchPrompts.mockResolvedValue([
+      {
+        id: "prompt-1",
+        title: "Review prompt",
+        body: "Explain the tradeoffs.",
+        tags: ["review"],
+        bestForContext: "Pull requests",
+        updatedAt: "2026-08-26T14:00:00Z",
+      },
+    ]);
+    mockedCreatePrompt.mockRejectedValue(new Error("not configured"));
+    mockedUpdatePrompt.mockRejectedValue(new Error("not configured"));
+    mockedDeletePrompt.mockRejectedValue(new Error("not configured"));
+
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Prompts");
+    await flushApp();
 
-    for (const section of ["Prompts"]) {
-      navigateTo(section);
-      await flushApp();
-
-      const placeholder = document.querySelector('[data-testid="placeholder-page"]');
-      expect(placeholder, section).not.toBeNull();
-      expect(placeholder?.textContent, section).toContain(section);
-      expect(placeholder?.textContent, section).toContain("Nothing to show here yet");
-      expect(document.title, section).toBe(`Vertice v0.1.0 — ${section}`);
-      expect(document.querySelector('input[type="search"]'), section).toBeNull();
-      expect(visibleText(), section).not.toContain("Formatter");
-    }
-
-    expect(mockedScan).toHaveBeenCalledTimes(1);
-    expect(mockedRescan).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+    expect(visibleText()).toContain("Review prompt");
+    expect(document.title).toBe("Vertice v0.1.0 \u2014 Prompts");
 
     unmount(app);
   });

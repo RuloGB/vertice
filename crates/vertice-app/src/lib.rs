@@ -6,9 +6,11 @@
 mod commands;
 mod freshness;
 mod logging;
+mod prompts;
 mod settings;
 
 use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 /// The startup sequence's decision logic, factored out of `.setup` so it is
 /// testable without a Tauri `App` or a real global logger installation
@@ -45,8 +47,12 @@ fn startup_sequence(
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            let app_data_dir = tauri::Manager::path(app).app_data_dir();
+            if let Ok(path) = app_data_dir.as_ref() {
+                app.manage(commands::prompt_repository_state(path.clone()));
+            }
             startup_sequence(
-                tauri::Manager::path(app).app_data_dir(),
+                app_data_dir,
                 logging::init,
                 env!("CARGO_PKG_VERSION"),
                 |message| log::info!("{message}"),
@@ -60,7 +66,11 @@ pub fn run() {
             commands::freshness,
             commands::user_settings,
             commands::set_user_settings,
-            commands::log_file_path
+            commands::log_file_path,
+            commands::list_prompts,
+            commands::create_prompt,
+            commands::update_prompt,
+            commands::delete_prompt
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Vertice application");

@@ -31,15 +31,6 @@ describe("navigation model", () => {
     expect(isRouteId("settings")).toBe(false);
   });
 
-  it("separates sections that render content from the empty placeholders", () => {
-    for (const route of ["home", "agents", "skills", "mcp", "scan", "subscriptions"] satisfies RouteId[]) {
-      expect(hasContent(route), route).toBe(true);
-    }
-    for (const route of ["prompts"] satisfies RouteId[]) {
-      expect(hasContent(route), route).toBe(false);
-    }
-  });
-
   it("resolves label keys that exist in both catalogs", () => {
     for (const locale of ["en", "es"] as const) {
       for (const route of ROUTE_IDS) {

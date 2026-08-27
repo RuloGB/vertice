@@ -9,6 +9,7 @@
   import HomePage from "./lib/pages/HomePage.svelte";
   import McpsPage from "./lib/pages/McpsPage.svelte";
   import PlaceholderPage from "./lib/pages/PlaceholderPage.svelte";
+  import PromptsPage from "./lib/pages/PromptsPage.svelte";
   import ScanPage from "./lib/pages/ScanPage.svelte";
   import SkillsPage from "./lib/pages/SkillsPage.svelte";
   import SubscriptionsPage from "./lib/pages/SubscriptionsPage.svelte";
@@ -162,6 +163,8 @@
           {incidents}
           onReload={() => void runScan("reload")}
         />
+      {:else if route === "prompts"}
+        <PromptsPage />
       {:else if route === "subscriptions"}
         <SubscriptionsPage subscriptions={SAMPLE_SUBSCRIPTIONS} {today} />
       {:else if !hasContent(route)}

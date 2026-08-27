@@ -41,6 +41,52 @@ export type Catalog = {
     title: string;
     body: string;
   };
+  prompts: {
+    badge: string;
+    title: string;
+    intro: string;
+    loading: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    createAction: string;
+    createTitle: string;
+    editTitle: string;
+    titleLabel: string;
+    bodyLabel: string;
+    tagsLabel: string;
+    contextLabel: string;
+    saveAction: string;
+    saving: string;
+    cancelAction: string;
+    editAction: string;
+    deleteAction: string;
+    copyAction: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyAction: string;
+    noSearchResults: string;
+    failureTitle: string;
+    failureBody: string;
+    mutationFailureBody: string;
+    retry: string;
+    titleRequired: string;
+    bodyRequired: string;
+    saveFailed: string;
+    deleteFailed: string;
+    saved: string;
+    deleted: string;
+    deleteConfirm: string;
+    copySuccess: string;
+    copyFailed: string;
+    contextPrefix: string;
+    paginationSummary: string;
+    paginationPage: string;
+    paginationPageSize: string;
+    paginationFirst: string;
+    paginationPrevious: string;
+    paginationNext: string;
+    paginationLast: string;
+  };
   subscriptions: {
     sampleBadge: string;
     intro: string;
@@ -241,6 +287,52 @@ export const catalogs = {
       title: "Nothing to show here yet",
       body: "This section has no backend source wired up. It will fill in once its scanner lands.",
     },
+    prompts: {
+      badge: "Local library",
+      title: "Prompts",
+      intro: "Create reusable prompts, find them locally, and copy the body when you need it.",
+      loading: "Loading prompts...",
+      searchLabel: "Search prompts",
+      searchPlaceholder: "Search title, tags, body, or context",
+      createAction: "New prompt",
+      createTitle: "Create prompt",
+      editTitle: "Edit prompt",
+      titleLabel: "Title",
+      bodyLabel: "Body",
+      tagsLabel: "Tags",
+      contextLabel: "Best for context",
+      saveAction: "Save prompt",
+      saving: "Saving...",
+      cancelAction: "Cancel",
+      editAction: "Edit",
+      deleteAction: "Delete",
+      copyAction: "Copy",
+      emptyTitle: "No prompts yet",
+      emptyBody: "Create your first prompt to start building your local library.",
+      emptyAction: "Create your first prompt",
+      noSearchResults: "No prompts match this search.",
+      failureTitle: "Could not load prompts",
+      failureBody: "The prompt store could not be read. Your library is not being treated as empty.",
+      mutationFailureBody: "The change was not persisted. Retry after the store is available again.",
+      retry: "Retry",
+      titleRequired: "Title is required",
+      bodyRequired: "Body is required",
+      saveFailed: "Could not save the prompt",
+      deleteFailed: "Could not delete the prompt",
+      saved: "Prompt saved",
+      deleted: "Prompt deleted",
+      deleteConfirm: "Delete this prompt?",
+      copySuccess: "Prompt copied",
+      copyFailed: "Could not copy prompt",
+      contextPrefix: "Best for: {context}",
+      paginationSummary: "Showing {from}–{to} of {total} prompts",
+      paginationPage: "Page {current} of {total}",
+      paginationPageSize: "Prompts per page",
+      paginationFirst: "Go to first page",
+      paginationPrevious: "Go to previous page",
+      paginationNext: "Go to next page",
+      paginationLast: "Go to last page",
+    },
     subscriptions: {
       sampleBadge: "Sample data",
       intro: "Active AI subscriptions, ordered by the next renewal.",
@@ -437,6 +529,52 @@ export const catalogs = {
       badge: "Sin fuente de datos",
       title: "Todavía no hay nada que mostrar",
       body: "Esta sección aún no tiene una fuente en el backend. Se rellenará cuando llegue su escáner.",
+    },
+    prompts: {
+      badge: "Biblioteca local",
+      title: "Prompts",
+      intro: "Crea prompts reutilizables, búscalos en local y copia el cuerpo cuando lo necesites.",
+      loading: "Cargando prompts...",
+      searchLabel: "Buscar prompts",
+      searchPlaceholder: "Buscar por título, etiquetas, cuerpo o contexto",
+      createAction: "Nuevo prompt",
+      createTitle: "Crear prompt",
+      editTitle: "Editar prompt",
+      titleLabel: "Título",
+      bodyLabel: "Cuerpo",
+      tagsLabel: "Etiquetas",
+      contextLabel: "Contexto recomendado",
+      saveAction: "Guardar prompt",
+      saving: "Guardando...",
+      cancelAction: "Cancelar",
+      editAction: "Editar",
+      deleteAction: "Eliminar",
+      copyAction: "Copiar",
+      emptyTitle: "Aún no hay prompts",
+      emptyBody: "Crea tu primer prompt para empezar tu biblioteca local.",
+      emptyAction: "Crea tu primer prompt",
+      noSearchResults: "Ningún prompt coincide con esta búsqueda.",
+      failureTitle: "No se pudieron cargar los prompts",
+      failureBody: "No se pudo leer el almacén de prompts. Tu biblioteca no se tratará como vacía.",
+      mutationFailureBody: "El cambio no se persistió. Reintenta cuando el almacén vuelva a estar disponible.",
+      retry: "Reintentar",
+      titleRequired: "El título es obligatorio",
+      bodyRequired: "El cuerpo es obligatorio",
+      saveFailed: "No se pudo guardar el prompt",
+      deleteFailed: "No se pudo eliminar el prompt",
+      saved: "Prompt guardado",
+      deleted: "Prompt eliminado",
+      deleteConfirm: "¿Eliminar este prompt?",
+      copySuccess: "Prompt copiado",
+      copyFailed: "No se pudo copiar el prompt",
+      contextPrefix: "Recomendado para: {context}",
+      paginationSummary: "Mostrando {from}–{to} de {total} prompts",
+      paginationPage: "Página {current} de {total}",
+      paginationPageSize: "Prompts por página",
+      paginationFirst: "Ir a la primera página",
+      paginationPrevious: "Ir a la página anterior",
+      paginationNext: "Ir a la página siguiente",
+      paginationLast: "Ir a la última página",
     },
     subscriptions: {
       sampleBadge: "Datos de ejemplo",

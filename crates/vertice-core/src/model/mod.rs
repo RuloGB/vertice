@@ -29,6 +29,7 @@ mod installation;
 mod location;
 mod mcp;
 mod presence;
+mod prompt;
 mod report;
 mod settings;
 mod slot;
@@ -43,6 +44,7 @@ pub use location::{
 };
 pub use mcp::McpTransport;
 pub use presence::{ClientPresence, ClientPresenceStatus};
+pub use prompt::{Prompt, PromptDraft, PromptError, PromptUpdate};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};
 pub use settings::UserSettings;
 pub use slot::ClientInstallSlot;

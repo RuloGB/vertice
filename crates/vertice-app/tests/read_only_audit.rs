@@ -21,7 +21,7 @@ struct SanctionedWriter {
 
 /// CA-16's complete exception surface. Growing this list is a reviewed
 /// event (`assert_eq!(SANCTIONED_WRITERS.len(), 3)` below).
-const SANCTIONED_WRITERS: [SanctionedWriter; 3] = [
+const SANCTIONED_WRITERS: [SanctionedWriter; 4] = [
     SanctionedWriter {
         module: "freshness/cache.rs",
         allowed: &["fs::write", "create_dir"],
@@ -42,6 +42,10 @@ const SANCTIONED_WRITERS: [SanctionedWriter; 3] = [
         module: "settings/store.rs",
         allowed: &["fs::write", "create_dir", "fs::rename"],
     },
+    SanctionedWriter {
+        module: "prompts/store.rs",
+        allowed: &["fs::write", "create_dir", "fs::rename"],
+    },
 ];
 
 #[test]
@@ -56,6 +60,10 @@ fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
             "freshness",
             "user_settings",
             "set_user_settings",
+            "list_prompts",
+            "create_prompt",
+            "update_prompt",
+            "delete_prompt",
             "log_file_path"
         ]
     );
@@ -158,7 +166,7 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
 
     assert_eq!(
         SANCTIONED_WRITERS.len(),
-        3,
+        4,
         "growing the sanctioned-writer list is a reviewed event"
     );
 
@@ -366,6 +374,14 @@ fn exported_tauri_commands(source: &str) -> Vec<&'static str> {
                 commands.push("set_user_settings");
             } else if trimmed.starts_with("pub async fn log_file_path(") {
                 commands.push("log_file_path");
+            } else if trimmed.starts_with("pub async fn list_prompts(") {
+                commands.push("list_prompts");
+            } else if trimmed.starts_with("pub async fn create_prompt(") {
+                commands.push("create_prompt");
+            } else if trimmed.starts_with("pub async fn update_prompt(") {
+                commands.push("update_prompt");
+            } else if trimmed.starts_with("pub async fn delete_prompt(") {
+                commands.push("delete_prompt");
             }
             next_public_async_fn_is_command = false;
         }
@@ -471,4 +487,29 @@ fn settings_store_allow_list_does_not_extend_beyond_its_own_three_entries() {
 fn an_unsanctioned_module_is_permitted_no_forbidden_pattern() {
     assert!(!is_pattern_permitted(None, "fs::write"));
     assert!(!is_pattern_permitted(None, "create_dir"));
+}
+
+#[test]
+fn prompts_store_allow_list_is_limited_to_atomic_json_replacement() {
+    let prompts_writer = SANCTIONED_WRITERS
+        .iter()
+        .find(|writer| writer.module == "prompts/store.rs")
+        .expect("prompts/store.rs must be a sanctioned writer");
+
+    assert!(is_pattern_permitted(Some(prompts_writer), "fs::write"));
+    assert!(is_pattern_permitted(Some(prompts_writer), "create_dir"));
+    assert!(is_pattern_permitted(Some(prompts_writer), "fs::rename"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "remove_file"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "remove_dir"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "OpenOptions"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "File::create"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), ".write_all("));
+    assert!(!is_pattern_permitted(Some(prompts_writer), ".set_len("));
+    assert!(!is_pattern_permitted(
+        Some(prompts_writer),
+        "set_permissions"
+    ));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "hard_link"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "symlink_file"));
+    assert!(!is_pattern_permitted(Some(prompts_writer), "symlink_dir"));
 }
