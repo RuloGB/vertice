@@ -5,6 +5,7 @@
   import type { UserSettings } from "../../bindings/UserSettings";
   import type { ScanReport } from "../../bindings/ScanReport";
   import { fetchFreshness } from "../freshness";
+  import { CLIENT_ICON } from "../clientGroups";
   import { useI18n } from "../i18n/locale.svelte";
   import { fetchUserSettings, setUserSettings } from "../settings";
 
@@ -27,21 +28,21 @@
       id: "claudeCode",
       name: "Claude Code",
       owner: "Anthropic",
-      icon: "/icons/claude.png",
+      icon: CLIENT_ICON.claudeCode,
       slots: ["claudeCodeNpm", "claudeCodeBundled"] as ClientInstallSlot[],
     },
     {
       id: "openCode",
       name: "OpenCode",
       owner: "SST",
-      icon: "/icons/opencode.png",
+      icon: CLIENT_ICON.openCode,
       slots: ["openCodeNpm"] as ClientInstallSlot[],
     },
     {
       id: "codex",
       name: "Codex",
       owner: "OpenAI",
-      icon: "/icons/codex.png",
+      icon: CLIENT_ICON.codex,
       slots: ["codexStandalone"] as ClientInstallSlot[],
     },
   ] as const;

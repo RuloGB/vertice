@@ -179,7 +179,7 @@
       <h1 id="prompts-title" class="text-3xl font-semibold text-white">{i18n.t("prompts.title")}</h1>
       <p class="max-w-2xl text-sm leading-6 text-mist-300">{i18n.t("prompts.intro")}</p>
     </div>
-    <button data-testid="new-prompt" class="min-h-11 rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100" type="button" onclick={openCreateForm}>
+    <button data-testid="new-prompt" class="shadow-action rounded-control bg-action px-5 py-3 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action" type="button" onclick={openCreateForm}>
       {i18n.t("prompts.createAction")}
     </button>
   </div>
@@ -233,8 +233,8 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-3">
-          <button class="min-h-11 rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50" disabled={saving} type="submit">{saving ? i18n.t("prompts.saving") : i18n.t("prompts.saveAction")}</button>
-          <button class="min-h-11 rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-mist-100" type="button" onclick={closeForm}>{i18n.t("prompts.cancelAction")}</button>
+          <button class="shadow-action rounded-control bg-action px-5 py-3 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50" disabled={saving} type="submit">{saving ? i18n.t("prompts.saving") : i18n.t("prompts.saveAction")}</button>
+          <button class="rounded-control border border-stroke px-5 py-3 text-sm font-semibold text-content transition-colors hover:bg-surface-raised hover:border-interactive-hover/55" type="button" onclick={closeForm}>{i18n.t("prompts.cancelAction")}</button>
         </div>
       </form>
     {/if}
@@ -243,7 +243,7 @@
       <div class="rounded-3xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
         <h2 class="text-xl font-semibold text-white">{i18n.t("prompts.emptyTitle")}</h2>
         <p class="mt-2 text-sm text-mist-300">{i18n.t("prompts.emptyBody")}</p>
-        <button class="mt-5 min-h-11 rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950" type="button" onclick={openCreateForm}>{i18n.t("prompts.emptyAction")}</button>
+        <button class="mt-5 shadow-action rounded-control bg-action px-5 py-3 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98]" type="button" onclick={openCreateForm}>{i18n.t("prompts.emptyAction")}</button>
       </div>
     {:else if visiblePrompts.length === 0}
       <p class="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-8 text-center text-mist-300">{i18n.t("prompts.noSearchResults")}</p>

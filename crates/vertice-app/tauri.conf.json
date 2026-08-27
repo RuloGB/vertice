@@ -19,8 +19,14 @@
     "windows": [
       {
         "title": "Vertice",
-        "width": 1024,
-        "height": 768
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

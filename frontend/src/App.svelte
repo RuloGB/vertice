@@ -17,6 +17,7 @@
   import { incidentCount, partitionDiagnostics } from "./lib/scanDiagnostics";
   import { setUserSettings } from "./lib/settings";
   import Sidebar from "./lib/Sidebar.svelte";
+  import TitleBar from "./lib/TitleBar.svelte";
   import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
   type Status = "idle" | "loading" | "ready" | "failed";
@@ -105,10 +106,13 @@
   });
 </script>
 
-<div class="flex h-screen overflow-hidden bg-canvas text-mist-200">
-  <Sidebar current={route} onNavigate={(next) => (route = next)} />
+<div class="flex h-screen flex-col overflow-hidden bg-canvas text-mist-200">
+  <TitleBar />
 
-  <main class="flex-1 overflow-y-auto app-canvas-gradient">
+  <div class="flex flex-1 overflow-hidden">
+    <Sidebar current={route} onNavigate={(next) => (route = next)} />
+
+    <main class="flex-1 overflow-y-auto app-canvas-gradient">
     <div class={route === "home" ? "w-full px-8 py-8 2xl:px-10" : "mx-auto w-full max-w-6xl px-8 py-8"}>
       {#if route === "home"}
         <HomePage
@@ -172,4 +176,5 @@
       {/if}
     </div>
   </main>
+  </div>
 </div>
