@@ -3,13 +3,11 @@ import { catalogs } from "./i18n/catalogs";
 import {
   areaLabelKey,
   DEFAULT_ROUTE,
-  hasContent,
   isRouteId,
   NAV_GROUPS,
   navGroupLabelKey,
   navLabelKey,
   ROUTE_IDS,
-  type RouteId,
 } from "./navigation";
 
 describe("navigation model", () => {
