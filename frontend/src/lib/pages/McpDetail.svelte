@@ -3,7 +3,7 @@
   import { useI18n } from "../i18n/locale.svelte";
   import { isDuplicate } from "../inventory";
   import McpTransportDetail from "../McpTransportDetail.svelte";
-  import { CLIENT_LABEL, groupLocationsByClient } from "../clientGroups";
+  import { CLIENT_ICON, CLIENT_LABEL, groupLocationsByClient } from "../clientGroups";
 
   const i18n = useI18n();
 
@@ -92,8 +92,13 @@
             <li
               class="flex items-center justify-between rounded-control bg-canvas/35 px-3 py-2.5"
             >
-              <span class="text-sm text-content">
-                {group.client !== null ? CLIENT_LABEL[group.client] : i18n.t("aiClients.shared")}
+              <span class="flex items-center gap-2 text-sm text-content">
+                {#if group.client !== null}
+                  <img src={CLIENT_ICON[group.client]} alt="" class="size-5 rounded-md object-contain" aria-hidden="true" />
+                  {CLIENT_LABEL[group.client]}
+                {:else}
+                  {i18n.t("aiClients.shared")}
+                {/if}
               </span>
               <span class="text-xs text-content-subtle">{group.count}</span>
             </li>

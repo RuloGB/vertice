@@ -15,6 +15,13 @@ export const CLIENT_LABEL: Record<ClientKind, string> = {
   codex: "Codex",
 };
 
+/** Client icon paths matching the ClientsPage logos. */
+export const CLIENT_ICON: Record<ClientKind, string> = {
+  claudeCode: "/icons/claude.png",
+  openCode: "/icons/opencode.png",
+  codex: "/icons/codex.png",
+};
+
 /** Fixed display order: claudeCode → openCode → codex → shared(null) last. */
 const CLIENT_ORDER: (ClientKind | null)[] = ["claudeCode", "openCode", "codex", null];
 

@@ -61,7 +61,7 @@
 
 @layer base {
   html, body { height: 100%; }
-  body { background: var(--color-canvas); color: var(--color-content-muted); font-synthesis-weight: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+  body { background: transparent; color: var(--color-content-muted); font-synthesis-weight: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
   button, input, select { font: inherit; }
   ::selection { background: color-mix(in oklab, var(--color-interactive) 55%, transparent); color: var(--color-content); }
   :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
@@ -69,6 +69,29 @@
   ::-webkit-scrollbar-thumb { background: var(--color-stroke); border: 2px solid transparent; background-clip: content-box; border-radius: 999px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--color-stroke-strong); }
   ::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* Custom titlebar — modern controls matching the Vertice dark theme. */
+.titlebar { user-select: none; -webkit-app-region: no-drag; }
+.titlebar-drag { -webkit-app-region: drag; }
+.titlebar-controls { -webkit-app-region: no-drag; }
+
+.titlebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  color: var(--color-content-subtle);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.titlebar-btn:hover {
+  background-color: var(--color-surface-raised);
+  color: var(--color-content);
+}
+.titlebar-btn-close:hover {
+  background-color: var(--color-danger);
+  color: #fff;
 }
 
 @utility surface-card { border: 1px solid var(--color-stroke); border-radius: var(--radius-panel); background: var(--color-surface); box-shadow: var(--shadow-panel); }
