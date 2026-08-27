@@ -67,7 +67,16 @@ fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
             "log_file_path"
         ]
     );
-    assert_eq!(report.permissions, vec!["core:default".to_string()]);
+    assert_eq!(
+        report.permissions,
+        vec![
+            "core:default".to_string(),
+            "core:window:allow-close".to_string(),
+            "core:window:allow-minimize".to_string(),
+            "core:window:allow-toggle-maximize".to_string(),
+            "core:window:allow-start-dragging".to_string(),
+        ]
+    );
     assert!(
         report.capability_findings.is_empty(),
         "unexpected capabilities: {:?}",
@@ -96,9 +105,16 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
     let mut capability_findings = Vec::new();
     let mut command_findings = Vec::new();
 
-    if permissions != ["core:default"] {
+    let expected_permissions = [
+        "core:default",
+        "core:window:allow-close",
+        "core:window:allow-minimize",
+        "core:window:allow-toggle-maximize",
+        "core:window:allow-start-dragging",
+    ];
+    if permissions.iter().map(String::as_str).collect::<Vec<_>>() != expected_permissions {
         capability_findings.push(format!(
-            "permissions must be exactly core:default, got {permissions:?}"
+            "permissions must be exactly {expected_permissions:?}, got {permissions:?}"
         ));
     }
 
