@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createI18n, provideI18n, type SupportedLocale } from "../i18n/locale.svelte";
+  import ToastContainer from "../ToastContainer.svelte";
   import PromptsPage from "./PromptsPage.svelte";
 
   let { locale = "en" }: { locale?: SupportedLocale } = $props();
@@ -9,3 +10,4 @@
 </script>
 
 <PromptsPage />
+<ToastContainer />

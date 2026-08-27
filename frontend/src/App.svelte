@@ -18,6 +18,7 @@
   import { setUserSettings } from "./lib/settings";
   import Sidebar from "./lib/Sidebar.svelte";
   import TitleBar from "./lib/TitleBar.svelte";
+  import ToastContainer from "./lib/ToastContainer.svelte";
   import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
   type Status = "idle" | "loading" | "ready" | "failed";
@@ -177,4 +178,6 @@
     </div>
   </main>
   </div>
+
+  <ToastContainer />
 </div>

@@ -5,6 +5,7 @@ import { mount, unmount } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Prompt } from "../../bindings/Prompt";
 import { createPrompt, deletePrompt, fetchPrompts, updatePrompt } from "../prompts";
+import { clearAll } from "../toast.svelte";
 import PromptsPage from "./PromptsPageHarness.svelte";
 
 vi.mock("../prompts", () => ({
@@ -94,9 +95,19 @@ function changeSelectValue(select: HTMLSelectElement, value: string): void {
   select.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
+function confirmDialogConfirmButton(): HTMLButtonElement {
+  const dialog = document.querySelector('[role="dialog"]');
+  expect(dialog, "Expected confirm dialog to be open").toBeTruthy();
+  const buttons = dialog!.querySelectorAll<HTMLButtonElement>("button");
+  const confirm = Array.from(buttons).find((btn) => btn.textContent?.trim() === "Delete");
+  expect(confirm, "Expected confirm button in dialog").toBeTruthy();
+  return confirm!;
+}
+
 beforeEach(() => {
   document.body.innerHTML = "";
   vi.clearAllMocks();
+  clearAll();
   Object.assign(navigator, {
     clipboard: {
       writeText: vi.fn().mockResolvedValue(undefined),
@@ -181,8 +192,9 @@ describe("PromptsPage", () => {
     expect(mockedUpdatePrompt).toHaveBeenCalledWith(expect.objectContaining({ id: first.id, title: "Edited" }));
     expect(visibleText()).toContain("Edited");
 
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     document.querySelector<HTMLButtonElement>("button[data-testid='delete-prompt']")?.click();
+    await flush();
+    confirmDialogConfirmButton().click();
     await flush();
     expect(mockedDeletePrompt).toHaveBeenCalledWith(first.id);
     expect(visibleText()).toContain("Prompt deleted");
@@ -240,11 +252,12 @@ describe("PromptsPage", () => {
     const existing = prompt({ title: "Keep me", body: "Still stored" });
     mockedFetchPrompts.mockResolvedValue([existing]);
     mockedDeletePrompt.mockRejectedValue({ storeUnavailable: { reason: "rename failed" } });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     const app = mount(PromptsPage, { target: document.body });
     await flush();
     document.querySelector<HTMLButtonElement>("button[data-testid='delete-prompt']")?.click();
+    await flush();
+    confirmDialogConfirmButton().click();
     await flush();
 
     expect(mockedDeletePrompt).toHaveBeenCalledWith(existing.id);
@@ -320,7 +333,6 @@ describe("PromptsPage", () => {
   it("resets only query changes to page one and clamps after result shrink", async () => {
     mockedFetchPrompts.mockResolvedValue(promptSet(12));
     mockedDeletePrompt.mockResolvedValue(undefined);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     const app = mount(PromptsPage, { target: document.body });
     await flush();
@@ -346,6 +358,8 @@ describe("PromptsPage", () => {
 
     for (const deleteButton of buttonsByRole("Delete")) {
       deleteButton.click();
+      await flush();
+      confirmDialogConfirmButton().click();
       await flush();
     }
 
