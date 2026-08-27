@@ -7,10 +7,11 @@
 
 use std::fmt::Display;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use vertice_core::model::{
-    ClientPresenceStatus, Freshness, FreshnessReport, ScanError, ScanReport, SearchRootStatus,
-    UserSettings,
+    ClientPresenceStatus, Freshness, FreshnessReport, Prompt, PromptDraft, PromptError,
+    PromptUpdate, ScanError, ScanReport, SearchRootStatus, UserSettings,
 };
 
 /// Run the core scan off the main thread, logging its start, end, and
@@ -198,7 +199,131 @@ pub async fn set_user_settings(
     write_user_settings(app_data_dir, locale, enabled, disclosure_seen).await
 }
 
-/// `log_file_path` command: returns the absolute path of the application
+pub(crate) type PromptRepositoryState = Arc<Mutex<crate::prompts::store::JsonPromptRepository>>;
+
+pub(crate) fn prompt_repository_state(app_data_dir: PathBuf) -> PromptRepositoryState {
+    Arc::new(Mutex::new(
+        crate::prompts::store::JsonPromptRepository::new(app_data_dir),
+    ))
+}
+
+#[tauri::command]
+pub async fn list_prompts(
+    state: tauri::State<'_, PromptRepositoryState>,
+) -> Result<Vec<Prompt>, PromptError> {
+    list_prompts_from_state(state.inner().clone()).await
+}
+
+#[tauri::command]
+pub async fn create_prompt(
+    state: tauri::State<'_, PromptRepositoryState>,
+    draft: PromptDraft,
+) -> Result<Prompt, PromptError> {
+    create_prompt_from_state(state.inner().clone(), draft).await
+}
+
+#[tauri::command]
+pub async fn update_prompt(
+    state: tauri::State<'_, PromptRepositoryState>,
+    update: PromptUpdate,
+) -> Result<Prompt, PromptError> {
+    update_prompt_from_state(state.inner().clone(), update).await
+}
+
+#[tauri::command]
+pub async fn delete_prompt(
+    state: tauri::State<'_, PromptRepositoryState>,
+    id: String,
+) -> Result<(), PromptError> {
+    delete_prompt_from_state(state.inner().clone(), id).await
+}
+
+async fn list_prompts_from_state(state: PromptRepositoryState) -> Result<Vec<Prompt>, PromptError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::prompts::store::PromptRepository;
+        let repo = state.lock().unwrap_or_else(|err| err.into_inner());
+        repo.list()
+    })
+    .await
+    .map_err(prompt_join_error)
+    .and_then(|result| result);
+    log_prompt_result("list_prompts", &result);
+    result
+}
+
+async fn create_prompt_from_state(
+    state: PromptRepositoryState,
+    draft: PromptDraft,
+) -> Result<Prompt, PromptError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::prompts::store::PromptRepository;
+        let mut repo = state.lock().unwrap_or_else(|err| err.into_inner());
+        repo.create(draft)
+    })
+    .await
+    .map_err(prompt_join_error)
+    .and_then(|result| result);
+    log_prompt_result("create_prompt", &result);
+    result
+}
+
+async fn update_prompt_from_state(
+    state: PromptRepositoryState,
+    update: PromptUpdate,
+) -> Result<Prompt, PromptError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::prompts::store::PromptRepository;
+        let mut repo = state.lock().unwrap_or_else(|err| err.into_inner());
+        repo.update(update)
+    })
+    .await
+    .map_err(prompt_join_error)
+    .and_then(|result| result);
+    log_prompt_result("update_prompt", &result);
+    result
+}
+
+async fn delete_prompt_from_state(
+    state: PromptRepositoryState,
+    id: String,
+) -> Result<(), PromptError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::prompts::store::PromptRepository;
+        let mut repo = state.lock().unwrap_or_else(|err| err.into_inner());
+        repo.delete(&id)
+    })
+    .await
+    .map_err(prompt_join_error)
+    .and_then(|result| result);
+    log_prompt_result("delete_prompt", &result);
+    result
+}
+
+fn prompt_join_error(join: impl Display) -> PromptError {
+    PromptError::StoreUnavailable {
+        reason: join.to_string(),
+    }
+}
+
+fn log_prompt_result<T>(operation: &str, result: &Result<T, PromptError>) {
+    log_prompt_result_with(operation, result, |level, message| {
+        log::log!(level, "{message}")
+    });
+}
+
+fn log_prompt_result_with<T>(
+    operation: &str,
+    result: &Result<T, PromptError>,
+    mut emit: impl FnMut(log::Level, &str),
+) {
+    if let Err(PromptError::StoreUnavailable { reason }) = result {
+        emit(
+            log::Level::Warn,
+            &format!("{operation} failed: prompt store unavailable: {reason}"),
+        );
+    }
+}
+/// log_file_path command: returns the absolute path of the application
 /// log so the frontend can render it as selectable text. Performs no I/O
 /// at all — a path join — which is why it is the one command that does
 /// not offload to `spawn_blocking`. `async` because the audit's
@@ -641,6 +766,126 @@ mod tests {
         assert!(emitted[0].1.contains(&reason));
     }
 
+    fn prompt_draft(title: &str, body: &str) -> vertice_core::model::PromptDraft {
+        vertice_core::model::PromptDraft {
+            title: title.to_string(),
+            body: body.to_string(),
+            tags: vec!["ipc".to_string()],
+            best_for_context: Some("command tests".to_string()),
+        }
+    }
+
+    #[test]
+    fn prompt_command_helpers_return_typed_crud_results_and_errors() {
+        let state = super::prompt_repository_state(temp_app_data_dir("prompt-commands"));
+
+        let created = tauri::async_runtime::block_on(super::create_prompt_from_state(
+            state.clone(),
+            prompt_draft("Draft", "Body"),
+        ))
+        .expect("create prompt command helper");
+        assert_eq!(created.title, "Draft");
+
+        let listed = tauri::async_runtime::block_on(super::list_prompts_from_state(state.clone()))
+            .expect("list prompt command helper");
+        assert_eq!(listed, vec![created.clone()]);
+
+        let updated = tauri::async_runtime::block_on(super::update_prompt_from_state(
+            state.clone(),
+            vertice_core::model::PromptUpdate {
+                id: created.id.clone(),
+                title: "Updated".to_string(),
+                body: "New body".to_string(),
+                tags: vec![],
+                best_for_context: None,
+            },
+        ))
+        .expect("update prompt command helper");
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.title, "Updated");
+
+        tauri::async_runtime::block_on(super::delete_prompt_from_state(
+            state.clone(),
+            updated.id.clone(),
+        ))
+        .expect("delete prompt command helper");
+        assert!(
+            tauri::async_runtime::block_on(super::list_prompts_from_state(state))
+                .expect("list after delete")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn prompt_command_helpers_map_validation_and_not_found_as_typed_prompt_errors() {
+        let state = super::prompt_repository_state(temp_app_data_dir("prompt-errors"));
+
+        let invalid = tauri::async_runtime::block_on(super::create_prompt_from_state(
+            state.clone(),
+            prompt_draft(" ", "Body"),
+        ))
+        .expect_err("invalid prompt rejected");
+        assert_eq!(
+            invalid,
+            vertice_core::model::PromptError::InvalidInput {
+                field: "title".to_string()
+            }
+        );
+
+        let missing = tauri::async_runtime::block_on(super::delete_prompt_from_state(
+            state,
+            "missing".to_string(),
+        ))
+        .expect_err("missing prompt rejected");
+        assert_eq!(
+            missing,
+            vertice_core::model::PromptError::NotFound {
+                id: "missing".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn prompt_store_unavailable_results_emit_a_warning_at_the_command_boundary() {
+        let result: Result<(), vertice_core::model::PromptError> =
+            Err(vertice_core::model::PromptError::StoreUnavailable {
+                reason: "unsupported prompt store schema version 99".to_string(),
+            });
+        let mut emitted: Vec<(log::Level, String)> = Vec::new();
+
+        super::log_prompt_result_with("update_prompt", &result, |level, message| {
+            emitted.push((level, message.to_string()));
+        });
+
+        assert_eq!(emitted.len(), 1);
+        assert_eq!(emitted[0].0, log::Level::Warn);
+        assert!(emitted[0].1.contains("update_prompt failed"));
+        assert!(emitted[0]
+            .1
+            .contains("unsupported prompt store schema version 99"));
+    }
+
+    #[test]
+    fn prompt_validation_and_not_found_results_do_not_emit_diagnostic_warnings() {
+        let validation: Result<(), vertice_core::model::PromptError> =
+            Err(vertice_core::model::PromptError::InvalidInput {
+                field: "title".to_string(),
+            });
+        let not_found: Result<(), vertice_core::model::PromptError> =
+            Err(vertice_core::model::PromptError::NotFound {
+                id: "missing".to_string(),
+            });
+        let mut emitted: Vec<(log::Level, String)> = Vec::new();
+
+        super::log_prompt_result_with("create_prompt", &validation, |level, message| {
+            emitted.push((level, message.to_string()));
+        });
+        super::log_prompt_result_with("delete_prompt", &not_found, |level, message| {
+            emitted.push((level, message.to_string()));
+        });
+
+        assert!(emitted.is_empty());
+    }
     fn temp_app_data_dir(label: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!(
             "vertice-commands-user-settings-test-{label}-{}",
