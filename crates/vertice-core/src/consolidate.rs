@@ -160,6 +160,7 @@ mod tests {
                 LocationOrigin::Embedded
             },
             mcp_transport: None,
+            client: None,
         }
     }
 

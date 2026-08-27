@@ -20,7 +20,7 @@ export type Catalog = {
     statClients: string;
     statSkills: string;
     statAgents: string;
-    statRoots: string;
+    statMcps: string;
     statsPending: string;
     outdatedTitle: string;
     outdatedEmpty: string;
@@ -113,6 +113,7 @@ export type Catalog = {
   kind: {
     skill: string;
     agent: string;
+    mcp: string;
   };
   components: {
     loading: string;
@@ -199,6 +200,28 @@ export type Catalog = {
     aiClientsEmpty: string;
     noDescription: string;
   };
+  mcpDetail: {
+    back: string;
+    description: string;
+    locations: string;
+    aiClients: string;
+    aiClientsEmpty: string;
+    noDescription: string;
+  };
+  aiClients: {
+    shared: string;
+  };
+  transport: {
+    stdio: string;
+    remote: string;
+    command: string;
+    argCount: string;
+    endpoint: string;
+    envKeys: string;
+    headerKeys: string;
+    keysNote: string;
+    unavailable: string;
+  };
 };
 
 export type SupportedLocale = "en" | "es";
@@ -243,7 +266,7 @@ export const catalogs = {
       statClients: "AI Clients",
       statSkills: "Skills",
       statAgents: "Agents",
-      statRoots: "Scan roots",
+      statMcps: "MCPs",
       statsPending: "—",
       outdatedTitle: "Outdated components",
       outdatedEmpty: "Everything is up to date.",
@@ -336,6 +359,7 @@ export const catalogs = {
     kind: {
       skill: "Skill",
       agent: "Agent",
+      mcp: "MCP",
     },
     components: {
       loading: "Scanning for installed components...",
@@ -423,6 +447,28 @@ export const catalogs = {
       aiClientsEmpty: "No AI clients data available yet.",
       noDescription: "No description available.",
     },
+    mcpDetail: {
+      back: "Back to list",
+      description: "Description",
+      locations: "Locations",
+      aiClients: "AI Clients",
+      aiClientsEmpty: "No AI clients data available yet.",
+      noDescription: "No description available.",
+    },
+    transport: {
+      stdio: "Stdio",
+      remote: "Remote",
+      command: "Command",
+      argCount: "{count} arguments configured",
+      endpoint: "Endpoint",
+      envKeys: "Environment key names",
+      headerKeys: "Header key names",
+      keysNote: "Names only — values are never captured.",
+      unavailable: "Configured here, but its connection detail could not be safely captured.",
+    },
+    aiClients: {
+      shared: "Shared",
+    },
   },
   es: {
     app: {
@@ -463,7 +509,7 @@ export const catalogs = {
       statClients: "Clientes de IA",
       statSkills: "Skills",
       statAgents: "Agentes",
-      statRoots: "Raíces de escaneo",
+      statMcps: "MCPs",
       statsPending: "—",
       outdatedTitle: "Componentes desactualizados",
       outdatedEmpty: "Todo está actualizado.",
@@ -556,6 +602,7 @@ export const catalogs = {
     kind: {
       skill: "Skill",
       agent: "Agent",
+      mcp: "MCP",
     },
     components: {
       loading: "Escaneando componentes instalados...",
@@ -643,6 +690,29 @@ export const catalogs = {
       aiClients: "Clientes IA",
       aiClientsEmpty: "Aún no hay datos de clientes IA.",
       noDescription: "Sin descripción disponible.",
+    },
+    mcpDetail: {
+      back: "Volver a la lista",
+      description: "Descripción",
+      locations: "Ubicaciones",
+      aiClients: "Clientes IA",
+      aiClientsEmpty: "Aún no hay datos de clientes IA.",
+      noDescription: "Sin descripción disponible.",
+    },
+    transport: {
+      stdio: "Stdio",
+      remote: "Remoto",
+      command: "Comando",
+      argCount: "{count} argumentos configurados",
+      endpoint: "Endpoint",
+      envKeys: "Nombres de claves de entorno",
+      headerKeys: "Nombres de claves de cabeceras",
+      keysNote: "Solo nombres: nunca se capturan valores.",
+      unavailable:
+        "Configurado aquí, pero su detalle de conexión no pudo capturarse con seguridad.",
+    },
+    aiClients: {
+      shared: "Compartido",
     },
   },
 } as const satisfies Record<SupportedLocale, Catalog>;

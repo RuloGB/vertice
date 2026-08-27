@@ -713,6 +713,7 @@ mod tests {
                 path: "C:\\missing\\claude-skills".into(),
                 kind: SearchRootKind::Skill,
                 status: SearchRootStatus::NotFound,
+                client: Some(vertice_core::model::ClientKind::ClaudeCode),
             }],
             Some(vec![ClientPresence {
                 slot: vertice_core::model::ClientInstallSlot::CodexStandalone,

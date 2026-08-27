@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Component } from "../bindings/Component";
+  import type { ComponentKind } from "../bindings/ComponentKind";
   import { useI18n } from "./i18n/locale.svelte";
   import { isDuplicate } from "./inventory";
   import LocationList from "./LocationList.svelte";
@@ -8,6 +9,12 @@
 
   let { component, onSelect }: { component: Component; onSelect?: (component: Component) => void } =
     $props();
+
+  const KIND_LABEL_KEY = {
+    skill: "kind.skill",
+    agent: "kind.agent",
+    mcp: "kind.mcp",
+  } as const satisfies Record<ComponentKind, `kind.${ComponentKind}`>;
 
   const duplicate = $derived(isDuplicate(component));
   const embedded = $derived(component.locations.some(({ origin }) => origin === "embedded"));
@@ -42,7 +49,7 @@
     <header class="flex flex-wrap items-center gap-2">
       <h3 class="font-semibold text-content">{component.name}</h3>
       <span class="label-caps rounded-full bg-canvas/65 px-2.5 py-1">
-        {component.kind === "skill" ? i18n.t("kind.skill") : i18n.t("kind.agent")}
+        {i18n.t(KIND_LABEL_KEY[component.kind])}
       </span>
       {#if embedded}
         <span

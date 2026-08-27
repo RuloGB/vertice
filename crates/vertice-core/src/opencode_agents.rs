@@ -196,6 +196,7 @@ fn assemble_component(
             root: resolved.root.id.clone(),
             origin: LocationOrigin::File,
             mcp_transport: None,
+            client: resolved.root.client,
         })
         .collect();
 

@@ -8,7 +8,9 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::model::{ScanError, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus};
+use crate::model::{
+    ClientKind, ScanError, SearchRoot, SearchRootId, SearchRootKind, SearchRootStatus,
+};
 
 /// A resolved root together with every path that MUST be scanned for it.
 /// One entry per element except the OpenCode root, which carries two: the
@@ -65,12 +67,14 @@ pub fn skill_roots(home: &Path) -> [ResolvedRoot; 4] {
             home,
             "claude-skills",
             SearchRootKind::Skill,
+            Some(ClientKind::ClaudeCode),
             &[".claude", "skills"],
         ),
         resolve_single(
             home,
             "agents-skills",
             SearchRootKind::Skill,
+            None,
             &[".agents", "skills"],
         ),
         resolve_opencode(home),
@@ -78,6 +82,7 @@ pub fn skill_roots(home: &Path) -> [ResolvedRoot; 4] {
             home,
             "codex-skills",
             SearchRootKind::Skill,
+            Some(ClientKind::Codex),
             &[".codex", "skills"],
         ),
     ]
@@ -91,6 +96,7 @@ pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
         home,
         "claude-agents",
         SearchRootKind::Agent,
+        Some(ClientKind::ClaudeCode),
         &[".claude", "agents"],
     );
 
@@ -104,6 +110,7 @@ pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
             path: embedded_path,
             kind: SearchRootKind::Agent,
             status: embedded_status,
+            client: Some(ClientKind::ClaudeCode),
         },
         // Probed, never walked (design §3).
         scan_paths: vec![],
@@ -117,7 +124,13 @@ pub fn agent_roots(home: &Path) -> [ResolvedRoot; 2] {
 /// slice rather than a fixed-size array so it fits both the one-segment
 /// `<home>/.claude.json` shape and every existing two-segment shape with one
 /// signature (design §5.1).
-fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: &[&str]) -> ResolvedRoot {
+fn resolve_single(
+    home: &Path,
+    id: &str,
+    kind: SearchRootKind,
+    client: Option<ClientKind>,
+    suffix: &[&str],
+) -> ResolvedRoot {
     let path = push_segments(home, suffix);
 
     let status = probe(&path);
@@ -128,6 +141,7 @@ fn resolve_single(home: &Path, id: &str, kind: SearchRootKind, suffix: &[&str]) 
             path: path.clone(),
             kind,
             status,
+            client,
         },
         scan_paths: vec![path],
     }
@@ -152,6 +166,7 @@ fn resolve_pair(
     home: &Path,
     id: &str,
     kind: SearchRootKind,
+    client: Option<ClientKind>,
     base: &[&str],
     overlay: &[&str],
 ) -> ResolvedRoot {
@@ -169,6 +184,7 @@ fn resolve_pair(
             path: base_path.clone(),
             kind,
             status,
+            client,
         },
         scan_paths: vec![base_path, overlay_path],
     }
@@ -183,6 +199,7 @@ pub fn claude_mcp_root(home: &Path) -> ResolvedRoot {
         home,
         "claude-mcp",
         SearchRootKind::Mcp,
+        Some(ClientKind::ClaudeCode),
         &[".claude.json"],
         &[".claude", "settings.json"],
     )
@@ -196,6 +213,7 @@ pub fn opencode_mcp_root(home: &Path) -> ResolvedRoot {
         home,
         "opencode-mcp",
         SearchRootKind::Mcp,
+        Some(ClientKind::OpenCode),
         &[".config", "opencode", "opencode.json"],
         &[".config", "opencode", "opencode.jsonc"],
     )
@@ -208,6 +226,7 @@ pub fn codex_mcp_root(home: &Path) -> ResolvedRoot {
         home,
         "codex-mcp",
         SearchRootKind::Mcp,
+        Some(ClientKind::Codex),
         &[".codex", "config.toml"],
     )
 }
@@ -238,6 +257,7 @@ fn resolve_opencode(home: &Path) -> ResolvedRoot {
             path: plural.clone(),
             kind: SearchRootKind::Skill,
             status,
+            client: Some(ClientKind::OpenCode),
         },
         scan_paths: vec![plural, singular],
     }
@@ -272,6 +292,7 @@ pub fn opencode_agent_root(home: &Path) -> ResolvedRoot {
             path: base.clone(),
             kind: SearchRootKind::Agent,
             status,
+            client: Some(ClientKind::OpenCode),
         },
         scan_paths: vec![base, overlay],
     }
@@ -287,6 +308,7 @@ pub fn codex_agent_root(home: &Path) -> ResolvedRoot {
         home,
         "codex-agents",
         SearchRootKind::Agent,
+        Some(ClientKind::Codex),
         &[".codex", "agents"],
     )
 }
@@ -557,5 +579,51 @@ mod tests {
         let err = resolve_home(Some(PathBuf::from(raw))).expect_err("non-UTF-8 home must fail");
 
         assert!(matches!(err, ScanError::Internal { .. }));
+    }
+
+    /// domain-model spec, "SearchRoot Carries Its Owning Client": every
+    /// root id carries its designed `client` mapping. `agents-skills` is
+    /// the only `None` (shared root); all others carry their owning
+    /// `ClientKind`. Uses nonexistent-home paths so no fixture is needed
+    /// (CA-17).
+    #[test]
+    fn every_root_id_carries_its_client_mapping() {
+        let home = PathBuf::from("/definitely/does/not/exist");
+
+        let skills = skill_roots(&home);
+        assert_eq!(skills[0].root.client, Some(ClientKind::ClaudeCode));
+        assert_eq!(skills[0].root.id.0, "claude-skills");
+        assert_eq!(skills[1].root.client, None);
+        assert_eq!(skills[1].root.id.0, "agents-skills");
+        assert_eq!(skills[2].root.client, Some(ClientKind::OpenCode));
+        assert_eq!(skills[2].root.id.0, "opencode-skills");
+        assert_eq!(skills[3].root.client, Some(ClientKind::Codex));
+        assert_eq!(skills[3].root.id.0, "codex-skills");
+
+        let agents = agent_roots(&home);
+        assert_eq!(agents[0].root.client, Some(ClientKind::ClaudeCode));
+        assert_eq!(agents[0].root.id.0, "claude-agents");
+        assert_eq!(agents[1].root.client, Some(ClientKind::ClaudeCode));
+        assert_eq!(agents[1].root.id.0, "claude-embedded-agents");
+
+        let opencode_agents = opencode_agent_root(&home);
+        assert_eq!(opencode_agents.root.client, Some(ClientKind::OpenCode));
+        assert_eq!(opencode_agents.root.id.0, "opencode-agents");
+
+        let codex_agents = codex_agent_root(&home);
+        assert_eq!(codex_agents.root.client, Some(ClientKind::Codex));
+        assert_eq!(codex_agents.root.id.0, "codex-agents");
+
+        let claude_mcp = claude_mcp_root(&home);
+        assert_eq!(claude_mcp.root.client, Some(ClientKind::ClaudeCode));
+        assert_eq!(claude_mcp.root.id.0, "claude-mcp");
+
+        let opencode_mcp = opencode_mcp_root(&home);
+        assert_eq!(opencode_mcp.root.client, Some(ClientKind::OpenCode));
+        assert_eq!(opencode_mcp.root.id.0, "opencode-mcp");
+
+        let codex_mcp = codex_mcp_root(&home);
+        assert_eq!(codex_mcp.root.client, Some(ClientKind::Codex));
+        assert_eq!(codex_mcp.root.id.0, "codex-mcp");
     }
 }

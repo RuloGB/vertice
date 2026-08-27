@@ -19,6 +19,7 @@ function reportFixture(): ScanReport {
         path: "C:\\Users\\raul\\.claude\\skills",
         kind: "skill",
         status: "found",
+        client: null,
       },
     ],
     issues: [],

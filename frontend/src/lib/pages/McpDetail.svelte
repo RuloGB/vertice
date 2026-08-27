@@ -2,7 +2,7 @@
   import type { Component } from "../../bindings/Component";
   import { useI18n } from "../i18n/locale.svelte";
   import { isDuplicate } from "../inventory";
-  import LocationList from "../LocationList.svelte";
+  import McpTransportDetail from "../McpTransportDetail.svelte";
   import { CLIENT_LABEL, groupLocationsByClient } from "../clientGroups";
 
   const i18n = useI18n();
@@ -21,7 +21,7 @@
     class="flex w-fit items-center gap-2 rounded-control border border-stroke bg-surface px-4 py-2 text-sm font-medium text-content transition-colors hover:bg-surface-raised hover:border-interactive-hover/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-hover"
   >
     <span aria-hidden="true">&#8592;</span>
-    {i18n.t("agentDetail.back")}
+    {i18n.t("mcpDetail.back")}
   </button>
 
   <article class="flex flex-col gap-6 rounded-panel border border-stroke bg-surface p-6 shadow-panel">
@@ -47,31 +47,44 @@
 
     <div class="flex flex-col gap-2">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-content-subtle">
-        {i18n.t("agentDetail.description")}
+        {i18n.t("mcpDetail.description")}
       </h2>
       {#if component.description}
         <p class="text-sm leading-6 text-content-muted">{component.description}</p>
       {:else}
-        <p class="text-sm italic text-content-subtle">{i18n.t("agentDetail.noDescription")}</p>
+        <p class="text-sm italic text-content-subtle">{i18n.t("mcpDetail.noDescription")}</p>
       {/if}
     </div>
 
     <div class="flex flex-col gap-2">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-content-subtle">
-        {i18n.t("agentDetail.locations")}
+        {i18n.t("mcpDetail.locations")}
       </h2>
-      <LocationList locations={component.locations} />
+      <ul class="flex flex-col gap-3 border-t border-stroke pt-3">
+        {#each component.locations as location, index (index)}
+          <li class="flex min-w-0 flex-col gap-2 rounded-control bg-canvas/35 px-3 py-2.5">
+            <span class="font-mono text-xs text-content-subtle break-all">
+              {#if location.path !== null}
+                {location.path}
+              {:else}
+                <span class="italic">{i18n.t("location.noPath")}</span>
+              {/if}
+            </span>
+            <McpTransportDetail transport={location.mcpTransport} />
+          </li>
+        {/each}
+      </ul>
     </div>
 
     <div class="flex flex-col gap-2">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-content-subtle">
-        {i18n.t("agentDetail.aiClients")}
+        {i18n.t("mcpDetail.aiClients")}
       </h2>
       {#if component.locations.length === 0}
         <div
           class="rounded-control border border-dashed border-stroke-strong bg-canvas/35 p-4 text-center text-sm text-content-subtle"
         >
-          {i18n.t("agentDetail.aiClientsEmpty")}
+          {i18n.t("mcpDetail.aiClientsEmpty")}
         </div>
       {:else}
         <ul class="flex flex-col gap-2">

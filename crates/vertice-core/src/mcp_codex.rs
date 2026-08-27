@@ -443,6 +443,7 @@ fn assemble_component(
             root: resolved.root.id.clone(),
             origin: LocationOrigin::File,
             mcp_transport,
+            client: resolved.root.client,
         }],
         provenance_hint: None,
     }

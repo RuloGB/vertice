@@ -12,8 +12,8 @@ use walkdir::WalkDir;
 
 use crate::frontmatter::{self, SkillFrontmatter};
 use crate::model::{
-    Component, ComponentId, ComponentKind, IssueSeverity, Location, LocationOrigin, ScanIssue,
-    Scope, SearchRoot, SearchRootId,
+    ClientKind, Component, ComponentId, ComponentKind, IssueSeverity, Location, LocationOrigin,
+    ScanIssue, Scope, SearchRoot, SearchRootId,
 };
 use crate::roots::{self, ResolvedRoot};
 
@@ -40,7 +40,13 @@ pub fn scan(home: &Path) -> SkillScan {
 
     for ResolvedRoot { root, scan_paths } in roots::skill_roots(home) {
         for scan_path in &scan_paths {
-            walk_one(scan_path, &root.id, &mut components, &mut issues);
+            walk_one(
+                scan_path,
+                &root.id,
+                root.client,
+                &mut components,
+                &mut issues,
+            );
         }
         roots_out.push(root);
     }
@@ -60,6 +66,7 @@ pub fn scan(home: &Path) -> SkillScan {
 fn walk_one(
     scan_path: &Path,
     root_id: &SearchRootId,
+    client: Option<ClientKind>,
     components: &mut Vec<Component>,
     issues: &mut Vec<ScanIssue>,
 ) {
@@ -136,6 +143,7 @@ fn walk_one(
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
                     mcp_transport: None,
+                    client,
                 }],
                 provenance_hint: None,
             }),

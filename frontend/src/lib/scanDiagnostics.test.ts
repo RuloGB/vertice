@@ -13,7 +13,7 @@ function issue(overrides: Partial<ScanIssue> = {}): ScanIssue {
 }
 
 function root(id: string, status: SearchRoot["status"]): SearchRoot {
-  return { id, path: `C:/roots/${id}`, kind: "skill", status };
+  return { id, path: `C:/roots/${id}`, kind: "skill", status, client: null };
 }
 
 describe("partitionDiagnostics", () => {

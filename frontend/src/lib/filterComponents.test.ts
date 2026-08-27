@@ -11,7 +11,7 @@ function componentFixture(id: string, name: string, kind: ComponentKind): Compon
     kind,
     description: null,
     scope: "user",
-    locations: [{ path: `C:/fixtures/${id}`, root: "claude-skills", origin: "file", mcpTransport: null }],
+    locations: [{ path: `C:/fixtures/${id}`, root: "claude-skills", origin: "file", mcpTransport: null, client: null }],
     provenanceHint: null,
   };
 }

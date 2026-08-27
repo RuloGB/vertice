@@ -16,8 +16,8 @@ use serde::Deserialize;
 
 use crate::frontmatter;
 use crate::model::{
-    Component, ComponentId, ComponentKind, IssueSeverity, Location, LocationOrigin, ScanIssue,
-    Scope, SearchRoot, SearchRootId,
+    ClientKind, Component, ComponentId, ComponentKind, IssueSeverity, Location, LocationOrigin,
+    ScanIssue, Scope, SearchRoot, SearchRootId,
 };
 use crate::roots::{self, ResolvedRoot};
 
@@ -71,7 +71,11 @@ pub fn scan(home: &Path) -> AgentScan {
 
     let embedded_status = embedded_root.root.status;
     if embedded_status == crate::model::SearchRootStatus::Found {
-        emit_embedded_components(&embedded_root.root.id, &mut components);
+        emit_embedded_components(
+            &embedded_root.root.id,
+            embedded_root.root.client,
+            &mut components,
+        );
     }
 
     AgentScan {
@@ -94,6 +98,7 @@ fn walk_agents_root(
         return;
     };
     let root_id = &resolved.root.id;
+    let client = resolved.root.client;
 
     let metadata = match std::fs::symlink_metadata(scan_path) {
         Ok(metadata) => metadata,
@@ -189,6 +194,7 @@ fn walk_agents_root(
                     root: root_id.clone(),
                     origin: LocationOrigin::File,
                     mcp_transport: None,
+                    client,
                 }],
                 provenance_hint: None,
             }),
@@ -200,7 +206,11 @@ fn walk_agents_root(
 /// Emit the six embedded Claude Code agents as components with
 /// `origin: Embedded`, `path: None`. Caller MUST only invoke this when the
 /// embedded pseudo-root's status is `Found` (design §4).
-fn emit_embedded_components(embedded_root_id: &SearchRootId, components: &mut Vec<Component>) {
+fn emit_embedded_components(
+    embedded_root_id: &SearchRootId,
+    client: Option<ClientKind>,
+    components: &mut Vec<Component>,
+) {
     for name in EMBEDDED_CLAUDE_AGENTS {
         components.push(Component {
             id: ComponentId::derive(ComponentKind::Agent, name),
@@ -213,6 +223,7 @@ fn emit_embedded_components(embedded_root_id: &SearchRootId, components: &mut Ve
                 root: embedded_root_id.clone(),
                 origin: LocationOrigin::Embedded,
                 mcp_transport: None,
+                client,
             }],
             provenance_hint: None,
         });
