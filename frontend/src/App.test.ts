@@ -7,6 +7,7 @@ import App from "./App.svelte";
 import type { Component } from "./bindings/Component";
 import type { ScanReport } from "./bindings/ScanReport";
 import { fetchLogFilePath } from "./lib/appLog";
+import { createPrompt, deletePrompt, fetchPrompts, updatePrompt } from "./lib/prompts";
 import { fetchFreshness } from "./lib/freshness";
 import { rescan, scan } from "./lib/scan";
 import { fetchUserSettings, setUserSettings } from "./lib/settings";
@@ -28,6 +29,13 @@ vi.mock("./lib/settings", () => ({
   setUserSettings: vi.fn(),
 }));
 
+vi.mock("./lib/prompts", () => ({
+  createPrompt: vi.fn(),
+  deletePrompt: vi.fn(),
+  fetchPrompts: vi.fn(),
+  updatePrompt: vi.fn(),
+}));
+
 vi.mock("./lib/appLog", () => ({
   fetchLogFilePath: vi.fn(),
 }));
@@ -38,6 +46,10 @@ const mockedFetchFreshness = vi.mocked(fetchFreshness);
 const mockedFetchUserSettings = vi.mocked(fetchUserSettings);
 const mockedSetUserSettings = vi.mocked(setUserSettings);
 const mockedFetchLogFilePath = vi.mocked(fetchLogFilePath);
+const mockedFetchPrompts = vi.mocked(fetchPrompts);
+const mockedCreatePrompt = vi.mocked(createPrompt);
+const mockedUpdatePrompt = vi.mocked(updatePrompt);
+const mockedDeletePrompt = vi.mocked(deletePrompt);
 
 function skillFixture(): Component {
   return {
@@ -47,8 +59,8 @@ function skillFixture(): Component {
     description: "Formats source files",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file", mcpTransport: null },
-      { path: null, root: "embedded-skills", origin: "embedded", mcpTransport: null },
+      { path: "C:/fixtures/formatter", root: "claude-skills", origin: "file", mcpTransport: null, client: null },
+      { path: null, root: "embedded-skills", origin: "embedded", mcpTransport: null, client: null },
     ],
     provenanceHint: null,
   };
@@ -62,8 +74,62 @@ function agentFixture(): Component {
     description: "Reviews pull requests",
     scope: "user",
     locations: [
-      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file", mcpTransport: null },
-      { path: null, root: "embedded-agents", origin: "embedded", mcpTransport: null },
+      { path: "C:/fixtures/reviewer", root: "claude-agents", origin: "file", mcpTransport: null, client: null },
+      { path: null, root: "embedded-agents", origin: "embedded", mcpTransport: null, client: null },
+    ],
+    provenanceHint: null,
+  };
+}
+
+function mcpStdioFixture(): Component {
+  return {
+    id: "mcp:filesystem",
+    name: "Filesystem",
+    kind: "mcp",
+    description: "Reads and writes files on the local machine",
+    scope: "user",
+    locations: [
+      {
+        path: "C:/fixtures/mcp-stdio.json",
+        root: "codex-mcp",
+        origin: "file",
+        mcpTransport: { stdio: { command: "npx", arg_count: 3, env_keys: ["API_TOKEN", "MCP_ROOT"] } },
+        client: null,
+      },
+    ],
+    provenanceHint: null,
+  };
+}
+
+function mcpRemoteFixture(): Component {
+  return {
+    id: "mcp:search",
+    name: "Search",
+    kind: "mcp",
+    description: "Remote search endpoint",
+    scope: "user",
+    locations: [
+      {
+        path: "C:/fixtures/mcp-remote.json",
+        root: "opencode-mcp",
+        origin: "file",
+        mcpTransport: { remote: { url: "https://mcp.example.com", header_keys: ["Authorization"] } },
+        client: null,
+      },
+    ],
+    provenanceHint: null,
+  };
+}
+
+function mcpDegradedFixture(): Component {
+  return {
+    id: "mcp:broken",
+    name: "Broken",
+    kind: "mcp",
+    description: null,
+    scope: "user",
+    locations: [
+      { path: "C:/fixtures/mcp-broken.json", root: "claude-mcp", origin: "file", mcpTransport: null, client: null },
     ],
     provenanceHint: null,
   };
@@ -84,6 +150,7 @@ function componentFixtures(kind: "skill" | "agent", count: number): Component[] 
           root: `claude-${kind}s`,
           origin: "file",
           mcpTransport: null,
+          client: null,
         },
       ],
       provenanceHint: null,
@@ -105,7 +172,7 @@ function reportFixture(components: Component[] = [skillFixture()]): ScanReport {
 function cleanReportFixture(): ScanReport {
   return {
     ...reportFixture([skillFixture(), agentFixture()]),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     installations: [{ client: "claudeCode", version: "1.0.0", path: "C:/clients/claude" }],
     clientPresence: [
       {
@@ -124,7 +191,7 @@ function notFoundOnlyReportFixture(): ScanReport {
   return {
     ...reportFixture(),
     rootsScanned: [
-      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound" },
+      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound", client: null },
     ],
     issues: [],
   };
@@ -133,7 +200,7 @@ function notFoundOnlyReportFixture(): ScanReport {
 function issuesOnlyReportFixture(): ScanReport {
   return {
     ...reportFixture(),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     issues: [
       {
         severity: "error",
@@ -148,7 +215,7 @@ function mixedReportFixture(): ScanReport {
   return {
     ...reportFixture(),
     rootsScanned: [
-      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound" },
+      { id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "notFound", client: null },
     ],
     issues: [
       { severity: "warning", path: null, reason: "search root claude-skills was not found" },
@@ -173,7 +240,7 @@ function mixedReportFixture(): ScanReport {
 function threeRowClientPresenceFixture(): ScanReport {
   return {
     ...reportFixture(),
-    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found" }],
+    rootsScanned: [{ id: "claude-skills", path: "C:/roots/claude", kind: "skill", status: "found", client: null }],
     clientPresence: [
       {
         slot: "claudeCodeNpm",
@@ -443,6 +510,111 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
+  it("lists only MCP servers on the MCP route and shows no placeholder, scanning once", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture(), mcpRemoteFixture()]),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    navigateTo("MCP");
+    await flushApp();
+
+    expect(document.title).toBe("Vertice v0.1.0 — MCP");
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+    expect(visibleText()).toContain("Filesystem");
+    expect(visibleText()).toContain("Search");
+    expect(visibleText()).not.toContain("Formatter");
+    expect(visibleText()).not.toContain("Reviewer");
+
+    expect(mockedScan).toHaveBeenCalledTimes(1);
+    expect(mockedRescan).not.toHaveBeenCalled();
+
+    unmount(app);
+  });
+
+  it("opens the MCP detail with stdio transport: command, argument count, and env key names only", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpStdioFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Filesystem"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Filesystem");
+    expect(detail?.textContent).toContain("C:/fixtures/mcp-stdio.json");
+    expect(detail?.textContent).toContain("Stdio");
+    expect(detail?.textContent).toContain("npx");
+    expect(detail?.textContent).toContain("3 arguments configured");
+    expect(detail?.textContent).toContain("Environment key names");
+    expect(detail?.textContent).toContain("API_TOKEN");
+    expect(detail?.textContent).toContain("MCP_ROOT");
+    expect(detail?.textContent).toContain("Names only");
+
+    unmount(app);
+  });
+
+  it("opens the MCP detail with remote transport: sanitized endpoint and header key names only", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpRemoteFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Search"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Search");
+    expect(detail?.textContent).toContain("Remote");
+    expect(detail?.textContent).toContain("https://mcp.example.com");
+    expect(detail?.textContent).toContain("Header key names");
+    expect(detail?.textContent).toContain("Authorization");
+    expect(detail?.textContent).toContain("Names only");
+
+    unmount(app);
+  });
+
+  it("marks a null transport as an un-capturable detail, never as a missing MCP", async () => {
+    mockedScan.mockResolvedValue(reportFixture([mcpDegradedFixture()]));
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+    navigateTo("MCP");
+    await flushApp();
+
+    const row = Array.from(document.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("Broken"),
+    );
+    expect(row).toBeDefined();
+    (row as HTMLButtonElement).click();
+    await flushApp();
+
+    const detail = document.querySelector("section");
+    expect(detail?.textContent).toContain("Broken");
+    expect(detail?.textContent).toContain(
+      "Configured here, but its connection detail could not be safely captured.",
+    );
+    expect(detail?.textContent).not.toContain("Stdio");
+    expect(detail?.textContent).not.toContain("Remote");
+
+    unmount(app);
+  });
+
   it("paginates filtered Skills and Agents, including page size and first/last controls", async () => {
     mockedScan.mockResolvedValue(
       reportFixture([...componentFixtures("skill", 23), ...componentFixtures("agent", 12)]),
@@ -501,8 +673,10 @@ describe("App per-kind pages", () => {
     unmount(app);
   });
 
-  it("keeps Agents and Skills search queries independent across navigation", async () => {
-    mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
+  it("keeps Agents, Skills and MCP search queries independent across navigation", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture()]),
+    );
 
     const app = mount(App, { target: document.body });
     await flushApp();
@@ -525,6 +699,11 @@ describe("App per-kind pages", () => {
     expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
     expect(visibleText()).toContain("Formatter");
 
+    navigateTo("MCP");
+    await flushApp();
+    expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
+    expect(visibleText()).toContain("Filesystem");
+
     navigateTo("Agents");
     await flushApp();
     expect(document.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe(
@@ -536,12 +715,14 @@ describe("App per-kind pages", () => {
   });
 
   it("renders a page-size selector alongside the language selector on either page", async () => {
-    mockedScan.mockResolvedValue(reportFixture([skillFixture(), agentFixture()]));
+    mockedScan.mockResolvedValue(
+      reportFixture([skillFixture(), agentFixture(), mcpStdioFixture()]),
+    );
 
     const app = mount(App, { target: document.body });
     await flushApp();
 
-    for (const section of ["Agents", "Skills"]) {
+    for (const section of ["Agents", "Skills", "MCP"]) {
       navigateTo(section);
       await flushApp();
       const selects = Array.from(document.querySelectorAll("select"));
@@ -667,7 +848,7 @@ describe("App per-kind pages", () => {
       ...agentFixture(),
       id: "agent:null-path",
       name: "Null Path Agent",
-      locations: [{ path: null, root: "claude-agents", origin: "file", mcpTransport: null }],
+      locations: [{ path: null, root: "claude-agents", origin: "file", mcpTransport: null, client: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([agentFixture(), nullPathFileComponent]));
 
@@ -702,7 +883,7 @@ describe("App per-kind pages", () => {
       ...skillFixture(),
       id: "skill:embedded-path",
       name: "Embedded Path Skill",
-      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded", mcpTransport: null }],
+      locations: [{ path: embeddedPath, root: "builtin-skills", origin: "embedded", mcpTransport: null, client: null }],
     };
     mockedScan.mockResolvedValue(reportFixture([embeddedComponent]));
 
@@ -984,25 +1165,30 @@ describe("App shell navigation", () => {
     unmount(app);
   });
 
-  it("renders an explicit empty state for each section with no backend source", async () => {
+  it("renders the Prompts route as a local prompt library", async () => {
+    mockedScan.mockResolvedValue(cleanReportFixture());
+    mockedFetchPrompts.mockResolvedValue([
+      {
+        id: "prompt-1",
+        title: "Review prompt",
+        body: "Explain the tradeoffs.",
+        tags: ["review"],
+        bestForContext: "Pull requests",
+        updatedAt: "2026-08-26T14:00:00Z",
+      },
+    ]);
+    mockedCreatePrompt.mockRejectedValue(new Error("not configured"));
+    mockedUpdatePrompt.mockRejectedValue(new Error("not configured"));
+    mockedDeletePrompt.mockRejectedValue(new Error("not configured"));
+
     const app = mount(App, { target: document.body });
     await flushApp();
+    navigateTo("Prompts");
+    await flushApp();
 
-    for (const section of ["MCP", "Prompts"]) {
-      navigateTo(section);
-      await flushApp();
-
-      const placeholder = document.querySelector('[data-testid="placeholder-page"]');
-      expect(placeholder, section).not.toBeNull();
-      expect(placeholder?.textContent, section).toContain(section);
-      expect(placeholder?.textContent, section).toContain("Nothing to show here yet");
-      expect(document.title, section).toBe(`Vertice v0.1.0 — ${section}`);
-      expect(document.querySelector('input[type="search"]'), section).toBeNull();
-      expect(visibleText(), section).not.toContain("Formatter");
-    }
-
-    expect(mockedScan).toHaveBeenCalledTimes(1);
-    expect(mockedRescan).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-testid="placeholder-page"]')).toBeNull();
+    expect(visibleText()).toContain("Review prompt");
+    expect(document.title).toBe("Vertice v0.1.0 \u2014 Prompts");
 
     unmount(app);
   });
@@ -1017,7 +1203,7 @@ describe("App shell navigation", () => {
       ["skills", "Skills"],
       ["agents", "Agents"],
       ["clients", "AI Clients"],
-      ["roots", "Scan"],
+      ["mcps", "MCP"],
     ] as const) {
       const tile = document.querySelector<HTMLButtonElement>(`[data-testid="home-stat-${key}"]`);
       expect(tile, key).not.toBeNull();
@@ -1028,6 +1214,23 @@ describe("App shell navigation", () => {
       navigateTo("Home");
       await flushApp();
     }
+
+    unmount(app);
+  });
+
+  it("counts scanned MCPs on the Home hero and no longer offers a scan-roots tile", async () => {
+    mockedScan.mockResolvedValue(
+      reportFixture([mcpStdioFixture(), mcpRemoteFixture(), mcpDegradedFixture(), skillFixture()]),
+    );
+
+    const app = mount(App, { target: document.body });
+    await flushApp();
+
+    const mcpsTile = document.querySelector('[data-testid="home-stat-mcps"]');
+    expect(mcpsTile).not.toBeNull();
+    expect(mcpsTile?.textContent).toContain("MCPs");
+    expect(mcpsTile?.textContent).toContain("3");
+    expect(document.querySelector('[data-testid="home-stat-roots"]')).toBeNull();
 
     unmount(app);
   });

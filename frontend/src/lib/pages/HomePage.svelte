@@ -49,7 +49,7 @@
       clients: uniqueKinds.length,
       skills: components.filter(({ kind }) => kind === "skill").length,
       agents: components.filter(({ kind }) => kind === "agent").length,
-      roots: report.rootsScanned.length,
+      mcps: components.filter(({ kind }) => kind === "mcp").length,
     };
   });
 
@@ -57,7 +57,7 @@
     { key: "clients", route: "clients" as RouteId, label: i18n.t("home.statClients"), value: stats?.clients },
     { key: "skills", route: "skills" as RouteId, label: i18n.t("home.statSkills"), value: stats?.skills },
     { key: "agents", route: "agents" as RouteId, label: i18n.t("home.statAgents"), value: stats?.agents },
-    { key: "roots", route: "scan" as RouteId, label: i18n.t("home.statRoots"), value: stats?.roots },
+    { key: "mcps", route: "mcp" as RouteId, label: i18n.t("home.statMcps"), value: stats?.mcps },
   ]);
 
   let freshness = $state<FreshnessReport | null>(null);

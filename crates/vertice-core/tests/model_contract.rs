@@ -15,6 +15,7 @@ fn sample_search_root(id: &str, kind: SearchRootKind) -> SearchRoot {
         path: std::path::PathBuf::from(format!("/roots/{id}")),
         kind,
         status: SearchRootStatus::Found,
+        client: None,
     }
 }
 
@@ -29,12 +30,14 @@ fn pathless_and_present_path_locations_are_distinguishable() {
         root: root.clone(),
         origin: LocationOrigin::Embedded,
         mcp_transport: None,
+        client: None,
     };
     let with_path = Location {
         path: Some(std::path::PathBuf::from("/roots/root-a/skill/SKILL.md")),
         root,
         origin: LocationOrigin::File,
         mcp_transport: None,
+        client: None,
     };
 
     assert_ne!(pathless, with_path);
@@ -65,12 +68,14 @@ fn one_component_holds_multiple_locations_under_one_shared_id() {
                 root: SearchRootId("root-a".to_string()),
                 origin: LocationOrigin::File,
                 mcp_transport: None,
+                client: None,
             },
             Location {
                 path: Some(std::path::PathBuf::from("/roots/b/issue-creation/SKILL.md")),
                 root: SearchRootId("root-b".to_string()),
                 origin: LocationOrigin::File,
                 mcp_transport: None,
+                client: None,
             },
         ],
         provenance_hint: None,
@@ -140,6 +145,7 @@ fn populated_scan_report_round_trips_through_json() {
                 root: root.id.clone(),
                 origin: LocationOrigin::File,
                 mcp_transport: None,
+                client: None,
             }],
             provenance_hint: Some("claude-code".to_string()),
         }],
@@ -196,6 +202,7 @@ fn location_root_resolves_to_a_scanned_search_root() {
                     root: root_a.id.clone(),
                     origin: LocationOrigin::File,
                     mcp_transport: None,
+                    client: None,
                 },
                 Location {
                     path: Some(std::path::PathBuf::from(
@@ -204,6 +211,7 @@ fn location_root_resolves_to_a_scanned_search_root() {
                     root: root_b.id.clone(),
                     origin: LocationOrigin::File,
                     mcp_transport: None,
+                    client: None,
                 },
             ],
             provenance_hint: None,
@@ -424,6 +432,47 @@ fn freshness_is_exhaustively_matchable_without_a_wildcard_arm() {
     );
 }
 
+/// domain-model spec, "SearchRoot Carries Its Owning Client": a
+/// client-specific root with `Some(ClaudeCode)` survives a JSON
+/// round-trip at the integration-contract level, preserving the typed
+/// ownership value across the serde boundary.
+#[test]
+fn search_root_with_client_round_trips_through_json_contract() {
+    let root = SearchRoot {
+        id: SearchRootId("claude-skills".to_string()),
+        path: std::path::PathBuf::from("/home/user/.claude/skills"),
+        kind: SearchRootKind::Skill,
+        status: SearchRootStatus::Found,
+        client: Some(ClientKind::ClaudeCode),
+    };
+
+    let json = serde_json::to_string(&root).expect("must serialize");
+    let round_tripped: SearchRoot = serde_json::from_str(&json).expect("must deserialize");
+
+    assert_eq!(round_tripped, root);
+    assert_eq!(round_tripped.client, Some(ClientKind::ClaudeCode));
+}
+
+/// domain-model spec, "Shared root carries no single owner": the
+/// `agents-skills` shape serializes `client` as JSON `null` and
+/// round-trips to `None` at the integration-contract level.
+#[test]
+fn shared_search_root_serializes_client_as_json_null_contract() {
+    let root = SearchRoot {
+        id: SearchRootId("agents-skills".to_string()),
+        path: std::path::PathBuf::from("/home/user/.agents/skills"),
+        kind: SearchRootKind::Skill,
+        status: SearchRootStatus::Found,
+        client: None,
+    };
+
+    let json = serde_json::to_value(&root).expect("must serialize");
+    assert_eq!(json["client"], serde_json::Value::Null);
+
+    let round_tripped: SearchRoot = serde_json::from_value(json).expect("must deserialize");
+    assert_eq!(round_tripped.client, None);
+}
+
 /// `add-locale-persistence`: the durable, whole-document user settings type
 /// replaces the former `FreshnessSettings` (superseded — `enabled` and
 /// `disclosure_seen` now live in this single durable document alongside the
@@ -445,4 +494,125 @@ fn user_settings_round_trips_camel_cased() {
     let round_tripped: UserSettings =
         serde_json::from_value(json).expect("UserSettings must deserialize its own output");
     assert_eq!(round_tripped, settings);
+}
+
+/// domain-model spec, "Location Carries the Producing Root Client": a
+/// skill location produced from the `claude-skills` fixture root carries
+/// `Some(ClientKind::ClaudeCode)` (CA-17: versioned fixtures only).
+#[test]
+fn skill_location_carries_its_roots_client() {
+    let mut home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    home.push("tests");
+    home.push("fixtures");
+    home.push("scan-orchestrator");
+    home.push("complete");
+
+    let scan = vertice_core::skills::scan(&home);
+    let claude_root = scan
+        .roots
+        .iter()
+        .find(|r| r.id.0 == "claude-skills")
+        .expect("claude-skills root must be present");
+    assert_eq!(claude_root.client, Some(ClientKind::ClaudeCode));
+
+    let claude_location = scan
+        .components
+        .iter()
+        .flat_map(|c| &c.locations)
+        .find(|loc| loc.root == claude_root.id)
+        .expect("at least one location must come from claude-skills");
+    assert_eq!(claude_location.client, Some(ClientKind::ClaudeCode));
+}
+
+/// domain-model spec, "Location Carries the Producing Root Client": the
+/// `complete` fixture's `shared` component has one location from
+/// `claude-skills` (`Some(ClaudeCode)`) and one from `agents-skills`
+/// (`None`) — the load-bearing Some+None pair, already on disk.
+#[test]
+fn shared_skill_locations_carry_no_client_for_shared_root() {
+    let mut home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    home.push("tests");
+    home.push("fixtures");
+    home.push("scan-orchestrator");
+    home.push("complete");
+
+    let scan = vertice_core::skills::scan(&home);
+    let consolidated = vertice_core::consolidate::consolidate(scan.components);
+    let shared = consolidated
+        .iter()
+        .find(|c| c.name == "shared")
+        .expect("shared skill must be reported");
+    assert_eq!(shared.locations.len(), 2);
+
+    let clients: Vec<Option<ClientKind>> = shared.locations.iter().map(|loc| loc.client).collect();
+    assert!(
+        clients.contains(&Some(ClientKind::ClaudeCode)),
+        "one location must come from claude-skills"
+    );
+    assert!(
+        clients.contains(&None),
+        "one location must come from agents-skills (shared, no owner)"
+    );
+}
+
+/// domain-model spec, "Location Client Has Referential Integrity": over
+/// the full `complete` fixture report, every location's `client` equals
+/// the `client` of the `SearchRoot` that produced it.
+#[test]
+fn every_location_client_matches_its_root_client() {
+    let mut home = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    home.push("tests");
+    home.push("fixtures");
+    home.push("scan-orchestrator");
+    home.push("complete");
+
+    let skills = vertice_core::skills::scan(&home);
+    let agents = vertice_core::agents::scan(&home);
+    let opencode_agents = vertice_core::opencode_agents::scan(&home);
+    let codex_agents = vertice_core::codex_agents::scan(&home);
+    let claude_mcp = vertice_core::mcp_claude::scan(&home);
+    let opencode_mcp = vertice_core::mcp_opencode::scan(&home);
+    let codex_mcp = vertice_core::mcp_codex::scan(&home);
+
+    let mut roots: Vec<SearchRoot> = Vec::new();
+    roots.extend(skills.roots);
+    roots.extend(agents.roots);
+    roots.extend(opencode_agents.roots);
+    roots.extend(codex_agents.roots);
+    roots.extend(claude_mcp.roots);
+    roots.extend(opencode_mcp.roots);
+    roots.extend(codex_mcp.roots);
+
+    let mut components: Vec<Component> = Vec::new();
+    components.extend(skills.components);
+    components.extend(agents.components);
+    components.extend(opencode_agents.components);
+    components.extend(codex_agents.components);
+    components.extend(claude_mcp.components);
+    components.extend(opencode_mcp.components);
+    components.extend(codex_mcp.components);
+    let components = vertice_core::consolidate::consolidate(components);
+
+    let root_client_map: std::collections::HashMap<&str, Option<ClientKind>> = roots
+        .iter()
+        .map(|root| (root.id.0.as_str(), root.client))
+        .collect();
+
+    for component in &components {
+        for location in &component.locations {
+            let root_client = root_client_map
+                .get(location.root.0.as_str())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "location root {} not found in roots_scanned",
+                        location.root.0
+                    )
+                });
+            assert_eq!(
+                location.client, *root_client,
+                "location client must match its root's client for root {}",
+                location.root.0
+            );
+        }
+    }
 }
