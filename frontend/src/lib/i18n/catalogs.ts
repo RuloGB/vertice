@@ -76,6 +76,8 @@ export type Catalog = {
     saved: string;
     deleted: string;
     deleteConfirm: string;
+    deleteConfirmTitle: string;
+    deleteConfirmBody: string;
     copySuccess: string;
     copyFailed: string;
     contextPrefix: string;
@@ -180,6 +182,14 @@ export type Catalog = {
     noRootsConfigured: string;
     internalReason: string;
     unexpected: string;
+  };
+  toast: {
+    dismiss: string;
+    regionLabel: string;
+  };
+  confirm: {
+    cancel: string;
+    confirm: string;
   };
   location: {
     noPath: string;
@@ -322,6 +332,8 @@ export const catalogs = {
       saved: "Prompt saved",
       deleted: "Prompt deleted",
       deleteConfirm: "Delete this prompt?",
+      deleteConfirmTitle: "Delete prompt",
+      deleteConfirmBody: "This action cannot be undone. The prompt will be permanently removed from your library.",
       copySuccess: "Prompt copied",
       copyFailed: "Could not copy prompt",
       contextPrefix: "Best for: {context}",
@@ -427,6 +439,14 @@ export const catalogs = {
       noRootsConfigured: "No search roots are configured.",
       internalReason: "Internal scan failure: {reason}",
       unexpected: "The scan failed unexpectedly.",
+    },
+    toast: {
+      dismiss: "Dismiss",
+      regionLabel: "Notifications",
+    },
+    confirm: {
+      cancel: "Cancel",
+      confirm: "Confirm",
     },
     location: {
       noPath: "(no path on disk)",
@@ -565,6 +585,8 @@ export const catalogs = {
       saved: "Prompt guardado",
       deleted: "Prompt eliminado",
       deleteConfirm: "¿Eliminar este prompt?",
+      deleteConfirmTitle: "Eliminar prompt",
+      deleteConfirmBody: "Esta acción no se puede deshacer. El prompt se eliminará permanentemente de tu biblioteca.",
       copySuccess: "Prompt copiado",
       copyFailed: "No se pudo copiar el prompt",
       contextPrefix: "Recomendado para: {context}",
@@ -671,6 +693,14 @@ export const catalogs = {
       noRootsConfigured: "No hay raíces de búsqueda configuradas.",
       internalReason: "Fallo interno del escaneo: {reason}",
       unexpected: "El escaneo falló inesperadamente.",
+    },
+    toast: {
+      dismiss: "Cerrar",
+      regionLabel: "Notificaciones",
+    },
+    confirm: {
+      cancel: "Cancelar",
+      confirm: "Confirmar",
     },
     location: {
       noPath: "(sin ruta en disco)",

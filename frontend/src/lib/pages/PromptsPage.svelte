@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { Prompt } from "../../bindings/Prompt";
   import type { PromptDraft } from "../../bindings/PromptDraft";
+  import ConfirmDialog from "../ConfirmDialog.svelte";
   import { useI18n } from "../i18n/locale.svelte";
   import { createPrompt, deletePrompt, fetchPrompts, isPromptError, updatePrompt } from "../prompts";
   import { filterPrompts } from "../promptSearch";
+  import * as toast from "../toast.svelte";
 
   type LoadStatus = "loading" | "ready" | "failed";
   type RetryableFailure = "load" | "save" | "delete" | null;
@@ -20,9 +22,10 @@
   let tags = $state("");
   let bestForContext = $state("");
   let errors = $state<string[]>([]);
-  let feedback = $state("");
   let saving = $state(false);
   let retryableFailure = $state<RetryableFailure>(null);
+  let deleteDialogOpen = $state(false);
+  let pendingDelete = $state<Prompt | null>(null);
 
   const visiblePrompts = $derived(filterPrompts(prompts, query));
   const PAGE_SIZES = [5, 10, 15] as const;
@@ -61,7 +64,6 @@
 
   async function loadPrompts(): Promise<void> {
     status = "loading";
-    feedback = "";
     try {
       prompts = await fetchPrompts();
       status = "ready";
@@ -79,7 +81,6 @@
     tags = "";
     bestForContext = "";
     errors = [];
-    feedback = "";
     retryableFailure = null;
     formOpen = true;
   }
@@ -91,7 +92,6 @@
     tags = prompt.tags.join(", ");
     bestForContext = prompt.bestForContext ?? "";
     errors = [];
-    feedback = "";
     retryableFailure = null;
     formOpen = true;
   }
@@ -120,7 +120,6 @@
   }
 
   async function savePrompt(): Promise<void> {
-    feedback = "";
     retryableFailure = null;
     if (!validate()) return;
     saving = true;
@@ -128,11 +127,11 @@
       if (editing === null) {
         const created = await createPrompt(draftFromForm());
         prompts = [...prompts, created];
-        feedback = i18n.t("prompts.saved");
+        toast.success(i18n.t("prompts.saved"));
       } else {
         const updated = await updatePrompt({ id: editing.id, ...draftFromForm() });
         prompts = prompts.map((prompt) => (prompt.id === updated.id ? updated : prompt));
-        feedback = i18n.t("prompts.saved");
+        toast.success(i18n.t("prompts.saved"));
       }
       closeForm();
     } catch (error) {
@@ -149,14 +148,26 @@
     }
   }
 
-  async function removePrompt(prompt: Prompt): Promise<void> {
-    if (!window.confirm(i18n.t("prompts.deleteConfirm"))) return;
-    feedback = "";
+  function requestDelete(prompt: Prompt): void {
+    pendingDelete = prompt;
+    deleteDialogOpen = true;
+  }
+
+  function cancelDelete(): void {
+    deleteDialogOpen = false;
+    pendingDelete = null;
+  }
+
+  async function confirmDelete(): Promise<void> {
+    if (pendingDelete === null) return;
+    const target = pendingDelete;
+    deleteDialogOpen = false;
+    pendingDelete = null;
     retryableFailure = null;
     try {
-      await deletePrompt(prompt.id);
-      prompts = prompts.filter((candidate) => candidate.id !== prompt.id);
-      feedback = i18n.t("prompts.deleted");
+      await deletePrompt(target.id);
+      prompts = prompts.filter((candidate) => candidate.id !== target.id);
+      toast.success(i18n.t("prompts.deleted"));
     } catch {
       retryableFailure = "delete";
     }
@@ -165,9 +176,9 @@
   async function copyPrompt(prompt: Prompt): Promise<void> {
     try {
       await navigator.clipboard.writeText(prompt.body);
-      feedback = i18n.t("prompts.copySuccess");
+      toast.success(i18n.t("prompts.copySuccess"));
     } catch {
-      feedback = i18n.t("prompts.copyFailed");
+      toast.error(i18n.t("prompts.copyFailed"));
     }
   }
 </script>
@@ -183,10 +194,6 @@
       {i18n.t("prompts.createAction")}
     </button>
   </div>
-
-  {#if feedback !== ""}
-    <p class="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100" role="status">{feedback}</p>
-  {/if}
 
   {#if status === "failed" || retryableFailure !== null}
     <div class="rounded-2xl border border-red-300/30 bg-red-500/10 p-5 text-red-100" role="alert">
@@ -269,7 +276,7 @@
               <div class="flex shrink-0 flex-wrap gap-2">
                 <button data-testid="copy-prompt" class="min-h-11 rounded-xl border border-white/15 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-mist-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200" type="button" onclick={() => void copyPrompt(prompt)}>{i18n.t("prompts.copyAction")}</button>
                 <button data-testid="edit-prompt" class="min-h-11 rounded-xl border border-white/15 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-mist-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200" type="button" onclick={() => openEditForm(prompt)}>{i18n.t("prompts.editAction")}</button>
-                <button data-testid="delete-prompt" class="min-h-11 rounded-xl border border-red-300/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-100 transition-colors hover:border-red-200/70 hover:bg-red-500/20 hover:text-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-200" type="button" onclick={() => void removePrompt(prompt)}>{i18n.t("prompts.deleteAction")}</button>
+                <button data-testid="delete-prompt" class="min-h-11 rounded-xl border border-red-300/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-100 transition-colors hover:border-red-200/70 hover:bg-red-500/20 hover:text-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-200" type="button" onclick={() => requestDelete(prompt)}>{i18n.t("prompts.deleteAction")}</button>
               </div>
             </div>
           </article>
@@ -317,4 +324,14 @@
       {/if}
     {/if}
   {/if}
+
+  <ConfirmDialog
+    open={deleteDialogOpen}
+    title={i18n.t("prompts.deleteConfirmTitle")}
+    body={i18n.t("prompts.deleteConfirmBody")}
+    confirmLabel={i18n.t("prompts.deleteAction")}
+    cancelLabel={i18n.t("prompts.cancelAction")}
+    onConfirm={() => void confirmDelete()}
+    onCancel={cancelDelete}
+  />
 </section>
