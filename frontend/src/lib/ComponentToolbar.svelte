@@ -5,14 +5,10 @@
 
   let {
     query,
-    reloading = false,
     onQueryChange,
-    onReload,
   }: {
     query: string;
-    reloading?: boolean;
     onQueryChange: (query: string) => void;
-    onReload: () => void;
   } = $props();
 </script>
 
@@ -25,12 +21,4 @@
     oninput={(event) => onQueryChange(event.currentTarget.value)}
     class="min-w-56 flex-1 rounded-control border border-stroke bg-canvas/45 px-3.5 py-2.5 text-sm text-content placeholder:text-content-subtle transition-colors hover:border-stroke-strong focus:border-interactive-hover focus:outline-none"
   />
-  <button
-    type="button"
-    disabled={reloading}
-    onclick={onReload}
-    class="shadow-action rounded-control bg-action px-4 py-2.5 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    {reloading ? i18n.t("toolbar.reloading") : i18n.t("toolbar.reload")}
-  </button>
 </div>

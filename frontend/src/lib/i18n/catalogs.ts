@@ -10,8 +10,10 @@ export type Catalog = {
   nav: Record<RouteId, string>;
   navGroup: {
     overview: string;
-    library: string;
-    data: string;
+    components: string;
+    utilities: string;
+    ai: string;
+    system: string;
   };
   area: Record<RouteId, string>;
   home: {
@@ -90,6 +92,8 @@ export type Catalog = {
     paginationLast: string;
   };
   subscriptions: {
+    badge: string;
+    intro: string;
     loading: string;
     createAction: string;
     createTitle: string;
@@ -149,6 +153,8 @@ export type Catalog = {
     mcp: string;
   };
   components: {
+    badge: string;
+    intro: string;
     loading: string;
     empty: string;
     duplicate: string;
@@ -167,6 +173,8 @@ export type Catalog = {
     recoverableIssues: string;
   };
   scan: {
+    badge: string;
+    intro: string;
     verdictHealthy: string;
     verdictIssues: string;
     rootsTitle: string;
@@ -183,6 +191,7 @@ export type Catalog = {
     logPathHint: string;
   };
   clients: {
+    badge: string;
     intro: string;
     owner: string;
     empty: string;
@@ -287,8 +296,10 @@ export const catalogs = {
     },
     navGroup: {
       overview: "Overview",
-      library: "Library",
-      data: "Data",
+      components: "Components",
+      utilities: "Utilities",
+      ai: "AI",
+      system: "System",
     },
     area: {
       home: "Home",
@@ -329,7 +340,7 @@ export const catalogs = {
       body: "This section has no backend source wired up. It will fill in once its scanner lands.",
     },
     prompts: {
-      badge: "Local library",
+      badge: "Utilities",
       title: "Prompts",
       intro: "Create reusable prompts, find them locally, and copy the body when you need it.",
       loading: "Loading prompts...",
@@ -377,6 +388,8 @@ export const catalogs = {
       paginationLast: "Go to last page",
     },
     subscriptions: {
+      badge: "AI",
+      intro: "Keep track of your AI subscriptions, their total monthly cost, and renewal dates. Vertice does not connect to providers or collect data.",
       loading: "Loading subscriptions...",
       createAction: "New subscription",
       createTitle: "New subscription",
@@ -392,7 +405,7 @@ export const catalogs = {
       renewalDayLabel: "Renewal day",
       renewalMonthLabel: "Renewal month",
       emptyTitle: "No subscriptions yet",
-      emptyBody: "Track your AI subscriptions here.",
+      emptyBody: "Create your first subscription to start tracking its cost and renewal date.",
       failureTitle: "Could not load subscriptions",
       recoveryTitle: "Subscription storage needs manual recovery",
       recoveryBody: "The subscription file is invalid or unsupported. Vertice does not have permission to repair this file, and retrying will not change it.",
@@ -408,7 +421,7 @@ export const catalogs = {
       providerRequired: "Provider is required",
       planRequired: "Plan is required",
       amountInvalid: "Amount must be greater than zero",
-      dayInvalid: "Renewal day must be between 1 and 28",
+      dayInvalid: "Renewal day must be between 1 and 31",
       monthInvalid: "Renewal month is required for yearly subscriptions",
       invalidInput: "Subscription details are invalid",
       deleteConfirmTitle: "Delete subscription",
@@ -436,6 +449,8 @@ export const catalogs = {
       mcp: "MCP",
     },
     components: {
+      badge: "Components",
+      intro: "Browse the AI components Vertice found on this machine.",
       loading: "Scanning for installed components...",
       empty: "No components to show.",
       duplicate: "Duplicate",
@@ -454,6 +469,8 @@ export const catalogs = {
       recoverableIssues: "Recoverable scan issues",
     },
     scan: {
+      badge: "System",
+      intro: "Review the latest scan, detected clients, and any issues that need attention.",
       verdictHealthy: "Scan completed with no incidents.",
       verdictIssues: "Scan completed with {count} incidents.",
       rootsTitle: "Scan roots",
@@ -470,6 +487,7 @@ export const catalogs = {
       logPathHint: "Send this file to support when reporting an issue.",
     },
     clients: {
+      badge: "AI",
       intro: "AI clients detected by Vertice on this machine.",
       owner: "Owned by {owner}",
       version: "Version",
@@ -571,8 +589,10 @@ export const catalogs = {
     },
     navGroup: {
       overview: "General",
-      library: "Biblioteca",
-      data: "Datos",
+      components: "Componentes",
+      utilities: "Utilidades",
+      ai: "IA",
+      system: "Sistema",
     },
     area: {
       home: "Inicio",
@@ -613,7 +633,7 @@ export const catalogs = {
       body: "Esta sección aún no tiene una fuente en el backend. Se rellenará cuando llegue su escáner.",
     },
     prompts: {
-      badge: "Biblioteca local",
+      badge: "Utilidades",
       title: "Prompts",
       intro: "Crea prompts reutilizables, búscalos en local y copia el cuerpo cuando lo necesites.",
       loading: "Cargando prompts...",
@@ -661,6 +681,8 @@ export const catalogs = {
       paginationLast: "Ir a la última página",
     },
     subscriptions: {
+      badge: "IA",
+      intro: "Lleva el control de tus suscripciones de IA, su coste mensual total y sus fechas de renovación. Vertice no se conecta con proveedores ni recopila datos.",
       loading: "Cargando suscripciones...",
       createAction: "Nueva suscripción",
       createTitle: "Nueva suscripción",
@@ -676,7 +698,7 @@ export const catalogs = {
       renewalDayLabel: "Día de renovación",
       renewalMonthLabel: "Mes de renovación",
       emptyTitle: "Aún no hay suscripciones",
-      emptyBody: "Gestiona aquí tus suscripciones de IA.",
+      emptyBody: "Crea tu primera suscripción para controlar su coste y fecha de renovación.",
       failureTitle: "No se pudieron cargar las suscripciones",
       recoveryTitle: "El almacenamiento de suscripciones necesita recuperación manual",
       recoveryBody: "El archivo de suscripciones no es válido o no es compatible. Vertice no tiene permiso para reparar este archivo y reintentar no lo cambiará.",
@@ -692,7 +714,7 @@ export const catalogs = {
       providerRequired: "El proveedor es obligatorio",
       planRequired: "El plan es obligatorio",
       amountInvalid: "El importe debe ser mayor que cero",
-      dayInvalid: "El día de renovación debe estar entre 1 y 28",
+      dayInvalid: "El día de renovación debe estar entre 1 y 31",
       monthInvalid: "El mes de renovación es obligatorio para suscripciones anuales",
       invalidInput: "Los datos de la suscripción no son válidos",
       deleteConfirmTitle: "Eliminar suscripción",
@@ -720,6 +742,8 @@ export const catalogs = {
       mcp: "MCP",
     },
     components: {
+      badge: "Componentes",
+      intro: "Explora los componentes de IA que Vertice encontró en este equipo.",
       loading: "Escaneando componentes instalados...",
       empty: "No hay componentes para mostrar.",
       duplicate: "Duplicado",
@@ -738,6 +762,8 @@ export const catalogs = {
       recoverableIssues: "Problemas recuperables del escaneo",
     },
     scan: {
+      badge: "Sistema",
+      intro: "Revisa el último escaneo, los clientes detectados y cualquier incidencia que requiera atención.",
       verdictHealthy: "El escaneo terminó sin incidencias.",
       verdictIssues: "El escaneo terminó con {count} incidencias.",
       rootsTitle: "Raíces de escaneo",
@@ -754,6 +780,7 @@ export const catalogs = {
       logPathHint: "Envía este archivo a soporte al reportar un problema.",
     },
     clients: {
+      badge: "IA",
       intro: "Clientes de IA detectados por Vertice en este equipo.",
       owner: "Propiedad de {owner}",
       version: "Versión",

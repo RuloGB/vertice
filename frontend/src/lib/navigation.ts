@@ -21,7 +21,7 @@ export type RouteId = (typeof ROUTE_IDS)[number];
 /** Landing page shown on startup. */
 export const DEFAULT_ROUTE: RouteId = "home";
 
-export type NavGroupId = "overview" | "library" | "data";
+export type NavGroupId = "overview" | "components" | "utilities" | "ai" | "system";
 
 export interface NavGroup {
   readonly id: NavGroupId;
@@ -31,8 +31,10 @@ export interface NavGroup {
 /** Sidebar sections, in render order. Every route belongs to exactly one group. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   { id: "overview", routes: ["home"] },
-  { id: "library", routes: ["agents", "skills", "clients", "mcp", "prompts"] },
-  { id: "data", routes: ["scan", "subscriptions"] },
+  { id: "components", routes: ["agents", "skills", "mcp"] },
+  { id: "ai", routes: ["clients", "subscriptions"] },
+  { id: "utilities", routes: ["prompts"] },
+  { id: "system", routes: ["scan"] },
 ];
 
 /**

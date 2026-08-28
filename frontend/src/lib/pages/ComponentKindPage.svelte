@@ -76,15 +76,27 @@
   }
 </script>
 
-<section class="flex flex-col gap-6">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold tracking-tight text-content">
-      {i18n.t(areaLabelKey(KIND_ROUTE[kind]))}
-    </h1>
-    <IncidentIndicator {incidents} onclick={() => onNavigate("scan")} />
-  </div>
+<section class="space-y-6" aria-labelledby="component-kind-title">
+  <header class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20 md:flex-row md:items-end md:justify-between">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-200">{i18n.t("components.badge")}</p>
+      <h1 id="component-kind-title" class="text-3xl font-semibold text-white">{i18n.t(areaLabelKey(KIND_ROUTE[kind]))}</h1>
+      <p class="max-w-2xl text-sm leading-6 text-mist-300">{i18n.t("components.intro")}</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        disabled={status === "loading"}
+        onclick={onReload}
+        class="shadow-action rounded-control bg-action px-5 py-3 text-sm font-bold text-canvas transition-[background,transform] hover:bg-action/85 active:scale-[.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {status === "loading" ? i18n.t("toolbar.reloading") : i18n.t("toolbar.reload")}
+      </button>
+      <IncidentIndicator {incidents} onclick={() => onNavigate("scan")} />
+    </div>
+  </header>
 
-  <ComponentToolbar {query} reloading={status === "loading"} {onQueryChange} {onReload} />
+  <ComponentToolbar {query} {onQueryChange} />
 
   {#if status === "idle" || status === "loading"}
     <div

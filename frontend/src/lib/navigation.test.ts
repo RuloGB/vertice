@@ -22,6 +22,16 @@ describe("navigation model", () => {
     expect(new Set(grouped).size).toBe(grouped.length);
   });
 
+  it("organizes routes by their product area", () => {
+    expect(NAV_GROUPS).toEqual([
+      { id: "overview", routes: ["home"] },
+      { id: "components", routes: ["agents", "skills", "mcp"] },
+      { id: "ai", routes: ["clients", "subscriptions"] },
+      { id: "utilities", routes: ["prompts"] },
+      { id: "system", routes: ["scan"] },
+    ]);
+  });
+
   it("narrows only known route identifiers", () => {
     expect(isRouteId("scan")).toBe(true);
     expect(isRouteId("inventory")).toBe(false);

@@ -123,7 +123,7 @@ impl JsonSubscriptionRepository {
             .truncate(false)
             .open(lock_path)
             .map_err(store_error)?;
-        lock.try_lock_exclusive().map_err(store_error)?;
+        lock.lock_exclusive().map_err(store_error)?;
         operation()
     }
 
@@ -253,7 +253,7 @@ fn normalize_draft(draft: SubscriptionDraft) -> Result<NormalizedDraft, Subscrip
     if !draft.amount.is_finite() || draft.amount <= 0.0 {
         return Err(invalid("amount"));
     }
-    if !(1..=28).contains(&draft.renewal_day) {
+    if !(1..=31).contains(&draft.renewal_day) {
         return Err(invalid("renewalDay"));
     }
     match (draft.cycle, draft.renewal_month) {
@@ -496,6 +496,21 @@ mod tests {
         assert_eq!(fs::read(file).unwrap(), before);
         assert_eq!(repo.list().unwrap(), vec![existing]);
     }
+
+    #[test]
+    fn accepts_the_last_day_of_the_month_as_a_renewal_day() {
+        let path = dir("last-day");
+        let mut repo = JsonSubscriptionRepository::new(path);
+
+        let created = repo
+            .create(SubscriptionDraft {
+                renewal_day: 31,
+                ..draft()
+            })
+            .unwrap();
+
+        assert_eq!(created.renewal_day, 31);
+    }
     #[test]
     fn corrupt_or_semantically_invalid_json_fails_closed_without_rewrite() {
         let path = dir("corrupt");
@@ -563,13 +578,7 @@ mod tests {
             handles.push(thread::spawn(move || {
                 let mut independent_repository = JsonSubscriptionRepository::new(path);
                 barrier.wait();
-                for _ in 0..100 {
-                    if independent_repository.create(draft()).is_ok() {
-                        return;
-                    }
-                    thread::yield_now();
-                }
-                panic!("a bounded retry must acquire the subscription store lock");
+                independent_repository.create(draft()).unwrap();
             }));
         }
         for handle in handles {

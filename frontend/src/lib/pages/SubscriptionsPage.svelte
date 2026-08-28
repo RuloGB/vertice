@@ -42,7 +42,7 @@
   let amount = $state("");
   let currency = $state<Currency>("EUR");
   let cycle = $state<BillingCycle>("monthly");
-  let renewalDay = $state("1");
+  let renewalDay = $state(1);
   let renewalMonth = $state("");
   let errors = $state<string[]>([]);
   let saving = $state(false);
@@ -88,7 +88,7 @@
     amount = subscription?.amount.toString() ?? "";
     currency = subscription?.currency ?? "EUR";
     cycle = subscription?.cycle ?? "monthly";
-    renewalDay = subscription?.renewalDay.toString() ?? "1";
+    renewalDay = subscription?.renewalDay ?? 1;
     renewalMonth = subscription?.renewalMonth?.toString() ?? "";
     errors = [];
     if (page.kind === "ready") page = { ...page, outcome: { kind: "none" } };
@@ -113,7 +113,7 @@
       amount: Number(amount),
       currency,
       cycle,
-      renewalDay: Number(renewalDay),
+      renewalDay,
       renewalMonth: cycle === "yearly" && renewalMonth !== "" ? Number(renewalMonth) : null,
     };
   }
@@ -123,7 +123,7 @@
     if (provider.trim() === "") nextErrors.push(i18n.t("subscriptions.providerRequired"));
     if (plan.trim() === "") nextErrors.push(i18n.t("subscriptions.planRequired"));
     if (!(Number(amount) > 0)) nextErrors.push(i18n.t("subscriptions.amountInvalid"));
-    if (!(Number(renewalDay) >= 1 && Number(renewalDay) <= MAX_RENEWAL_DAY)) nextErrors.push(i18n.t("subscriptions.dayInvalid"));
+    if (!(renewalDay >= 1 && renewalDay <= MAX_RENEWAL_DAY)) nextErrors.push(i18n.t("subscriptions.dayInvalid"));
     if (cycle === "yearly" && !(Number(renewalMonth) >= 1 && Number(renewalMonth) <= MONTHS_PER_YEAR)) {
       nextErrors.push(i18n.t("subscriptions.monthInvalid"));
     }
@@ -223,15 +223,12 @@
   }
 </script>
 
-<section class="flex flex-col gap-6" aria-labelledby="subscriptions-title">
-  <header class="flex flex-wrap items-end justify-between gap-4 border-b border-stroke pb-5">
-    <div class="flex flex-col gap-2">
-      <div class="flex items-center gap-3">
-        <h1 id="subscriptions-title" class="text-2xl font-semibold tracking-tight text-content">
-          {i18n.t("area.subscriptions")}
-        </h1>
-      </div>
-      <p class="text-sm text-content-muted">{i18n.t("subscriptions.emptyBody")}</p>
+<section class="space-y-6" aria-labelledby="subscriptions-title">
+  <header class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20 md:flex-row md:items-end md:justify-between">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-200">{i18n.t("subscriptions.badge")}</p>
+      <h1 id="subscriptions-title" class="text-3xl font-semibold text-white">{i18n.t("area.subscriptions")}</h1>
+      <p class="max-w-2xl text-sm leading-6 text-mist-300">{i18n.t("subscriptions.intro")}</p>
     </div>
     <button
       type="button"
@@ -315,9 +312,7 @@
         <div class="flex items-start justify-between gap-4 border-b border-stroke pb-4">
           <div>
             <h2 id="subscription-form-title" class="text-xl font-semibold text-content">{formTitle}</h2>
-            <p class="mt-1 text-sm text-content-subtle">{i18n.t("subscriptions.emptyBody")}</p>
           </div>
-          <button type="button" class="rounded-control px-3 py-2 text-sm font-semibold text-content-muted transition-colors hover:bg-canvas/50 hover:text-content focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action" onclick={closeForm}>{i18n.t("subscriptions.cancelAction")}</button>
         </div>
         {#if errors.length > 0}
           <div role="alert" class="mt-5 rounded-control border border-danger/45 bg-danger/10 px-4 py-3 text-sm text-danger">

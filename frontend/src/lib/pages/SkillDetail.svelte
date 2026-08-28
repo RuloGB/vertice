@@ -4,6 +4,7 @@
   import { isDuplicate } from "../inventory";
   import LocationList from "../LocationList.svelte";
   import { CLIENT_ICON, CLIENT_LABEL, groupLocationsByClient } from "../clientGroups";
+  import ComponentDetailHero from "../ComponentDetailHero.svelte";
 
   const i18n = useI18n();
 
@@ -14,7 +15,7 @@
   const clientGroups = $derived(groupLocationsByClient(component.locations));
 </script>
 
-<section class="flex flex-col gap-6">
+<section class="space-y-6">
   <button
     type="button"
     onclick={onBack}
@@ -24,9 +25,10 @@
     {i18n.t("skillDetail.back")}
   </button>
 
+  <ComponentDetailHero {component} />
+
   <article class="flex flex-col gap-6 rounded-panel border border-stroke bg-surface p-6 shadow-panel">
-    <header class="flex flex-wrap items-center gap-3">
-      <h1 class="text-2xl font-semibold tracking-tight text-content">{component.name}</h1>
+    <div class="flex flex-wrap items-center gap-3">
       {#if embedded}
         <span
           data-testid="embedded-status"
@@ -43,7 +45,7 @@
           {i18n.t("components.duplicate")}
         </span>
       {/if}
-    </header>
+    </div>
 
     <div class="flex flex-col gap-2">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-content-subtle">

@@ -9,7 +9,7 @@ export type { SubscriptionDraft } from "../bindings/SubscriptionDraft";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 export const MONTHS_PER_YEAR = 12;
-export const MAX_RENEWAL_DAY = 28;
+export const MAX_RENEWAL_DAY = 31;
 
 export function fetchSubscriptions(): Promise<Subscription[]> {
   return invoke("list_subscriptions");
