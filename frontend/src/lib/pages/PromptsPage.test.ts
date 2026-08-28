@@ -106,6 +106,7 @@ function confirmDialogConfirmButton(): HTMLButtonElement {
 
 beforeEach(() => {
   document.body.innerHTML = "";
+  localStorage.clear();
   vi.clearAllMocks();
   clearAll();
   Object.assign(navigator, {
@@ -116,6 +117,24 @@ beforeEach(() => {
 });
 
 describe("PromptsPage", () => {
+  it("restores the selected page size after remounting", async () => {
+    mockedFetchPrompts.mockResolvedValue(promptSet(12));
+
+    const first = mount(PromptsPage, { target: document.body });
+    await flush();
+    const initialControl = selectByLabel("Prompts per page");
+    initialControl.value = "15";
+    initialControl.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    unmount(first);
+
+    const second = mount(PromptsPage, { target: document.body });
+    await flush();
+
+    expect(selectByLabel("Prompts per page").value).toBe("15");
+    unmount(second);
+  });
+
   it("shows loading then an empty state with a create action", async () => {
     mockedFetchPrompts.mockResolvedValue([]);
 
