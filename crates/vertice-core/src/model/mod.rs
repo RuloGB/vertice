@@ -48,3 +48,8 @@ pub use prompt::{Prompt, PromptDraft, PromptError, PromptUpdate};
 pub use report::{IssueSeverity, ScanIssue, ScanReport};
 pub use settings::UserSettings;
 pub use slot::ClientInstallSlot;
+
+mod subscription;
+pub use subscription::{
+    BillingCycle, Currency, Subscription, SubscriptionDraft, SubscriptionError, SubscriptionUpdate,
+};

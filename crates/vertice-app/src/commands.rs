@@ -11,7 +11,8 @@ use std::sync::{Arc, Mutex};
 
 use vertice_core::model::{
     ClientPresenceStatus, Freshness, FreshnessReport, Prompt, PromptDraft, PromptError,
-    PromptUpdate, ScanError, ScanReport, SearchRootStatus, UserSettings,
+    PromptUpdate, ScanError, ScanReport, SearchRootStatus, Subscription, SubscriptionDraft,
+    SubscriptionError, SubscriptionUpdate, UserSettings,
 };
 
 /// Run the core scan off the main thread, logging its start, end, and
@@ -321,6 +322,156 @@ fn log_prompt_result_with<T>(
             log::Level::Warn,
             &format!("{operation} failed: prompt store unavailable: {reason}"),
         );
+    }
+}
+pub(crate) type SubscriptionRepositoryState =
+    Arc<Mutex<crate::subscriptions::store::JsonSubscriptionRepository>>;
+pub(crate) fn subscription_repository_state(app_data_dir: PathBuf) -> SubscriptionRepositoryState {
+    Arc::new(Mutex::new(
+        crate::subscriptions::store::JsonSubscriptionRepository::new(app_data_dir),
+    ))
+}
+#[cfg(test)]
+pub(crate) fn subscription_repository_state_with_forced_durability_warning(
+    app_data_dir: PathBuf,
+) -> SubscriptionRepositoryState {
+    Arc::new(Mutex::new(
+        crate::subscriptions::store::JsonSubscriptionRepository::new_with_forced_durability_warning(
+            app_data_dir,
+        ),
+    ))
+}
+
+#[tauri::command]
+pub async fn list_subscriptions(
+    state: tauri::State<'_, SubscriptionRepositoryState>,
+) -> Result<Vec<Subscription>, SubscriptionError> {
+    list_subscriptions_from_state(state.inner().clone()).await
+}
+#[tauri::command]
+pub async fn create_subscription(
+    state: tauri::State<'_, SubscriptionRepositoryState>,
+    draft: SubscriptionDraft,
+) -> Result<Subscription, SubscriptionError> {
+    create_subscription_from_state(state.inner().clone(), draft).await
+}
+#[tauri::command]
+pub async fn update_subscription(
+    state: tauri::State<'_, SubscriptionRepositoryState>,
+    update: SubscriptionUpdate,
+) -> Result<Subscription, SubscriptionError> {
+    update_subscription_from_state(state.inner().clone(), update).await
+}
+#[tauri::command]
+pub async fn delete_subscription(
+    state: tauri::State<'_, SubscriptionRepositoryState>,
+    id: String,
+) -> Result<(), SubscriptionError> {
+    delete_subscription_from_state(state.inner().clone(), id).await
+}
+
+async fn list_subscriptions_from_state(
+    state: SubscriptionRepositoryState,
+) -> Result<Vec<Subscription>, SubscriptionError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::subscriptions::store::SubscriptionRepository;
+        state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .list()
+    })
+    .await
+    .map_err(subscription_join_error)
+    .and_then(|result| result);
+    log_subscription_result("list_subscriptions", &result);
+    result
+}
+async fn create_subscription_from_state(
+    state: SubscriptionRepositoryState,
+    draft: SubscriptionDraft,
+) -> Result<Subscription, SubscriptionError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::subscriptions::store::SubscriptionRepository;
+        state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .create(draft)
+    })
+    .await
+    .map_err(subscription_join_error)
+    .and_then(|result| result);
+    log_subscription_result("create_subscription", &result);
+    result
+}
+async fn update_subscription_from_state(
+    state: SubscriptionRepositoryState,
+    update: SubscriptionUpdate,
+) -> Result<Subscription, SubscriptionError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::subscriptions::store::SubscriptionRepository;
+        state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .update(update)
+    })
+    .await
+    .map_err(subscription_join_error)
+    .and_then(|result| result);
+    log_subscription_result("update_subscription", &result);
+    result
+}
+async fn delete_subscription_from_state(
+    state: SubscriptionRepositoryState,
+    id: String,
+) -> Result<(), SubscriptionError> {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        use crate::subscriptions::store::SubscriptionRepository;
+        state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .delete(&id)
+    })
+    .await
+    .map_err(subscription_join_error)
+    .and_then(|result| result);
+    log_subscription_result("delete_subscription", &result);
+    result
+}
+fn subscription_join_error(join: impl Display) -> SubscriptionError {
+    SubscriptionError::StoreUnavailable {
+        reason: join.to_string(),
+    }
+}
+fn log_subscription_result<T>(operation: &str, result: &Result<T, SubscriptionError>) {
+    log_subscription_result_with(operation, result, |level, message| {
+        log::log!(level, "{message}")
+    });
+}
+fn log_subscription_result_with<T>(
+    operation: &str,
+    result: &Result<T, SubscriptionError>,
+    mut emit: impl FnMut(log::Level, &str),
+) {
+    let Some((kind, reason)) = result
+        .as_ref()
+        .err()
+        .and_then(subscription_store_diagnostic)
+    else {
+        return;
+    };
+    emit(
+        log::Level::Warn,
+        &format!("{operation} failed: subscription store {kind}: {reason}"),
+    );
+}
+fn subscription_store_diagnostic(error: &SubscriptionError) -> Option<(&'static str, &str)> {
+    match error {
+        SubscriptionError::StoreCorrupt { reason } => Some(("corrupt", reason)),
+        SubscriptionError::StoreUnavailable { reason } => Some(("unavailable", reason)),
+        SubscriptionError::CommittedWithDurabilityWarning { reason } => {
+            Some(("committed with durability warning", reason))
+        }
+        SubscriptionError::InvalidInput { .. } | SubscriptionError::NotFound { .. } => None,
     }
 }
 /// log_file_path command: returns the absolute path of the application
@@ -987,5 +1138,192 @@ mod tests {
         let read_back = tauri::async_runtime::block_on(super::read_user_settings(app_data_dir))
             .expect("reading settings back must succeed");
         assert_eq!(read_back, written);
+    }
+}
+
+#[cfg(test)]
+mod subscription_command_tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use vertice_core::model::{
+        BillingCycle, Currency, SubscriptionDraft, SubscriptionError, SubscriptionUpdate,
+    };
+
+    use crate::subscriptions::store::{JsonSubscriptionRepository, SubscriptionRepository};
+
+    static NEXT_TEMP_DIR: AtomicU64 = AtomicU64::new(0);
+
+    fn temp_dir() -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "vertice-subscription-command-tests-{}-{}",
+            std::process::id(),
+            NEXT_TEMP_DIR.fetch_add(1, Ordering::Relaxed),
+        ));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    fn draft() -> SubscriptionDraft {
+        SubscriptionDraft {
+            provider: "OpenAI".into(),
+            plan: "Plus".into(),
+            amount: 20.0,
+            currency: Currency::Usd,
+            cycle: BillingCycle::Monthly,
+            renewal_day: 12,
+            renewal_month: None,
+        }
+    }
+
+    #[test]
+    fn subscription_command_helpers_preserve_dtos_and_typed_errors_through_spawn_blocking() {
+        let state = super::subscription_repository_state(temp_dir());
+        let created = tauri::async_runtime::block_on(super::create_subscription_from_state(
+            state.clone(),
+            draft(),
+        ))
+        .unwrap();
+        assert!(created.id.starts_with("sub-"));
+
+        let listed =
+            tauri::async_runtime::block_on(super::list_subscriptions_from_state(state.clone()))
+                .unwrap();
+        assert_eq!(listed, vec![created.clone()]);
+
+        let invalid = tauri::async_runtime::block_on(super::create_subscription_from_state(
+            state.clone(),
+            SubscriptionDraft {
+                amount: 0.0,
+                ..draft()
+            },
+        ));
+        assert_eq!(
+            invalid,
+            Err(SubscriptionError::InvalidInput {
+                field: "amount".into()
+            })
+        );
+
+        let missing = tauri::async_runtime::block_on(super::update_subscription_from_state(
+            state.clone(),
+            SubscriptionUpdate {
+                id: "sub-missing".into(),
+                ..SubscriptionUpdate {
+                    id: created.id.clone(),
+                    provider: "OpenAI".into(),
+                    plan: "Team".into(),
+                    amount: 30.0,
+                    currency: Currency::Usd,
+                    cycle: BillingCycle::Monthly,
+                    renewal_day: 12,
+                    renewal_month: None,
+                }
+            },
+        ));
+        assert_eq!(
+            missing,
+            Err(SubscriptionError::NotFound {
+                id: "sub-missing".into()
+            })
+        );
+
+        tauri::async_runtime::block_on(super::delete_subscription_from_state(
+            state.clone(),
+            created.id.clone(),
+        ))
+        .unwrap();
+        assert!(
+            tauri::async_runtime::block_on(super::list_subscriptions_from_state(state))
+                .unwrap()
+                .is_empty()
+        );
+    }
+    #[test]
+    fn subscription_storage_failures_emit_typed_warnings_at_command_boundary() {
+        let cases = [
+            (
+                SubscriptionError::StoreCorrupt {
+                    reason: "bad bytes".into(),
+                },
+                "corrupt",
+                "bad bytes",
+                "list_subscriptions failed: subscription store corrupt: bad bytes",
+            ),
+            (
+                SubscriptionError::StoreUnavailable {
+                    reason: "disk failed".into(),
+                },
+                "unavailable",
+                "disk failed",
+                "list_subscriptions failed: subscription store unavailable: disk failed",
+            ),
+            (
+                SubscriptionError::CommittedWithDurabilityWarning {
+                    reason: "directory sync failed".into(),
+                },
+                "committed with durability warning",
+                "directory sync failed",
+                "list_subscriptions failed: subscription store committed with durability warning: directory sync failed",
+            ),
+        ];
+        for (error, kind, reason, expected_message) in cases {
+            let result: Result<(), SubscriptionError> = Err(error);
+            let mut messages = Vec::new();
+            super::log_subscription_result_with("list_subscriptions", &result, |level, message| {
+                messages.push((level, message.to_string()))
+            });
+            assert_eq!(messages.len(), 1);
+            assert_eq!(messages[0].0, log::Level::Warn);
+            assert_eq!(messages[0].1, expected_message);
+            assert_eq!(
+                super::subscription_store_diagnostic(result.as_ref().unwrap_err()),
+                Some((kind, reason))
+            );
+        }
+    }
+
+    #[test]
+    fn subscription_command_helpers_preserve_storage_errors_through_spawn_blocking() {
+        let corrupt_dir = temp_dir();
+        fs::write(corrupt_dir.join("subscriptions.json"), "not json").unwrap();
+        let expected_corrupt = JsonSubscriptionRepository::new(corrupt_dir.clone()).list();
+        let corrupt = tauri::async_runtime::block_on(super::list_subscriptions_from_state(
+            super::subscription_repository_state(corrupt_dir),
+        ));
+        assert_eq!(corrupt, expected_corrupt);
+        assert!(matches!(
+            corrupt,
+            Err(SubscriptionError::StoreCorrupt { .. })
+        ));
+
+        let unavailable_dir = temp_dir().join("not-a-directory");
+        fs::write(&unavailable_dir, "file blocks store directory").unwrap();
+        let expected_unavailable = JsonSubscriptionRepository::new(unavailable_dir.clone()).list();
+        let unavailable = tauri::async_runtime::block_on(super::list_subscriptions_from_state(
+            super::subscription_repository_state(unavailable_dir),
+        ));
+        assert_eq!(unavailable, expected_unavailable);
+        assert!(matches!(
+            unavailable,
+            Err(SubscriptionError::StoreUnavailable { .. })
+        ));
+
+        let warning_dir = temp_dir();
+        let warning_direct =
+            JsonSubscriptionRepository::new_with_forced_durability_warning(warning_dir.clone())
+                .create(draft());
+        let warning = tauri::async_runtime::block_on(super::create_subscription_from_state(
+            super::subscription_repository_state_with_forced_durability_warning(warning_dir),
+            draft(),
+        ));
+        assert_eq!(warning, warning_direct);
+        assert_eq!(
+            warning_direct,
+            Err(SubscriptionError::CommittedWithDurabilityWarning {
+                reason: "forced parent directory sync failure".into(),
+            }),
+        );
     }
 }

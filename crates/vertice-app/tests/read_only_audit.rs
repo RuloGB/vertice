@@ -21,7 +21,7 @@ struct SanctionedWriter {
 
 /// CA-16's complete exception surface. Growing this list is a reviewed
 /// event (`assert_eq!(SANCTIONED_WRITERS.len(), 3)` below).
-const SANCTIONED_WRITERS: [SanctionedWriter; 4] = [
+const SANCTIONED_WRITERS: [SanctionedWriter; 5] = [
     SanctionedWriter {
         module: "freshness/cache.rs",
         allowed: &["fs::write", "create_dir"],
@@ -46,6 +46,19 @@ const SANCTIONED_WRITERS: [SanctionedWriter; 4] = [
         module: "prompts/store.rs",
         allowed: &["fs::write", "create_dir", "fs::rename"],
     },
+    SanctionedWriter {
+        module: "subscriptions/store.rs",
+        allowed: &[
+            "OpenOptions",
+            ".write(",
+            ".write_all(",
+            ".sync_all(",
+            "create_dir",
+            "fs::rename",
+            "remove_file",
+            "File::open",
+        ],
+    },
 ];
 
 #[test]
@@ -64,6 +77,10 @@ fn desktop_shell_exposes_only_scan_commands_and_core_default_capability() {
             "create_prompt",
             "update_prompt",
             "delete_prompt",
+            "list_subscriptions",
+            "create_subscription",
+            "update_subscription",
+            "delete_subscription",
             "log_file_path"
         ]
     );
@@ -182,7 +199,7 @@ fn audit_desktop_shell_read_only_surface() -> ShellAuditReport {
 
     assert_eq!(
         SANCTIONED_WRITERS.len(),
-        4,
+        5,
         "growing the sanctioned-writer list is a reviewed event"
     );
 
@@ -369,43 +386,48 @@ fn collect_rs_files(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
 fn exported_tauri_commands(source: &str) -> Vec<&'static str> {
     let mut commands = Vec::new();
     let mut next_public_async_fn_is_command = false;
-
     for line in source.lines() {
         let trimmed = line.trim();
         if trimmed == "#[tauri::command]" {
             next_public_async_fn_is_command = true;
             continue;
         }
-
         if next_public_async_fn_is_command {
-            if trimmed.starts_with("pub async fn scan(") {
-                commands.push("scan");
-            } else if trimmed.starts_with("pub async fn rescan(") {
-                commands.push("rescan");
-            } else if trimmed.starts_with("pub async fn freshness(") {
-                commands.push("freshness");
-            } else if trimmed.starts_with("pub async fn user_settings(") {
-                commands.push("user_settings");
-            } else if trimmed.starts_with("pub async fn set_user_settings(") {
-                commands.push("set_user_settings");
-            } else if trimmed.starts_with("pub async fn log_file_path(") {
-                commands.push("log_file_path");
-            } else if trimmed.starts_with("pub async fn list_prompts(") {
-                commands.push("list_prompts");
-            } else if trimmed.starts_with("pub async fn create_prompt(") {
-                commands.push("create_prompt");
-            } else if trimmed.starts_with("pub async fn update_prompt(") {
-                commands.push("update_prompt");
-            } else if trimmed.starts_with("pub async fn delete_prompt(") {
-                commands.push("delete_prompt");
+            let command = match () {
+                _ if trimmed.starts_with("pub async fn scan(") => Some("scan"),
+                _ if trimmed.starts_with("pub async fn rescan(") => Some("rescan"),
+                _ if trimmed.starts_with("pub async fn freshness(") => Some("freshness"),
+                _ if trimmed.starts_with("pub async fn user_settings(") => Some("user_settings"),
+                _ if trimmed.starts_with("pub async fn set_user_settings(") => {
+                    Some("set_user_settings")
+                }
+                _ if trimmed.starts_with("pub async fn log_file_path(") => Some("log_file_path"),
+                _ if trimmed.starts_with("pub async fn list_prompts(") => Some("list_prompts"),
+                _ if trimmed.starts_with("pub async fn create_prompt(") => Some("create_prompt"),
+                _ if trimmed.starts_with("pub async fn update_prompt(") => Some("update_prompt"),
+                _ if trimmed.starts_with("pub async fn delete_prompt(") => Some("delete_prompt"),
+                _ if trimmed.starts_with("pub async fn list_subscriptions(") => {
+                    Some("list_subscriptions")
+                }
+                _ if trimmed.starts_with("pub async fn create_subscription(") => {
+                    Some("create_subscription")
+                }
+                _ if trimmed.starts_with("pub async fn update_subscription(") => {
+                    Some("update_subscription")
+                }
+                _ if trimmed.starts_with("pub async fn delete_subscription(") => {
+                    Some("delete_subscription")
+                }
+                _ => None,
+            };
+            if let Some(command) = command {
+                commands.push(command);
             }
             next_public_async_fn_is_command = false;
         }
     }
-
     commands
 }
-
 fn capability_permissions(source: &str) -> Vec<String> {
     let Some(permissions_key_index) = source.find("\"permissions\"") else {
         return Vec::new();
@@ -503,6 +525,48 @@ fn settings_store_allow_list_does_not_extend_beyond_its_own_three_entries() {
 fn an_unsanctioned_module_is_permitted_no_forbidden_pattern() {
     assert!(!is_pattern_permitted(None, "fs::write"));
     assert!(!is_pattern_permitted(None, "create_dir"));
+}
+
+#[test]
+fn subscriptions_store_allow_list_includes_only_atomic_json_and_lock_primitives() {
+    let subscriptions_writer = SANCTIONED_WRITERS
+        .iter()
+        .find(|writer| writer.module == "subscriptions/store.rs")
+        .expect("subscriptions/store.rs must be a sanctioned writer");
+
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "OpenOptions"
+    ));
+    assert!(is_pattern_permitted(Some(subscriptions_writer), ".write("));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        ".write_all("
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "create_dir"
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "fs::rename"
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "remove_file"
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "remove_file"
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        ".sync_all("
+    ));
+    assert!(is_pattern_permitted(
+        Some(subscriptions_writer),
+        "File::open"
+    ));
 }
 
 #[test]

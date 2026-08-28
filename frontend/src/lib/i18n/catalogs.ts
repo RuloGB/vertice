@@ -90,13 +90,44 @@ export type Catalog = {
     paginationLast: string;
   };
   subscriptions: {
-    sampleBadge: string;
-    intro: string;
-    summaryActive: string;
-    summaryMonthly: string;
-    empty: string;
+    loading: string;
+    createAction: string;
+    createTitle: string;
+    editAction: string;
+    editTitle: string;
+    deleteAction: string;
+    saveAction: string;
+    providerLabel: string;
     planLabel: string;
     amountLabel: string;
+    currencyLabel: string;
+    cycleLabel: string;
+    renewalDayLabel: string;
+    renewalMonthLabel: string;
+    emptyTitle: string;
+    emptyBody: string;
+    failureTitle: string;
+    recoveryTitle: string;
+    recoveryBody: string;
+    recoveryBackup: string;
+    recoveryReplace: string;
+    recoveryReopen: string;
+    durabilityWarningTitle: string;
+    durabilityWarningBody: string;
+    reloadAction: string;
+    saveFailed: string;
+    deleteFailed: string;
+    retry: string;
+    providerRequired: string;
+    planRequired: string;
+    amountInvalid: string;
+    dayInvalid: string;
+    monthInvalid: string;
+    invalidInput: string;
+    deleteConfirmTitle: string;
+    deleteConfirmBody: string;
+    cancelAction: string;
+    summaryMonthly: string;
     renewalLabel: string;
     cycleMonthly: string;
     cycleYearly: string;
@@ -154,11 +185,11 @@ export type Catalog = {
   clients: {
     intro: string;
     owner: string;
+    empty: string;
     version: string;
     weeklyUsage: string;
     monthlyUsage: string;
     usageUnavailable: string;
-    empty: string;
   };
   freshness: {
     upToDate: string;
@@ -346,13 +377,44 @@ export const catalogs = {
       paginationLast: "Go to last page",
     },
     subscriptions: {
-      sampleBadge: "Sample data",
-      intro: "Active AI subscriptions, ordered by the next renewal.",
-      summaryActive: "Active subscriptions",
-      summaryMonthly: "Monthly spend",
-      empty: "No active subscriptions.",
+      loading: "Loading subscriptions...",
+      createAction: "New subscription",
+      createTitle: "New subscription",
+      editAction: "Edit",
+      editTitle: "Edit subscription",
+      deleteAction: "Delete",
+      saveAction: "Save subscription",
+      providerLabel: "Provider",
       planLabel: "Plan",
       amountLabel: "Amount",
+      currencyLabel: "Currency",
+      cycleLabel: "Billing cycle",
+      renewalDayLabel: "Renewal day",
+      renewalMonthLabel: "Renewal month",
+      emptyTitle: "No subscriptions yet",
+      emptyBody: "Track your AI subscriptions here.",
+      failureTitle: "Could not load subscriptions",
+      recoveryTitle: "Subscription storage needs manual recovery",
+      recoveryBody: "The subscription file is invalid or unsupported. Vertice does not have permission to repair this file, and retrying will not change it.",
+      recoveryBackup: "Close Vertice and make a backup copy of subscriptions.json in the application data directory.",
+      recoveryReplace: "Use your system file manager to rename or remove the invalid subscriptions.json file.",
+      recoveryReopen: "Reopen Vertice to start with an empty subscription library.",
+      durabilityWarningTitle: "Subscription change needs reconciliation",
+      durabilityWarningBody: "The change may already be saved, but Vertice could not confirm storage durability. Reload subscriptions before making another change.",
+      reloadAction: "Reload subscriptions",
+      saveFailed: "Could not save subscription",
+      deleteFailed: "Could not delete subscription",
+      retry: "Retry",
+      providerRequired: "Provider is required",
+      planRequired: "Plan is required",
+      amountInvalid: "Amount must be greater than zero",
+      dayInvalid: "Renewal day must be between 1 and 28",
+      monthInvalid: "Renewal month is required for yearly subscriptions",
+      invalidInput: "Subscription details are invalid",
+      deleteConfirmTitle: "Delete subscription",
+      deleteConfirmBody: "This action cannot be undone.",
+      cancelAction: "Cancel",
+      summaryMonthly: "Monthly spend",
       renewalLabel: "Renews on",
       cycleMonthly: "Monthly",
       cycleYearly: "Yearly",
@@ -599,13 +661,44 @@ export const catalogs = {
       paginationLast: "Ir a la última página",
     },
     subscriptions: {
-      sampleBadge: "Datos de ejemplo",
-      intro: "Suscripciones de IA activas, ordenadas por próxima renovación.",
-      summaryActive: "Suscripciones activas",
-      summaryMonthly: "Gasto mensual",
-      empty: "No hay suscripciones activas.",
+      loading: "Cargando suscripciones...",
+      createAction: "Nueva suscripción",
+      createTitle: "Nueva suscripción",
+      editAction: "Editar",
+      editTitle: "Editar suscripción",
+      deleteAction: "Eliminar",
+      saveAction: "Guardar suscripción",
+      providerLabel: "Proveedor",
       planLabel: "Plan",
       amountLabel: "Importe",
+      currencyLabel: "Moneda",
+      cycleLabel: "Ciclo de facturación",
+      renewalDayLabel: "Día de renovación",
+      renewalMonthLabel: "Mes de renovación",
+      emptyTitle: "Aún no hay suscripciones",
+      emptyBody: "Gestiona aquí tus suscripciones de IA.",
+      failureTitle: "No se pudieron cargar las suscripciones",
+      recoveryTitle: "El almacenamiento de suscripciones necesita recuperación manual",
+      recoveryBody: "El archivo de suscripciones no es válido o no es compatible. Vertice no tiene permiso para reparar este archivo y reintentar no lo cambiará.",
+      recoveryBackup: "Cierra Vertice y crea una copia de seguridad de subscriptions.json en el directorio de datos de la aplicación.",
+      recoveryReplace: "Usa el gestor de archivos del sistema para renombrar o eliminar el archivo subscriptions.json no válido.",
+      recoveryReopen: "Abre Vertice de nuevo para iniciar una biblioteca de suscripciones vacía.",
+      durabilityWarningTitle: "El cambio de suscripción necesita conciliación",
+      durabilityWarningBody: "Puede que el cambio ya se haya guardado, pero Vertice no pudo confirmar la durabilidad del almacenamiento. Recarga las suscripciones antes de realizar otro cambio.",
+      reloadAction: "Recargar suscripciones",
+      saveFailed: "No se pudo guardar la suscripción",
+      deleteFailed: "No se pudo eliminar la suscripción",
+      retry: "Reintentar",
+      providerRequired: "El proveedor es obligatorio",
+      planRequired: "El plan es obligatorio",
+      amountInvalid: "El importe debe ser mayor que cero",
+      dayInvalid: "El día de renovación debe estar entre 1 y 28",
+      monthInvalid: "El mes de renovación es obligatorio para suscripciones anuales",
+      invalidInput: "Los datos de la suscripción no son válidos",
+      deleteConfirmTitle: "Eliminar suscripción",
+      deleteConfirmBody: "Esta acción no se puede deshacer.",
+      cancelAction: "Cancelar",
+      summaryMonthly: "Gasto mensual",
       renewalLabel: "Renovación",
       cycleMonthly: "Mensual",
       cycleYearly: "Anual",

@@ -1,171 +1,88 @@
-/**
- * AI subscription model for the Subscriptions page.
- *
- * Pure data and pure functions only: no I/O, no clock reads. Every function
- * that needs "now" receives it as an argument, mirroring the core convention
- * where measured values are passed in by the caller instead of sampled inside
- * the model. The sample entries below are illustrative placeholders, not a
- * reading of the user's real billing accounts.
- */
+import { invoke } from "@tauri-apps/api/core";
+import type { Subscription } from "../bindings/Subscription";
+import type { SubscriptionDraft } from "../bindings/SubscriptionDraft";
+import type { SubscriptionError } from "../bindings/SubscriptionError";
+import type { SubscriptionUpdate } from "../bindings/SubscriptionUpdate";
 
-export type BillingCycle = "monthly" | "yearly";
-
-export type Currency = "EUR" | "USD";
-
-export interface Subscription {
-  readonly id: string;
-  /** Product or vendor name shown as the card heading. */
-  readonly provider: string;
-  /** Plan tier, e.g. "Pro" or "Team". */
-  readonly plan: string;
-  readonly amount: number;
-  readonly currency: Currency;
-  readonly cycle: BillingCycle;
-  /** Day of the month the plan renews. Capped at 28 so every month has it. */
-  readonly renewalDay: number;
-  /** Renewal month (1-12). Required for yearly plans, ignored for monthly ones. */
-  readonly renewalMonth?: number;
-}
-
-/**
- * Illustrative subscriptions used to populate the page while no billing source
- * exists. Renewal dates are derived from the current date, so the sample never
- * drifts into the past.
- */
-export const SAMPLE_SUBSCRIPTIONS: readonly Subscription[] = [
-  {
-    id: "claude-pro",
-    provider: "Claude Pro",
-    plan: "Pro",
-    amount: 18.99,
-    currency: "EUR",
-    cycle: "monthly",
-    renewalDay: 4,
-  },
-  {
-    id: "chatgpt-plus",
-    provider: "ChatGPT Plus",
-    plan: "Plus",
-    amount: 20,
-    currency: "EUR",
-    cycle: "monthly",
-    renewalDay: 12,
-  },
-  {
-    id: "github-copilot",
-    provider: "GitHub Copilot",
-    plan: "Pro",
-    amount: 100,
-    currency: "EUR",
-    cycle: "yearly",
-    renewalDay: 21,
-    renewalMonth: 3,
-  },
-  {
-    id: "cursor",
-    provider: "Cursor",
-    plan: "Pro",
-    amount: 20,
-    currency: "EUR",
-    cycle: "monthly",
-    renewalDay: 27,
-  },
-  {
-    id: "gemini-advanced",
-    provider: "Google Gemini",
-    plan: "AI Pro",
-    amount: 21.99,
-    currency: "EUR",
-    cycle: "monthly",
-    renewalDay: 8,
-  },
-  {
-    id: "midjourney",
-    provider: "Midjourney",
-    plan: "Standard",
-    amount: 288,
-    currency: "EUR",
-    cycle: "yearly",
-    renewalDay: 15,
-    renewalMonth: 9,
-  },
-];
+export type { Subscription } from "../bindings/Subscription";
+export type { SubscriptionDraft } from "../bindings/SubscriptionDraft";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
+export const MONTHS_PER_YEAR = 12;
+export const MAX_RENEWAL_DAY = 28;
 
-/** Midnight UTC of the calendar day `date` falls on, in local terms. */
-function startOfDayUtc(date: Date): number {
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+export function fetchSubscriptions(): Promise<Subscription[]> {
+  return invoke("list_subscriptions");
 }
 
-/**
- * Next renewal date on or after `today`. Monthly plans roll to the following
- * month once the day has passed; yearly plans roll to the following year.
- */
-export function nextRenewal(subscription: Subscription, today: Date): Date {
-  const cursor = startOfDayUtc(today);
-  const year = today.getFullYear();
+export function createSubscription(draft: SubscriptionDraft): Promise<Subscription> {
+  return invoke("create_subscription", { draft });
+}
 
-  if (subscription.cycle === "yearly") {
-    const month = (subscription.renewalMonth ?? 1) - 1;
-    const thisYear = Date.UTC(year, month, subscription.renewalDay);
-    return new Date(thisYear >= cursor ? thisYear : Date.UTC(year + 1, month, subscription.renewalDay));
-  }
+export function updateSubscription(update: SubscriptionUpdate): Promise<Subscription> {
+  return invoke("update_subscription", { update });
+}
 
-  const thisMonth = Date.UTC(year, today.getMonth(), subscription.renewalDay);
-  return new Date(
-    thisMonth >= cursor ? thisMonth : Date.UTC(year, today.getMonth() + 1, subscription.renewalDay),
+export function deleteSubscription(id: string): Promise<void> {
+  return invoke("delete_subscription", { id });
+}
+
+export function isSubscriptionError(error: unknown): error is SubscriptionError {
+  return typeof error === "object" && error !== null && (
+    "invalidInput" in error ||
+    "notFound" in error ||
+    "storeCorrupt" in error ||
+    "storeUnavailable" in error ||
+    "committedWithDurabilityWarning" in error
   );
 }
 
-/** Whole days between `today` and `renewal`. Zero means it renews today. */
+function startOfDayUtc(today: Date): number {
+  return Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+export function nextRenewal(subscription: Subscription, today: Date): Date {
+  const start = startOfDayUtc(today);
+  const month = subscription.cycle === "yearly"
+    ? (subscription.renewalMonth ?? 1) - 1
+    : today.getMonth();
+  const currentYearRenewal = Date.UTC(today.getFullYear(), month, subscription.renewalDay);
+  const nextYear = subscription.cycle === "yearly" ? today.getFullYear() + 1 : today.getFullYear();
+  const nextMonth = subscription.cycle === "yearly" ? month : today.getMonth() + 1;
+  return new Date(currentYearRenewal >= start
+    ? currentYearRenewal
+    : Date.UTC(nextYear, nextMonth, subscription.renewalDay));
+}
+
 export function daysUntil(renewal: Date, today: Date): number {
   return Math.round((renewal.getTime() - startOfDayUtc(today)) / MILLISECONDS_PER_DAY);
 }
 
-/** Sorts a copy of the list by soonest renewal first. Never mutates the input. */
-export function sortByRenewal(
-  subscriptions: readonly Subscription[],
-  today: Date,
-): Subscription[] {
-  return [...subscriptions].sort(
-    (left, right) => nextRenewal(left, today).getTime() - nextRenewal(right, today).getTime(),
-  );
+export function formatAmount(amount: number, currency: Subscription["currency"], locale: string): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
 }
 
-/** Monthly-equivalent cost: yearly plans are spread across twelve months. */
-export function monthlyEquivalent(subscription: Subscription): number {
-  return subscription.cycle === "yearly" ? subscription.amount / 12 : subscription.amount;
-}
-
-/**
- * Monthly spend grouped by currency. Amounts in different currencies are never
- * summed together, so a mixed list yields one total per currency.
- */
-export function monthlyTotalsByCurrency(
-  subscriptions: readonly Subscription[],
-): Map<Currency, number> {
-  const totals = new Map<Currency, number>();
-  for (const subscription of subscriptions) {
-    const current = totals.get(subscription.currency) ?? 0;
-    totals.set(subscription.currency, current + monthlyEquivalent(subscription));
-  }
-  return totals;
-}
-
-export function formatAmount(amount: number, currency: Currency, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-export function formatRenewalDate(renewal: Date, locale: string): string {
+export function formatRenewalDate(value: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: "UTC",
-  }).format(renewal);
+  }).format(value);
+}
+
+export function monthlyEquivalent(subscription: Subscription): number {
+  return subscription.cycle === "yearly" ? subscription.amount / MONTHS_PER_YEAR : subscription.amount;
+}
+
+export function monthlyTotalsByCurrency(subscriptions: readonly Subscription[]): Map<Subscription["currency"], number> {
+  const totals = new Map<Subscription["currency"], number>();
+  for (const subscription of subscriptions) {
+    totals.set(subscription.currency, (totals.get(subscription.currency) ?? 0) + monthlyEquivalent(subscription));
+  }
+  return totals;
+}
+
+export function sortByRenewal(subscriptions: readonly Subscription[], today: Date): Subscription[] {
+  return [...subscriptions].sort((left, right) => nextRenewal(left, today).getTime() - nextRenewal(right, today).getTime());
 }
