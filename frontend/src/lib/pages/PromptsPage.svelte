@@ -3,6 +3,7 @@
   import type { PromptDraft } from "../../bindings/PromptDraft";
   import ConfirmDialog from "../ConfirmDialog.svelte";
   import { useI18n } from "../i18n/locale.svelte";
+  import { getListPageSize, setListPageSize } from "../listPreferences";
   import { createPrompt, deletePrompt, fetchPrompts, isPromptError, updatePrompt } from "../prompts";
   import { filterPrompts } from "../promptSearch";
   import * as toast from "../toast.svelte";
@@ -31,7 +32,7 @@
   const PAGE_SIZES = [5, 10, 15] as const;
 
   let page = $state(1);
-  let pageSize = $state<(typeof PAGE_SIZES)[number]>(PAGE_SIZES[0]);
+  let pageSize = $state<(typeof PAGE_SIZES)[number]>(getListPageSize("prompts") as (typeof PAGE_SIZES)[number]);
   let previousQuery = $state("");
 
   const pageCount = $derived(Math.max(1, Math.ceil(visiblePrompts.length / pageSize)));
@@ -60,6 +61,7 @@
 
   function onPageSizeChange(event: Event): void {
     pageSize = Number((event.currentTarget as HTMLSelectElement).value) as (typeof PAGE_SIZES)[number];
+    setListPageSize("prompts", pageSize);
   }
 
   async function loadPrompts(): Promise<void> {
