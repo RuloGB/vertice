@@ -41,12 +41,12 @@
   const reloading = $derived(status === "loading");
 </script>
 
-<section class="flex flex-col gap-6">
-  <header class="flex items-end justify-between gap-4 border-b border-stroke pb-5">
-    <div>
-      <h1 class="text-2xl font-semibold tracking-tight text-content">
-        {i18n.t(areaLabelKey("scan"))}
-      </h1>
+<section class="space-y-6" aria-labelledby="scan-title">
+  <header class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20 md:flex-row md:items-end md:justify-between">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-200">{i18n.t("scan.badge")}</p>
+      <h1 id="scan-title" class="text-3xl font-semibold text-white">{i18n.t(areaLabelKey("scan"))}</h1>
+      <p class="max-w-2xl text-sm leading-6 text-mist-300">{i18n.t("scan.intro")}</p>
     </div>
     <div class="flex items-center gap-3">
       {#if report !== null}

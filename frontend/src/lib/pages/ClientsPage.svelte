@@ -165,12 +165,15 @@
   }
 </script>
 
-<section class="flex flex-col gap-6">
-  <header class="flex flex-col gap-2 border-b border-stroke pb-5">
-    <h1 class="text-2xl font-semibold tracking-tight text-content">{i18n.t("area.clients")}</h1>
-    <p class="text-sm text-content-muted">{i18n.t("clients.intro")}</p>
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-200">{i18n.t("clients.badge")}</p>
+      <h1 class="text-3xl font-semibold text-white">{i18n.t("area.clients")}</h1>
+      <p class="max-w-2xl text-sm leading-6 text-mist-300">{i18n.t("clients.intro")}</p>
+    </div>
 
-    <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <label class="flex items-center gap-3 text-sm">
         <input
           type="checkbox"

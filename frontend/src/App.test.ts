@@ -1127,11 +1127,11 @@ describe("App shell navigation", () => {
       "Home",
       "Agents",
       "Skills",
-      "AI Clients",
       "MCP",
+      "AI Clients",
+      "AI Subscriptions",
       "Prompts",
       "Scan",
-      "AI Subscriptions",
     ]);
     expect(visibleText()).toContain("Welcome to Vertice");
     const brandMarks = document.querySelectorAll('[data-testid="brand-mark"]');

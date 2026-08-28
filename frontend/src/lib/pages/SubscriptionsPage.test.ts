@@ -229,6 +229,22 @@ describe("SubscriptionsPage", () => {
     unmount(app);
   });
 
+  it("offers every renewal day and preserves the selected day when editing", async () => {
+    const endOfMonth = { ...existing, renewalDay: 31 };
+    mockedFetch.mockResolvedValue([endOfMonth]);
+    const app = mount(SubscriptionsPage, { target: document.body });
+    await flush();
+
+    clickByRole("Edit OpenAI");
+    await flush();
+
+    const renewalDay = getByLabel<HTMLSelectElement>("Renewal day");
+    expect(renewalDay.options).toHaveLength(31);
+    expect(renewalDay.value).toBe("31");
+    expect(getAllByRole<HTMLButtonElement>("button", { name: "Cancel" }).filter((button) => button.form !== null)).toHaveLength(1);
+    unmount(app);
+  });
+
   it("retries a failed save and removes its retry alert after success", async () => {
     mockedFetch.mockResolvedValue([]);
     mockedCreate.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(existing);

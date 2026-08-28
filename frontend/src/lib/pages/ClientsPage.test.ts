@@ -87,6 +87,19 @@ describe("ClientsPage freshness badge", () => {
     mockedFetchUserSettings.mockResolvedValue(defaultSettings());
   });
 
+  it("renders the shared local-inventory page header", async () => {
+    mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
+    const app = mount(ClientsPage, {
+      target: document.body,
+      props: { report: reportWithClients([]), status: "ready", failureMessage: null },
+    });
+    await flush();
+
+    expect(visibleText()).toContain("AI");
+    expect(visibleText()).toContain("AI clients detected by Vertice on this machine.");
+    unmount(app);
+  });
+
   it("shows the pending state before the freshness report resolves", async () => {
     let resolveFreshness: (report: FreshnessReport) => void = () => {};
     mockedFetchFreshness.mockImplementation(
