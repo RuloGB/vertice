@@ -50,6 +50,7 @@ pub fn run() {
             let app_data_dir = tauri::Manager::path(app).app_data_dir();
             if let Ok(path) = app_data_dir.as_ref() {
                 app.manage(commands::prompt_repository_state(path.clone()));
+                app.manage(commands::subscription_repository_state(path.clone()));
             }
             startup_sequence(
                 app_data_dir,
@@ -70,7 +71,11 @@ pub fn run() {
             commands::list_prompts,
             commands::create_prompt,
             commands::update_prompt,
-            commands::delete_prompt
+            commands::delete_prompt,
+            commands::list_subscriptions,
+            commands::create_subscription,
+            commands::update_subscription,
+            commands::delete_subscription
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Vertice application");
@@ -158,3 +163,5 @@ mod tests {
         assert!(stderr_lines[0].starts_with("vertice: "));
     }
 }
+
+mod subscriptions;

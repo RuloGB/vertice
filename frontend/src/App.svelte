@@ -19,7 +19,6 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import TitleBar from "./lib/TitleBar.svelte";
   import ToastContainer from "./lib/ToastContainer.svelte";
-  import { SAMPLE_SUBSCRIPTIONS } from "./lib/subscriptions";
 
   type Status = "idle" | "loading" | "ready" | "failed";
   type ScanFailure =
@@ -52,8 +51,6 @@
   let agentsQuery = $state("");
   let skillsQuery = $state("");
   let mcpQuery = $state("");
-  // Read once at startup: renewal countdowns must not shift mid-session.
-  const today = new Date();
 
   const title = $derived(appTitle(PRODUCT_NAME, APP_VERSION, i18n.t(areaLabelKey(route))));
   const failureMessage = $derived(failure === null ? null : scanFailureMessage(failure));
@@ -171,7 +168,7 @@
       {:else if route === "prompts"}
         <PromptsPage />
       {:else if route === "subscriptions"}
-        <SubscriptionsPage subscriptions={SAMPLE_SUBSCRIPTIONS} {today} />
+        <SubscriptionsPage />
       {:else if !hasContent(route)}
         <PlaceholderPage {route} />
       {/if}

@@ -8,18 +8,19 @@ Define the Tauri 2 desktop shell IPC surface that exposes the core scan to the f
 
 ### Requirement: Minimal Scan Command Surface
 
-The shell SHALL expose the existing six inventory commands plus four typed prompt commands for listing, creating, updating, and deleting prompts. Prompt commands MUST be thin async pass-throughs to the prompt repository, MUST contain no search or clipboard business logic, and MUST preserve the existing scan, freshness, settings, and log-path behavior unchanged.
-(Previously: the surface contained exactly six inventory-oriented commands and no prompt commands.)
+The shell SHALL expose the existing six inventory commands, four prompt commands, and four typed subscription commands for listing, creating, updating, and deleting subscriptions. Prompt and subscription commands MUST be thin async pass-throughs to their repositories, MUST contain no frontend business logic, and MUST preserve the existing scan, freshness, settings, log-path, and prompt behavior unchanged.
+(Previously: the surface contained six inventory commands and four prompt commands, with no subscription commands.)
 
-#### Scenario: Prompt commands extend without changing scan behavior
-- GIVEN the shell registers prompt commands alongside the inventory commands
+#### Scenario: Subscription commands extend without changing scan behavior
+- GIVEN the shell registers subscription commands alongside the existing commands
 - WHEN the frontend invokes `scan` or `rescan`
-- THEN the returned scan behavior is unchanged by prompt support
+- THEN the returned scan behavior is unchanged
 
-#### Scenario: Prompt mutations stay typed
-- GIVEN the frontend creates, updates, or deletes a prompt
+#### Scenario: Subscription mutations stay typed
+- GIVEN the frontend creates, updates, or deletes a subscription
 - WHEN the shell command resolves
-- THEN it returns typed prompt data or typed success without stringly payloads
+- THEN it returns typed subscription data or typed success without stringly payloads
+
 ### Requirement: Non-Blocking Command Execution
 
 All six commands SHALL be async and MUST offload their blocking work onto the Tauri async runtime's
@@ -72,18 +73,19 @@ Commands MUST return typed results directly, using the generated types exactly a
 
 ### Requirement: Minimal Capability Grant
 
-The shell capability declaration SHALL still grant `core:default` only. Prompt support MUST NOT add filesystem, shell, dialog, or clipboard capability grants, and every prompt write MUST stay confined to the application data directory through the sanctioned prompt persistence module.
-(Previously: the audited shell named only the freshness cache and settings store as sanctioned write-capable command paths.)
+The shell capability declaration SHALL still grant `core:default` only. Subscription support MUST NOT add filesystem, shell, dialog, or clipboard capability grants, and subscription writes MUST stay confined to the application data directory through the sanctioned subscription persistence module.
+(Previously: only prompt writes were named alongside the existing sanctioned persistence paths.)
 
-#### Scenario: Prompt support adds no new capability grant
-- GIVEN the prompt commands are registered
+#### Scenario: Subscription support adds no capability grant
+- GIVEN the subscription commands are registered
 - WHEN the capability declaration is reviewed
 - THEN it remains `core:default` only
 
-#### Scenario: Prompt writes stay app-data-only
-- GIVEN a prompt create, update, or delete command succeeds
+#### Scenario: Subscription writes stay app-data-only
+- GIVEN a subscription create, update, or delete command succeeds
 - WHEN its filesystem side effects are traced
 - THEN any write occurs only inside the application data directory
+
 ### Requirement: Hardened Content Security Policy
 
 The shell configuration SHALL declare a CSP of at least `default-src 'self'` plus `object-src 'none'` and `base-uri 'none'`. It MUST NOT allow remote content, and the production policy MUST NOT contain `unsafe-inline`.
@@ -120,3 +122,18 @@ The frontend SHALL invoke scan commands only through a typed wrapper module impo
 - GIVEN the read-only audit's sanctioned writer list after this change
 - WHEN it is inspected
 - THEN it contains exactly four entries, including the prompt persistence module
+
+### Requirement: The Read-Only Audit Recognizes A Fifth Write Exception
+
+`crates/vertice-app/tests/read_only_audit.rs` MUST name the subscription persistence module as a fifth sanctioned write exception, and that module MUST be proved individually as app-data-only with an allow-list limited to its atomic JSON write path.
+(Previously: the audit recognized exactly four sanctioned writer modules, including prompt persistence.)
+
+#### Scenario: The subscription store exception is proved on its own merits
+- GIVEN the subscription persistence module source
+- WHEN the read-only audit runs
+- THEN it independently verifies app-data path derivation and rejects forbidden absolute-path or direct-env access
+
+#### Scenario: The audit exception count becomes five
+- GIVEN the read-only audit's sanctioned writer list after this change
+- WHEN it is inspected
+- THEN it contains exactly five entries, including the subscription persistence module

@@ -6,7 +6,6 @@ import {
   monthlyEquivalent,
   monthlyTotalsByCurrency,
   nextRenewal,
-  SAMPLE_SUBSCRIPTIONS,
   sortByRenewal,
   type Subscription,
 } from "./subscriptions";
@@ -22,6 +21,8 @@ function monthly(overrides: Partial<Subscription> = {}): Subscription {
     currency: "EUR",
     cycle: "monthly",
     renewalDay: 10,
+    renewalMonth: null,
+    updatedAt: "2026-01-01T00:00:00.000000001Z",
     ...overrides,
   };
 }
@@ -114,34 +115,5 @@ describe("formatting", () => {
 
     expect(formatRenewalDate(renewal, "en-US")).toBe("March 21, 2026");
     expect(formatRenewalDate(renewal, "es-ES")).toBe("21 de marzo de 2026");
-  });
-});
-
-describe("SAMPLE_SUBSCRIPTIONS", () => {
-  it("uses unique ids and renewal days every month actually has", () => {
-    const ids = SAMPLE_SUBSCRIPTIONS.map(({ id }) => id);
-
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const subscription of SAMPLE_SUBSCRIPTIONS) {
-      expect(subscription.renewalDay, subscription.id).toBeGreaterThanOrEqual(1);
-      expect(subscription.renewalDay, subscription.id).toBeLessThanOrEqual(28);
-      expect(subscription.amount, subscription.id).toBeGreaterThan(0);
-    }
-  });
-
-  it("gives every yearly plan a renewal month", () => {
-    for (const subscription of SAMPLE_SUBSCRIPTIONS.filter(({ cycle }) => cycle === "yearly")) {
-      expect(subscription.renewalMonth, subscription.id).toBeGreaterThanOrEqual(1);
-      expect(subscription.renewalMonth, subscription.id).toBeLessThanOrEqual(12);
-    }
-  });
-
-  it("never renews in the past for any reference date", () => {
-    const today = new Date(2026, 7, 22);
-
-    for (const subscription of SAMPLE_SUBSCRIPTIONS) {
-      expect(daysUntil(nextRenewal(subscription, today), today), subscription.id)
-        .toBeGreaterThanOrEqual(0);
-    }
   });
 });

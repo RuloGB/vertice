@@ -54,3 +54,4 @@ log = { version = "0.4", features = ["std"] }
 # `local-offset`, which is unsound from a multi-threaded process — the
 # reason `time` was rejected (design §5).
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+fs2 = "0.4"
