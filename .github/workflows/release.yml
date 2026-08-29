@@ -24,8 +24,12 @@ concurrency:
 #   id-token      -- OIDC token that signs the provenance statement (Sigstore).
 #   attestations  -- write the provenance attestation to this repository.
 # The last two are what `actions/attest-build-provenance` needs. Provenance is
-# free and needs no certificate, so it ships from the first release even though
-# code signing does not (see README, "Why Windows warns about this installer").
+# free and needs no certificate, unlike code signing -- but GitHub only offers
+# it on public repositories, so the step that uses these scopes is gated on
+# visibility (see it below, and README, "Why Windows warns about this
+# installer"). The scopes are declared unconditionally: they are inert while
+# the step is skipped, and granting them later would be a silent prerequisite
+# to forget.
 permissions:
   contents: write
   id-token: write
@@ -145,6 +149,13 @@ jobs:
         # guarantee that is available without a certificate. Verified by users
         # with `gh attestation verify <file> --repo <owner>/<repo>`.
         #
+        # Gated on visibility, NOT optional. GitHub's attestation API refuses
+        # user-owned private repositories outright ("Feature not available for
+        # user-owned private repositories", observed on run 33275951744), so on
+        # a private repository this step could only ever fail. Gating instead
+        # of deleting means provenance starts being recorded on its own, with
+        # no change to this file, the day the repository becomes public.
+        if: github.event.repository.visibility == 'public'
         # Literal globs rather than the action's `artifactPaths` output: these
         # are readable, and if the bundle layout ever moves, this step fails
         # loudly (no subject matched) instead of attesting nothing.
@@ -153,3 +164,12 @@ jobs:
           subject-path: |
             target/release/bundle/nsis/*.exe
             target/release/bundle/msi/*.msi
+
+      - name: Warn that provenance was not attested
+        # A release without provenance must never look like a release with it.
+        # This annotation is the only thing standing between a private-repo
+        # build and the silent assumption that the installers are verifiable.
+        if: github.event.repository.visibility != 'public'
+        shell: bash
+        run: |
+          echo "::warning::Build provenance was NOT attested: GitHub's attestation API is unavailable for user-owned private repositories. These installers cannot be verified with 'gh attestation verify'. Provenance resumes automatically once this repository is public."

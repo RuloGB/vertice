@@ -33,30 +33,36 @@ legal identity, cost money to maintain annually, and the project has not taken
 that step yet. Until it does, every release will produce this warning — including
 releases that are exactly what they claim to be.
 
-If you would rather not dismiss a warning you cannot check, don't. Verify the
-download first.
+### Verifying the download
 
-### Verify the download before running it
+Every installer is built by a GitHub Actions workflow, never on a developer's
+machine. That workflow is also set up to sign a **build provenance
+attestation** — a statement recording which commit and which workflow run
+produced the exact bytes you downloaded. It costs nothing and needs no
+certificate, and it would not remove the SmartScreen warning; it would give you
+a way to check the file instead of trusting it blindly.
 
-Every installer is built by a public GitHub Actions workflow, and that workflow
-signs a **build provenance attestation** for the exact bytes it produced. The
-attestation is free, needs no certificate, and records which commit and which
-workflow run built the file. It does not remove the SmartScreen warning — it
-gives you a way to check the file yourself instead of trusting it blindly.
+**Provenance is not being published yet.** GitHub only offers the attestation
+API on public repositories, and this repository is currently private. The
+workflow step is in place and gated on that condition, so attestations start
+appearing automatically once the repository goes public — but until then there
+is nothing to verify, and this section is telling you so rather than handing
+you a command that would fail.
 
-With the [GitHub CLI](https://cli.github.com/) installed:
+Once provenance is available, the check is, with the
+[GitHub CLI](https://cli.github.com/) installed:
 
 ```bash
 gh attestation verify Vertice_0.1.0_x64-setup.exe --repo RuloGB/vertice
 ```
 
-A successful run reports the commit and workflow that produced the file. If
-verification fails, the file did not come from this project's release pipeline —
-delete it and do not run it.
+A successful run reports the commit and workflow that produced the file. If it
+fails, the file did not come from this project's release pipeline — delete it
+and do not run it.
 
 ### Dismissing the warning
 
-Once you have verified the download and decided to proceed:
+Having weighed the above and decided to proceed:
 
 1. Click **More info** in the SmartScreen dialog.
 2. Click **Run anyway**.
