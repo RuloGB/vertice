@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Vertice — every AI component installed on your machine, in one place">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b8f34b"/>
+      <stop offset="0.34" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#b8f34b"/>
+    </linearGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowLime" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b8f34b" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#b8f34b" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .sans { font-family: "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif; }
+      .mono { font-family: Consolas, "JetBrains Mono", "SF Mono", Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="640" fill="#0e0d18"/>
+  <ellipse cx="1010" cy="240" rx="500" ry="440" fill="url(#glowViolet)"/>
+  <ellipse cx="1150" cy="470" rx="420" ry="360" fill="url(#glowLime)"/>
+
+  <!-- wordmark -->
+  <text class="sans" x="72" y="172" font-size="62" font-weight="700" letter-spacing="-1">
+    <tspan fill="#f2f0ff">Vertice</tspan>
+  </text>
+
+  <!-- tagline -->
+  <text class="sans" x="72" y="234" font-size="27" font-weight="600" fill="#f2f0ff">Every AI component installed on your</text>
+  <text class="sans" x="72" y="270" font-size="27" font-weight="600" fill="#f2f0ff">machine, inventoried in one place.</text>
+
+  <!-- capability cards -->
+  <g>
+    <rect x="72"  y="318" width="126" height="64" rx="10" fill="#181627" stroke="#373252"/>
+    <text class="mono" x="90"  y="347" font-size="16" font-weight="700" fill="#f2f0ff">skills</text>
+    <text class="sans" x="90"  y="367" font-size="12.5" fill="#b8f34b">deduplicated</text>
+
+    <rect x="219" y="318" width="120" height="64" rx="10" fill="#181627" stroke="#373252"/>
+    <text class="mono" x="237" y="347" font-size="16" font-weight="700" fill="#f2f0ff">agents</text>
+    <text class="sans" x="237" y="367" font-size="12.5" fill="#b8f34b">with sources</text>
+
+    <rect x="360" y="318" width="148" height="64" rx="10" fill="#181627" stroke="#373252"/>
+    <text class="mono" x="378" y="347" font-size="16" font-weight="700" fill="#f2f0ff">mcp servers</text>
+    <text class="sans" x="378" y="367" font-size="12.5" fill="#b8f34b">secrets redacted</text>
+
+    <rect x="529" y="318" width="132" height="64" rx="10" fill="#181627" stroke="#373252"/>
+    <text class="mono" x="547" y="347" font-size="16" font-weight="700" fill="#f2f0ff">read-only</text>
+    <text class="sans" x="547" y="367" font-size="12.5" fill="#b8f34b">never edits</text>
+  </g>
+
+  <!-- clients strip -->
+  <g>
+    <rect x="72" y="418" width="624" height="48" rx="10" fill="#181627" stroke="#373252"/>
+    <circle cx="98" cy="442" r="4" fill="#b8f34b"/>
+    <text class="mono" x="114" y="448" font-size="16" fill="#f2f0ff">Claude Code</text>
+    <circle cx="256" cy="442" r="4" fill="#b8f34b"/>
+    <text class="mono" x="272" y="448" font-size="16" fill="#f2f0ff">OpenCode</text>
+    <circle cx="400" cy="442" r="4" fill="#b8f34b"/>
+    <text class="mono" x="416" y="448" font-size="16" fill="#f2f0ff">Codex</text>
+    <text class="sans" x="672" y="447" font-size="13" fill="#89839f" text-anchor="end">scanned, never modified</text>
+  </g>
+
+  <!-- footer -->
+  <text class="sans" x="72" y="512" font-size="14.5" xml:space="preserve"><tspan fill="#89839f">github.com/RuloGB/vertice</tspan><tspan fill="#514a73">  &#183;  </tspan><tspan fill="#89839f">Windows installer</tspan><tspan fill="#514a73">  &#183;  </tspan><tspan fill="#89839f">Rust + Tauri 2 + Svelte 5</tspan></text>
+
+  <!-- mark -->
+  <g transform="translate(880 172) scale(1.55)">
+    <g opacity="0.95">
+      <rect x="6.4" y="6.4" width="139.2" height="123.2" rx="20"
+            fill="none" stroke="#a78bfa" stroke-opacity="0.32" stroke-width="2"
+            transform="rotate(45 76 68)"/>
+      <rect x="41.6" y="40.8" width="19.2" height="76" rx="9.6" fill="url(#mark)"
+            transform="rotate(-27 51.2 78.8)"/>
+      <rect x="91.2" y="40.8" width="19.2" height="76" rx="9.6" fill="url(#mark)"
+            transform="rotate(27 100.8 78.8)"/>
+    </g>
+  </g>
+
+  <!-- accent bar -->
+  <rect x="0" y="634" width="1280" height="6" fill="url(#bar)"/>
+</svg>

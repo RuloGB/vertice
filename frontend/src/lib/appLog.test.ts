@@ -14,7 +14,7 @@ describe("fetchLogFilePath", () => {
   });
 
   it("invokes the log_file_path command and resolves with the path unmodified", async () => {
-    const path = "C:\\Users\\raul\\AppData\\Roaming\\com.vertice.app\\vertice.log";
+    const path = "C:\\Users\\raul\\AppData\\Roaming\\com.rulogb.vertice\\vertice.log";
     mockedInvoke.mockResolvedValue(path);
 
     await expect(fetchLogFilePath()).resolves.toBe(path);

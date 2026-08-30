@@ -919,13 +919,13 @@ describe("App scan route", () => {
     document.title = "";
     document.body.innerHTML = "";
     mockedFetchLogFilePath.mockResolvedValue(
-      "C:\\Users\\raul\\AppData\\Roaming\\com.vertice.app\\vertice.log",
+      "C:\\Users\\raul\\AppData\\Roaming\\com.rulogb.vertice\\vertice.log",
     );
   });
 
   it("renders the application log path as selectable text, with no reveal-in-file-manager action, in en and es", async () => {
     mockedScan.mockResolvedValue(cleanReportFixture());
-    const logPath = "C:\\Users\\raul\\AppData\\Roaming\\com.vertice.app\\vertice.log";
+    const logPath = "C:\\Users\\raul\\AppData\\Roaming\\com.rulogb.vertice\\vertice.log";
     mockedFetchLogFilePath.mockResolvedValue(logPath);
 
     const app = mount(App, { target: document.body });

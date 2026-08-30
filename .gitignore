@@ -30,3 +30,5 @@ frontend/dist
 
 #Compendio
 .compendio/
+#Stray root-level tooling caches (vitest run from the wrong cwd)
+/node_modules

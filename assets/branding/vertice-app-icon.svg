@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Vertice">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#251c4d"/>
+      <stop offset="0.55" stop-color="#151228"/>
+      <stop offset="1" stop-color="#0e0d18"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.22" r="0.66">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8f95e"/>
+      <stop offset="0.45" stop-color="#d3c7ff"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#glow)"/>
+
+  <!-- The sidebar BrandMark geometry, scaled about its own centre (76,68).
+       The V is enlarged 8% and thickened relative to the in-app mark so the
+       arms still read at 16 px, where the diamond degrades to a faint frame. -->
+  <g transform="translate(189 223) scale(4.25)">
+    <rect x="6.4" y="6.4" width="139.2" height="123.2" rx="20"
+          fill="none" stroke="#b6a2fb" stroke-opacity="0.6" stroke-width="3"
+          transform="rotate(45 76 68)"/>
+    <g transform="translate(76 68) scale(1.08) translate(-76 -68)">
+      <rect x="40.2" y="40.8" width="22" height="76" rx="11" fill="url(#mark)"
+            transform="rotate(-27 51.2 78.8)"/>
+      <rect x="89.8" y="40.8" width="22" height="76" rx="11" fill="url(#mark)"
+            transform="rotate(27 100.8 78.8)"/>
+    </g>
+  </g>
+</svg>
