@@ -48,6 +48,46 @@ function openCodePresence(version: string): ClientPresence {
   };
 }
 
+function claudeNpmNotDetected(): ClientPresence {
+  return {
+    slot: "claudeCodeNpm",
+    label: "Claude Code CLI (npm)",
+    probedPaths: ["C:/clients/claude-npm"],
+    status: "notDetected",
+    installations: [],
+  };
+}
+
+function claudeBundledPresence(version: string): ClientPresence {
+  return {
+    slot: "claudeCodeBundled",
+    label: "Claude Code (bundled in Claude Desktop)",
+    probedPaths: ["C:/clients/claude-bundled"],
+    status: "detected",
+    installations: [{ client: "claudeCode", version, path: "C:/clients/claude-bundled" }],
+  };
+}
+
+function openCodeNpmNotDetected(): ClientPresence {
+  return {
+    slot: "openCodeNpm",
+    label: "OpenCode (npm)",
+    probedPaths: ["C:/clients/opencode-npm"],
+    status: "notDetected",
+    installations: [],
+  };
+}
+
+function openCodeDesktopPresence(version: string): ClientPresence {
+  return {
+    slot: "openCodeDesktop",
+    label: "OpenCode (desktop app)",
+    probedPaths: ["C:/clients/opencode-desktop"],
+    status: "detected",
+    installations: [{ client: "openCode", version, path: "C:/clients/opencode-desktop" }],
+  };
+}
+
 function codexPresence(version: string): ClientPresence {
   return {
     slot: "codexStandalone",
@@ -353,6 +393,56 @@ describe("ClientsPage freshness badge", () => {
     await flush();
 
     expect(document.querySelector('[data-testid="freshness-badge"]')).toBeNull();
+
+    unmount(app);
+  });
+
+  it("claude_code_card_reads_the_bundled_record_when_npm_is_not_detected", async () => {
+    mockedFetchFreshness.mockResolvedValue({
+      enabled: true,
+      checks: [
+        {
+          subject: { clientInstallation: { slot: "claudeCodeBundled", path: "C:/clients/claude-bundled" } },
+          installed: "1.2.0",
+          verdict: "upToDate",
+        },
+      ],
+    });
+
+    const app = mount(ClientsPage, {
+      target: document.body,
+      props: {
+        report: reportWithClients([claudeNpmNotDetected(), claudeBundledPresence("1.2.0")]),
+        status: "ready",
+        failureMessage: null,
+      },
+    });
+    await flush();
+    await flush();
+
+    expect(visibleText()).toContain("Detected");
+    expect(visibleText()).toContain("1.2.0");
+    expect(visibleText()).toContain("Up to date");
+
+    unmount(app);
+  });
+
+  it("opencode_card_reads_the_desktop_record_when_npm_is_not_detected", async () => {
+    mockedFetchFreshness.mockResolvedValue({ enabled: true, checks: [] });
+
+    const app = mount(ClientsPage, {
+      target: document.body,
+      props: {
+        report: reportWithClients([openCodeNpmNotDetected(), openCodeDesktopPresence("0.4.2")]),
+        status: "ready",
+        failureMessage: null,
+      },
+    });
+    await flush();
+    await flush();
+
+    expect(visibleText()).toContain("Detected");
+    expect(visibleText()).toContain("0.4.2");
 
     unmount(app);
   });
