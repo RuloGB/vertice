@@ -1,0 +1,14 @@
+case: no-version-key
+total bytes: 87
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 60 (0x0000003c)
+offset  8 .. 12   u32  header_payload_len = 56 (0x00000038)
+offset 12 .. 16   u32  json_len            = 51 (0x00000033)
+offset 16 .. 67   header JSON text (51 bytes):
+{"files":{"package.json":{"size":19,"offset":"0"}}}
+offset 67 .. 68   padding (1 bytes of 0x00)
+offset 68 .. 87   payload (19 bytes):
+{"name":"opencode"}
+
+note: name present, version key absent -> NoVersion.

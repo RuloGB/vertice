@@ -22,6 +22,12 @@ pub enum ClientInstallSlot {
     ClaudeCodeNpm,
     ClaudeCodeBundled,
     OpenCodeNpm,
+    /// The OpenCode desktop (Electron) app, distinct from `OpenCodeNpm`.
+    /// Positioned immediately after `OpenCodeNpm` — the position is
+    /// load-bearing: it fixes probe-table order and, under the frontend's
+    /// selection rule, which record an OpenCode card shows when both slots
+    /// are `Detected` (`detect-desktop-client-installs` design §4.1).
+    OpenCodeDesktop,
     CodexStandalone,
 }
 
@@ -34,6 +40,7 @@ impl ClientInstallSlot {
             ClientInstallSlot::ClaudeCodeNpm => "Claude Code CLI (npm)",
             ClientInstallSlot::ClaudeCodeBundled => "Claude Code (bundled in Claude Desktop)",
             ClientInstallSlot::OpenCodeNpm => "OpenCode (npm)",
+            ClientInstallSlot::OpenCodeDesktop => "OpenCode (desktop app)",
             ClientInstallSlot::CodexStandalone => "Codex CLI (standalone)",
         }
     }

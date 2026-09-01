@@ -1,0 +1,14 @@
+case: tiny-header-len
+total bytes: 16
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len          = 0
+offset  8 .. 12   u32  header_payload_len  = 0
+offset 12 .. 16   u32  json_len            = 0
+
+header_len=0 fails checked_sub(4) (the header_len >= 4 guard) at check 2 —
+this is the file-level companion to the in-memory unit test that parameterises
+header_len over {0,1,2,3}; this fixture pins header_len=0 specifically, distinct
+from bad-prefix's large 0xFF words.
+
+Expected: Detected, 0 installations, 1 Error (Malformed).

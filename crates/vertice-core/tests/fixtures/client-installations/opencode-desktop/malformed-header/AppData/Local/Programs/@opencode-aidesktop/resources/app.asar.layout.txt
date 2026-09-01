@@ -1,0 +1,14 @@
+case: malformed-header
+total bytes: 28
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len          = 20
+offset  8 .. 12   u32  header_payload_len  = 16
+offset 12 .. 16   u32  json_len            = 12
+offset 16 .. 28   header text (12 bytes): not json {{{
+offset 28 .. 28   padding (0 bytes of 0x00)
+
+The prefix is fully self-consistent (passes all six parse_prefix checks); the
+header TEXT itself is not valid JSON, so jsonc::parse must fail.
+
+Expected: Detected, 0 installations, 1 Error (HeaderParse).

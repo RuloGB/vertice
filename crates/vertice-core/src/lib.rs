@@ -5,6 +5,7 @@
 //! a future CLI binary can reuse the same logic as the desktop app.
 
 pub mod agents;
+pub mod asar;
 pub mod codex_agents;
 pub mod consolidate;
 pub mod freshness;

@@ -165,7 +165,7 @@ mod tests {
             .client_presence
             .as_ref()
             .expect("Windows always has a probe table");
-        assert_eq!(client_presence.len(), 4, "one record per defined slot");
+        assert_eq!(client_presence.len(), 5, "one record per defined slot");
         assert!(
             client_presence
                 .iter()

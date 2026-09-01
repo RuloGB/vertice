@@ -1,0 +1,11 @@
+case: oversized-header
+total bytes: 16 (prefix only — internally consistent, no header/payload bytes follow)
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 5000008 (0x004c4b48)
+offset  8 .. 12   u32  header_payload_len = 5000004 (0x004c4b44)
+offset 12 .. 16   u32  json_len            = 5000000 (0x004c4b40)
+
+Expected: Detected, 0 installations, 1 Warning naming 5000000 and the 4 MiB ceiling.
+The declared json_len exceeds HEADER_MAX_BYTES (4*1024*1024=4194304), so parse_prefix
+must return HeaderTooLarge BEFORE attempting to read past these 16 bytes.
