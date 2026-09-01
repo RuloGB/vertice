@@ -90,6 +90,34 @@ jobs:
             exit 1
           fi
 
+      - name: Version consistency (Cargo.toml vs tauri.conf.json vs package.json)
+        # The release workflow refuses to package a tag whose version does not
+        # match `tauri.conf.json`. That gate fires only AFTER the tag is
+        # already pushed and public, which is too late (observed on tag v0.1.3,
+        # run 33483412746). These four files declare the same product version
+        # and have drifted apart once already, so the disagreement is caught
+        # here on every PR, before a tag exists to be regretted.
+        run: |
+          set -euo pipefail
+          cargo_v=$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          tauri_v=$(grep -m1 '"version"' crates/vertice-app/tauri.conf.json | sed -E 's/.*: *"([^"]+)".*/\1/')
+          pkg_v=$(grep -m1 '"version"' frontend/package.json | sed -E 's/.*: *"([^"]+)".*/\1/')
+          lock_v=$(grep -m1 '"version"' frontend/package-lock.json | sed -E 's/.*: *"([^"]+)".*/\1/')
+
+          echo "Cargo.toml:                 $cargo_v"
+          echo "tauri.conf.json:            $tauri_v"
+          echo "frontend/package.json:      $pkg_v"
+          echo "frontend/package-lock.json: $lock_v"
+
+          for pair in "Cargo.toml:$cargo_v" "frontend/package.json:$pkg_v" "frontend/package-lock.json:$lock_v"; do
+            name=${pair%%:*}
+            value=${pair#*:}
+            if [ "$value" != "$tauri_v" ]; then
+              echo "::error::$name version ($value) does not match tauri.conf.json ($tauri_v)"
+              exit 1
+            fi
+          done
+
       - name: Install cargo-deny
         uses: taiki-e/install-action@cargo-deny
 
