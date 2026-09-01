@@ -17,6 +17,18 @@ use vertice_core::model::{
 };
 
 /// Build a path under
+/// `crates/vertice-core/tests/fixtures/client-installations/opencode-desktop/<case>/`.
+fn opencode_desktop_fixture_home(case: &str) -> PathBuf {
+    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.push("tests");
+    path.push("fixtures");
+    path.push("client-installations");
+    path.push("opencode-desktop");
+    path.push(case);
+    path
+}
+
+/// Build a path under
 /// `crates/vertice-core/tests/fixtures/client-installations/<case>/` from
 /// per-segment pushes — never a `"/"`-joined literal, so it stays
 /// separator-correct on Windows (`tests/skill_scanner.rs:23-30`'s pattern).
@@ -36,10 +48,10 @@ fn presence_for<'a>(records: &'a [ClientPresence], label_contains: &str) -> &'a 
         .unwrap_or_else(|| panic!("no presence record with label containing {label_contains:?}"))
 }
 
-/// CA-11 pin: a machine with no clients yields four `NotDetected` records
+/// CA-11 pin: a machine with no clients yields five `NotDetected` records
 /// and zero issues.
 #[test]
-fn nothing_yields_four_not_detected_records_and_zero_issues() {
+fn nothing_yields_five_not_detected_records_and_zero_issues() {
     let home = fixture_home("nothing");
 
     let scan = installations::scan_for(&home, HostPlatform::Windows);
@@ -48,7 +60,7 @@ fn nothing_yields_four_not_detected_records_and_zero_issues() {
         .presence
         .as_ref()
         .expect("Windows always has a probe table");
-    assert_eq!(records.len(), 4, "one record per defined slot");
+    assert_eq!(records.len(), 5, "one record per defined slot");
     for record in records {
         assert_eq!(record.status, ClientPresenceStatus::NotDetected);
         assert!(record.installations.is_empty());
@@ -61,6 +73,7 @@ fn nothing_yields_four_not_detected_records_and_zero_issues() {
             ClientInstallSlot::ClaudeCodeNpm,
             ClientInstallSlot::ClaudeCodeBundled,
             ClientInstallSlot::OpenCodeNpm,
+            ClientInstallSlot::OpenCodeDesktop,
             ClientInstallSlot::CodexStandalone,
         ],
         "one record per slot, in probe-table order"
@@ -179,7 +192,7 @@ fn packaged_fixture_yields_npm_and_packaged_claude_installs_never_merged() {
     assert_eq!(scan.issues.len(), 0);
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
-    assert_eq!(records.len(), 4, "one record per defined slot");
+    assert_eq!(records.len(), 5, "one record per defined slot");
     let opencode = presence_for(records, "OpenCode");
     assert_eq!(opencode.slot, ClientInstallSlot::OpenCodeNpm);
     assert_eq!(opencode.status, ClientPresenceStatus::Detected);
@@ -412,31 +425,36 @@ fn isolation_fixture_isolates_one_malformed_slot_from_the_other_two() {
         .any(|i| i.client == ClientKind::OpenCode && i.version == "2.2.2"));
 
     let records = scan.presence.as_ref().expect("Windows has a probe table");
-    assert_eq!(records.len(), 4, "one record per defined slot");
-    let non_codex: Vec<&ClientPresence> = records
-        .iter()
-        .filter(|record| !record.label.starts_with("Codex"))
-        .collect();
-    assert_eq!(non_codex.len(), 3);
-    for record in &non_codex {
+    assert_eq!(records.len(), 5, "one record per defined slot");
+
+    // The three slots that PRE-DATE this fixture each have an existing
+    // candidate root, broken or not, so all three are `Detected`.
+    let pre_existing = [
+        ClientInstallSlot::ClaudeCodeNpm,
+        ClientInstallSlot::ClaudeCodeBundled,
+        ClientInstallSlot::OpenCodeNpm,
+    ];
+    for slot in pre_existing {
+        let record = records
+            .iter()
+            .find(|record| record.slot == slot)
+            .unwrap_or_else(|| panic!("record for {slot:?} must be present"));
         assert_eq!(
             record.status,
             ClientPresenceStatus::Detected,
             "every one of the three pre-existing slots has an existing candidate root, broken or not"
         );
     }
-    let mut non_codex_slots: Vec<ClientInstallSlot> =
-        non_codex.iter().map(|record| record.slot).collect();
-    non_codex_slots.sort_by_key(|slot| format!("{slot:?}"));
-    let mut expected_slots = vec![
-        ClientInstallSlot::ClaudeCodeNpm,
-        ClientInstallSlot::ClaudeCodeBundled,
-        ClientInstallSlot::OpenCodeNpm,
-    ];
-    expected_slots.sort_by_key(|slot| format!("{slot:?}"));
+
+    // `isolation` gains no desktop install (design task 8.3, verified by
+    // reading the fixture, not assumption): the count of distinct
+    // installation paths below MUST stay unchanged at 4.
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.slot, ClientInstallSlot::OpenCodeDesktop);
     assert_eq!(
-        non_codex_slots, expected_slots,
-        "the three pre-existing slots keep their own distinct identities"
+        desktop.status,
+        ClientPresenceStatus::NotDetected,
+        "this fixture predates the OpenCode desktop slot and has no @opencode-aidesktop tree"
     );
 
     let codex = presence_for(records, "Codex");
@@ -667,6 +685,39 @@ fn full_scan_leaves_the_fixture_tree_unchanged() {
     assert_eq!(before, after);
 }
 
+/// Read-only (CA-16): a full scan over every new `opencode-desktop` fixture
+/// home — including `happy`, which is the only case that actually opens and
+/// reads the committed `app.asar` — leaves every one of those fixture trees
+/// byte-for-byte unchanged.
+#[test]
+fn full_scan_leaves_every_opencode_desktop_fixture_tree_unchanged() {
+    let cases = [
+        "happy",
+        "no-asar",
+        "oversized-header",
+        "bad-prefix",
+        "tiny-header-len",
+        "truncated",
+        "malformed-header",
+        "no-package-json-entry",
+        "nested-package-json-only",
+        "entry-out-of-range",
+        "shifted-payload",
+        "no-name-key",
+        "no-version-key",
+        "empty-version",
+    ];
+
+    for case in cases {
+        let home = opencode_desktop_fixture_home(case);
+        let before = fixture_tree_bytes(&home);
+        let _ = installations::scan_for(&home, HostPlatform::Windows);
+        let after = fixture_tree_bytes(&home);
+
+        assert_eq!(before, after, "case {case}: fixture tree must be untouched");
+    }
+}
+
 // -- Codex CLI standalone slot (design §3, §10.3) --
 
 /// Build a path under
@@ -894,6 +945,257 @@ fn stale_version_json_never_wins_over_the_release_directory_name() {
     assert_ne!(codex.installations[0].version, "9.9.9");
 }
 
+// -- OpenCode desktop slot (`detect-desktop-client-installs` design §4-§6) --
+
+/// CA-11: a root without a readable archive is still `Detected` with zero
+/// installations — presence never depends on version extraction.
+#[test]
+fn opencode_desktop_root_without_a_readable_archive_is_detected_with_no_installations() {
+    let home = opencode_desktop_fixture_home("no-asar");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.slot, ClientInstallSlot::OpenCodeDesktop);
+    assert_eq!(desktop.status, ClientPresenceStatus::Detected);
+    assert!(desktop.installations.is_empty());
+
+    let errors: Vec<_> = scan
+        .issues
+        .iter()
+        .filter(|i| i.reason.contains("OpenCode (desktop app)"))
+        .collect();
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].severity, IssueSeverity::Error);
+}
+
+/// CA-11: no `@opencode-aidesktop` root at all yields `NotDetected` and
+/// zero issues for that slot.
+#[test]
+fn home_without_the_desktop_root_yields_not_detected_and_zero_issues() {
+    let home = fixture_home("nothing");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.slot, ClientInstallSlot::OpenCodeDesktop);
+    assert_eq!(desktop.status, ClientPresenceStatus::NotDetected);
+    assert!(desktop.installations.is_empty());
+    assert!(scan
+        .issues
+        .iter()
+        .all(|i| !i.reason.contains("OpenCode (desktop app)")));
+}
+
+/// design §5.2's one `Warning` row in the taxonomy: an oversized header
+/// degrades with a deliberate skip, never an `Error`.
+#[test]
+fn oversized_header_degrades_with_a_warning_not_an_error() {
+    let home = opencode_desktop_fixture_home("oversized-header");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.status, ClientPresenceStatus::Detected);
+    assert!(desktop.installations.is_empty());
+
+    let matching: Vec<_> = scan
+        .issues
+        .iter()
+        .filter(|i| i.reason.contains("OpenCode (desktop app)"))
+        .collect();
+    assert_eq!(matching.len(), 1);
+    assert_eq!(matching[0].severity, IssueSeverity::Warning);
+    assert!(matching[0].reason.starts_with("skipped"));
+    assert!(matching[0].reason.contains("5000000"));
+}
+
+/// One test per remaining §8.2 fixture row: exact `(status, installation
+/// count, issue severity)` triple.
+#[test]
+fn every_remaining_opencode_desktop_fixture_matches_its_taxonomy_row() {
+    let cases: &[(&str, ClientPresenceStatus, usize, Option<IssueSeverity>)] = &[
+        (
+            "bad-prefix",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "tiny-header-len",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "truncated",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "malformed-header",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "no-package-json-entry",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "nested-package-json-only",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "entry-out-of-range",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        ("shifted-payload", ClientPresenceStatus::Detected, 1, None),
+        (
+            "no-name-key",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "no-version-key",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        (
+            "empty-version",
+            ClientPresenceStatus::Detected,
+            0,
+            Some(IssueSeverity::Error),
+        ),
+        ("happy", ClientPresenceStatus::Detected, 1, None),
+    ];
+
+    for (case, expected_status, expected_installations, expected_severity) in cases {
+        let home = opencode_desktop_fixture_home(case);
+        let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+        let records = scan.presence.as_ref().expect("Windows has a probe table");
+        let desktop = presence_for(records, "desktop app");
+        assert_eq!(
+            desktop.status, *expected_status,
+            "case {case}: status mismatch"
+        );
+        assert_eq!(
+            desktop.installations.len(),
+            *expected_installations,
+            "case {case}: installation count mismatch"
+        );
+
+        let matching: Vec<_> = scan
+            .issues
+            .iter()
+            .filter(|i| i.reason.contains("OpenCode (desktop app)"))
+            .collect();
+        match expected_severity {
+            Some(severity) => {
+                assert_eq!(matching.len(), 1, "case {case}: expected exactly one issue");
+                assert_eq!(
+                    matching[0].severity, *severity,
+                    "case {case}: severity mismatch"
+                );
+            }
+            None => {
+                assert!(matching.is_empty(), "case {case}: expected zero issues");
+            }
+        }
+    }
+}
+
+/// `nested-package-json-only`: the nested `9.9.9` version must appear
+/// nowhere in the report (D1 guard, §2.4's rejected-recursion guard).
+#[test]
+fn nested_package_json_only_never_leaks_its_version_into_the_report() {
+    let home = opencode_desktop_fixture_home("nested-package-json-only");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    assert!(!scan.installations.iter().any(|i| i.version == "9.9.9"));
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert!(!desktop.installations.iter().any(|i| i.version == "9.9.9"));
+}
+
+/// `shifted-payload`: the extracted version is the correct root manifest's,
+/// and the neighbouring manifest's version never appears in the report.
+#[test]
+fn shifted_payload_never_yields_the_neighbouring_manifests_version_in_the_report() {
+    let home = opencode_desktop_fixture_home("shifted-payload");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.installations.len(), 1);
+    assert_eq!(desktop.installations[0].version, "0.4.2");
+    assert!(!scan.installations.iter().any(|i| i.version == "9.9.9"));
+}
+
+/// `happy`: `Detected`, one installation, version `0.4.2`, `path` = the
+/// install root (never the `.asar` file itself), zero issues.
+#[test]
+fn happy_fixture_yields_one_detected_opencode_desktop_installation() {
+    let home = opencode_desktop_fixture_home("happy");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    let desktop = presence_for(records, "desktop app");
+    assert_eq!(desktop.slot, ClientInstallSlot::OpenCodeDesktop);
+    assert_eq!(desktop.status, ClientPresenceStatus::Detected);
+    assert_eq!(desktop.installations.len(), 1);
+    assert_eq!(desktop.installations[0].client, ClientKind::OpenCode);
+    assert_eq!(desktop.installations[0].version, "0.4.2");
+    assert!(desktop.installations[0]
+        .path
+        .ends_with("@opencode-aidesktop"));
+    assert!(!desktop.installations[0]
+        .path
+        .to_string_lossy()
+        .ends_with("app.asar"));
+    assert!(scan
+        .issues
+        .iter()
+        .all(|i| !i.reason.contains("OpenCode (desktop app)")));
+}
+
+#[test]
+fn scan_for_emits_five_records_in_probe_table_order() {
+    let home = fixture_home("nothing");
+
+    let scan = installations::scan_for(&home, HostPlatform::Windows);
+
+    let records = scan.presence.as_ref().expect("Windows has a probe table");
+    assert_eq!(records.len(), 5, "one record per defined slot");
+    let slots: Vec<ClientInstallSlot> = records.iter().map(|r| r.slot).collect();
+    assert_eq!(
+        slots,
+        vec![
+            ClientInstallSlot::ClaudeCodeNpm,
+            ClientInstallSlot::ClaudeCodeBundled,
+            ClientInstallSlot::OpenCodeNpm,
+            ClientInstallSlot::OpenCodeDesktop,
+            ClientInstallSlot::CodexStandalone,
+        ]
+    );
+}
+
 // -- Slot promotion tripwire (design §2, task 1.7) --
 
 /// Tripwire: promoting the private `InstallSlot` to the public
@@ -912,6 +1214,7 @@ fn slot_promotion_leaves_detection_output_unchanged_except_for_the_new_field() {
         ClientInstallSlot::ClaudeCodeNpm,
         ClientInstallSlot::ClaudeCodeBundled,
         ClientInstallSlot::OpenCodeNpm,
+        ClientInstallSlot::OpenCodeDesktop,
         ClientInstallSlot::CodexStandalone,
     ];
 
@@ -936,7 +1239,7 @@ fn slot_promotion_leaves_detection_output_unchanged_except_for_the_new_field() {
         let scan = installations::scan_for(&home, HostPlatform::Windows);
         let records = scan.presence.as_ref().expect("Windows has a probe table");
 
-        assert_eq!(records.len(), 4, "case {case}: one record per defined slot");
+        assert_eq!(records.len(), 5, "case {case}: one record per defined slot");
 
         let slots: Vec<ClientInstallSlot> = records.iter().map(|r| r.slot).collect();
         assert_eq!(

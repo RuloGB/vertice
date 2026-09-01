@@ -1,0 +1,14 @@
+case: no-package-json-entry
+total bytes: 66
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 56 (0x00000038)
+offset  8 .. 12   u32  header_payload_len = 52 (0x00000034)
+offset 12 .. 16   u32  json_len            = 47 (0x0000002f)
+offset 16 .. 63   header JSON text (47 bytes):
+{"files":{"README.md":{"size":2,"offset":"0"}}}
+offset 63 .. 64   padding (1 bytes of 0x00)
+offset 64 .. 66   payload (2 bytes):
+ok
+
+note: root package.json entry absent -> Entry("no root package.json entry").

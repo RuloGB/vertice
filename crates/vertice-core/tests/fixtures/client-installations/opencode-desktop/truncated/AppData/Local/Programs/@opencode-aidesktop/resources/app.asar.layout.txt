@@ -1,0 +1,13 @@
+case: truncated
+total bytes: 40 (file ends mid-header; the full header text would run to byte 67)
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len          = 60 (0x0000003c)
+offset  8 .. 12   u32  header_payload_len  = 56 (0x00000038)
+offset 12 .. 16   u32  json_len            = 51 (0x00000033)
+offset 16 .. 40   the first 24 bytes of the 51-byte header JSON text, then EOF
+
+A valid, self-consistent prefix declares a 51-byte header, but the file itself
+ends at byte 40 — read_exact for the header text must return UnexpectedEof.
+
+Expected: Detected, 0 installations, 1 Error (Io/UnexpectedEof).

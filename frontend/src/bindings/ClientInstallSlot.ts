@@ -6,4 +6,4 @@
  * `Scope`/`ClientPresenceStatus` pattern. Growing this set follows
  * platform/adapter growth (T16), never speculative generality.
  */
-export type ClientInstallSlot = "claudeCodeNpm" | "claudeCodeBundled" | "openCodeNpm" | "codexStandalone";
+export type ClientInstallSlot = "claudeCodeNpm" | "claudeCodeBundled" | "openCodeNpm" | "openCodeDesktop" | "codexStandalone";

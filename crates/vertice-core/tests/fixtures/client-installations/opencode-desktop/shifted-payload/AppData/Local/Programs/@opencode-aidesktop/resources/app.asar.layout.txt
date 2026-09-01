@@ -1,0 +1,14 @@
+case: shifted-payload
+total bytes: 142
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 60 (0x0000003c)
+offset  8 .. 12   u32  header_payload_len = 56 (0x00000038)
+offset 12 .. 16   u32  json_len            = 51 (0x00000033)
+offset 16 .. 67   header JSON text (51 bytes):
+{"files":{"package.json":{"size":37,"offset":"0"}}}
+offset 67 .. 68   padding (1 bytes of 0x00)
+offset 68 .. 142   payload (74 bytes):
+{"name":"opencode","version":"0.4.2"}{"name":"left-pad","version":"9.9.9"}
+
+note: The declared entry.size bounds the read to exactly the root manifest's bytes; the second, complete, name-bearing manifest ("left-pad"/9.9.9) sits immediately after it in the same payload and must never be read. Padding is non-zero (see above), so a data_start computed as json_start+json_len (the forbidden formula) would disagree with 8+header_len; this fixture also has a matching in-memory pin in asar.rs's own test suite (data_start_is_eight_plus_header_len_not_json_start_plus_json_len). Expected: Detected, 1 installation, version 0.4.2; 9.9.9 must appear nowhere in the report.

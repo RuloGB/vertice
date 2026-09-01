@@ -385,6 +385,7 @@ fn client_install_slot_is_exhaustively_matchable_without_a_wildcard_arm() {
             ClientInstallSlot::ClaudeCodeNpm => "Claude Code CLI (npm)",
             ClientInstallSlot::ClaudeCodeBundled => "Claude Code (bundled in Claude Desktop)",
             ClientInstallSlot::OpenCodeNpm => "OpenCode (npm)",
+            ClientInstallSlot::OpenCodeDesktop => "OpenCode (desktop app)",
             ClientInstallSlot::CodexStandalone => "Codex CLI (standalone)",
         }
     }
@@ -398,6 +399,10 @@ fn client_install_slot_is_exhaustively_matchable_without_a_wildcard_arm() {
         "Claude Code (bundled in Claude Desktop)"
     );
     assert_eq!(label(ClientInstallSlot::OpenCodeNpm), "OpenCode (npm)");
+    assert_eq!(
+        label(ClientInstallSlot::OpenCodeDesktop),
+        "OpenCode (desktop app)"
+    );
     assert_eq!(
         label(ClientInstallSlot::CodexStandalone),
         "Codex CLI (standalone)"

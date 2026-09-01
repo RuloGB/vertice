@@ -1,0 +1,8 @@
+case: bad-prefix
+total bytes: 20
+
+offset 0 .. 20: 0xFF repeated — pickle_header_size (bytes 0..4) decodes to
+0xFFFFFFFF, which is not 4, so parse_prefix rejects it as Malformed at check 1,
+before any of the other three words are interpreted.
+
+Expected: Detected, 0 installations, 1 Error (Malformed).

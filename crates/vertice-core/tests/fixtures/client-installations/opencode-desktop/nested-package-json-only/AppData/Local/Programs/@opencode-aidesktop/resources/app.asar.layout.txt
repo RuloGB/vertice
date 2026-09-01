@@ -1,0 +1,14 @@
+case: nested-package-json-only
+total bytes: 133
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 88 (0x00000058)
+offset  8 .. 12   u32  header_payload_len = 84 (0x00000054)
+offset 12 .. 16   u32  json_len            = 78 (0x0000004e)
+offset 16 .. 94   header JSON text (78 bytes):
+{"files":{"node_modules":{"files":{"package.json":{"size":38,"offset":"0"}}}}}
+offset 94 .. 96   padding (2 bytes of 0x00)
+offset 96 .. 133   payload (37 bytes):
+{"name":"left-pad","version":"9.9.9"}
+
+note: package.json exists ONLY under files.node_modules.files, never at root. locate_package_json looks up root["files"]["package.json"] only, so this must be Entry("no root package.json entry") and 9.9.9 must appear nowhere in the report (D1 guard).

@@ -1,6 +1,7 @@
-//! Client installation detection: four independent probe slots (Claude
-//! Code npm, Claude Code bundled in Claude Desktop, OpenCode npm, Codex CLI
-//! standalone), each resolved independently into a typed
+//! Client installation detection: five independent probe slots (Claude
+//! Code npm, Claude Code bundled in Claude Desktop, OpenCode npm, OpenCode
+//! desktop app, Codex CLI standalone), each resolved independently into a
+//! typed
 //! [`crate::model::ClientPresence`] record carrying zero, one, or (for the
 //! bundled and Codex standalone slots) many [`crate::model::ClientInstallation`]
 //! values, plus a "broken" [`ScanIssue`] where applicable.
@@ -24,6 +25,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use crate::asar;
 use crate::jsonc::{self, JsonValue};
 use crate::model::{
     ClientInstallSlot, ClientInstallation, ClientKind, ClientPresence, ClientPresenceStatus,
@@ -131,16 +133,18 @@ fn flatten_presence(presence: &Option<Vec<ClientPresence>>) -> Vec<ClientInstall
 /// (`add-client-version-freshness` design §2) because `component-freshness`
 /// needs to dispatch on slot identity outside this crate. This impl block
 /// carries the detection-only behavior that stays private to this module:
-/// which `ClientKind` a slot belongs to, and which of the four version
-/// sources it reads from. No probe, path, or version-source behavior
-/// changed by this promotion.
+/// which `ClientKind` a slot belongs to, and which of the four (now five,
+/// with `AsarPackageJson` — `detect-desktop-client-installs` design §4.2)
+/// version sources it reads from.
 impl ClientInstallSlot {
     fn client(self) -> ClientKind {
         match self {
             ClientInstallSlot::ClaudeCodeNpm | ClientInstallSlot::ClaudeCodeBundled => {
                 ClientKind::ClaudeCode
             }
-            ClientInstallSlot::OpenCodeNpm => ClientKind::OpenCode,
+            ClientInstallSlot::OpenCodeNpm | ClientInstallSlot::OpenCodeDesktop => {
+                ClientKind::OpenCode
+            }
             ClientInstallSlot::CodexStandalone => ClientKind::Codex,
         }
     }
@@ -151,6 +155,7 @@ impl ClientInstallSlot {
                 VersionSource::PackageJson
             }
             ClientInstallSlot::ClaudeCodeBundled => VersionSource::DirectoryName,
+            ClientInstallSlot::OpenCodeDesktop => VersionSource::AsarPackageJson,
             ClientInstallSlot::CodexStandalone => VersionSource::ReleaseDirectoryName,
         }
     }
@@ -170,6 +175,14 @@ enum VersionSource {
     PackageJson,
     DirectoryName,
     ReleaseDirectoryName,
+    /// A version read from an `app.asar` header's root `package.json`
+    /// (`detect-desktop-client-installs` design §4.2). A new sibling
+    /// variant rather than a reuse of `PackageJson`: `PackageJson`'s
+    /// contract is "`<root>/package.json` is a loose file on disk", which
+    /// is false for the OpenCode desktop app — bending it would hide a
+    /// per-slot branch inside `resolve_npm_slot` (T7CD §3.1's reasoning
+    /// replayed).
+    AsarPackageJson,
 }
 
 /// Target triples Codex publishes standalone releases for. MANUAL
@@ -238,6 +251,15 @@ fn windows_install_probes(home: &Path, issues: &mut Vec<ScanIssue>) -> Vec<Insta
     probes.push(InstallProbe {
         slot: ClientInstallSlot::OpenCodeNpm,
         path: opencode_npm,
+    });
+
+    let mut opencode_desktop = home.to_path_buf();
+    for segment in ["AppData", "Local", "Programs", "@opencode-aidesktop"] {
+        opencode_desktop.push(segment);
+    }
+    probes.push(InstallProbe {
+        slot: ClientInstallSlot::OpenCodeDesktop,
+        path: opencode_desktop,
     });
 
     let mut codex_releases = home.to_path_buf();
@@ -378,6 +400,9 @@ fn resolve_slot(
         VersionSource::PackageJson => resolve_npm_slot(slot, &candidates[0], issues),
         VersionSource::DirectoryName => resolve_bundled_slot(slot, candidates, issues),
         VersionSource::ReleaseDirectoryName => resolve_codex_slot(slot, &candidates[0], issues),
+        VersionSource::AsarPackageJson => {
+            resolve_opencode_desktop_slot(slot, &candidates[0], issues)
+        }
     }
 }
 
@@ -464,6 +489,69 @@ fn extract_package_json_version(document: &JsonValue) -> Option<String> {
     match map.get("version") {
         Some(JsonValue::String(s)) if !s.is_empty() => Some(s.clone()),
         _ => None,
+    }
+}
+
+/// Resolve the OpenCode desktop slot from its single candidate root
+/// (`<home>/AppData/Local/Programs/@opencode-aidesktop`). Presence never
+/// depends on version extraction (design §5.1): absent root -> `NotDetected`,
+/// zero issues (CA-11); present root -> `Detected`, ALWAYS, whatever the
+/// archive read does. `path` on the resulting `ClientInstallation` is the
+/// install ROOT, never the `.asar` file — `path` answers "where is this
+/// installation", and the root is what `probed_paths` already names and
+/// what the user recognises (design §4.2).
+fn resolve_opencode_desktop_slot(
+    slot: ClientInstallSlot,
+    root: &Path,
+    issues: &mut Vec<ScanIssue>,
+) -> ClientPresence {
+    debug_assert_eq!(slot.version_source(), VersionSource::AsarPackageJson);
+
+    let probed_paths = vec![root.to_path_buf()];
+
+    if !exists(root) {
+        return ClientPresence {
+            slot,
+            label: slot.label().to_string(),
+            probed_paths,
+            status: ClientPresenceStatus::NotDetected,
+            installations: Vec::new(),
+        };
+    }
+
+    let mut archive = root.to_path_buf();
+    archive.push("resources");
+    archive.push("app.asar");
+
+    let mut installations = Vec::new();
+    match asar::read_package_version(&archive) {
+        Ok(version) => installations.push(ClientInstallation {
+            client: slot.client(),
+            version,
+            path: root.to_path_buf(),
+        }),
+        Err(err) => {
+            // The oversized-header ceiling is the one Vertice-side "we
+            // chose not to look" branch (design §5.2): Warning, not Error,
+            // and phrased as a deliberate skip rather than a defect.
+            let (severity, verb) = match err {
+                asar::AsarError::HeaderTooLarge { .. } => (IssueSeverity::Warning, "skipped"),
+                _ => (IssueSeverity::Error, "could not read"),
+            };
+            issues.push(ScanIssue {
+                severity,
+                path: Some(archive),
+                reason: format!("{verb} the {} version: {err}", slot.label()),
+            });
+        }
+    }
+
+    ClientPresence {
+        slot,
+        label: slot.label().to_string(),
+        probed_paths,
+        status: ClientPresenceStatus::Detected,
+        installations,
     }
 }
 
@@ -855,6 +943,10 @@ mod tests {
         );
         assert_eq!(ClientInstallSlot::OpenCodeNpm.label(), "OpenCode (npm)");
         assert_eq!(
+            ClientInstallSlot::OpenCodeDesktop.label(),
+            "OpenCode (desktop app)"
+        );
+        assert_eq!(
             ClientInstallSlot::CodexStandalone.label(),
             "Codex CLI (standalone)"
         );
@@ -872,6 +964,10 @@ mod tests {
         );
         assert_eq!(
             ClientInstallSlot::OpenCodeNpm.client(),
+            ClientKind::OpenCode
+        );
+        assert_eq!(
+            ClientInstallSlot::OpenCodeDesktop.client(),
             ClientKind::OpenCode
         );
         assert_eq!(
@@ -893,6 +989,10 @@ mod tests {
         assert_eq!(
             ClientInstallSlot::ClaudeCodeBundled.version_source(),
             VersionSource::DirectoryName
+        );
+        assert_eq!(
+            ClientInstallSlot::OpenCodeDesktop.version_source(),
+            VersionSource::AsarPackageJson
         );
         assert_eq!(
             ClientInstallSlot::CodexStandalone.version_source(),
@@ -1069,6 +1169,42 @@ mod tests {
             expected_opencode_npm.push(segment);
         }
         assert_eq!(opencode.path, expected_opencode_npm);
+    }
+
+    #[test]
+    fn windows_install_probes_builds_opencode_desktop_as_home_plus_hardcoded_segments() {
+        let home = PathBuf::from("/home/example");
+        let mut issues = Vec::new();
+
+        let probes = windows_install_probes(&home, &mut issues);
+
+        let opencode_desktop = probes
+            .iter()
+            .find(|p| p.slot == ClientInstallSlot::OpenCodeDesktop)
+            .expect("opencode desktop slot present");
+        let mut expected = home.clone();
+        for segment in ["AppData", "Local", "Programs", "@opencode-aidesktop"] {
+            expected.push(segment);
+        }
+        assert_eq!(opencode_desktop.path, expected);
+
+        // Position is load-bearing (design §4.1): between OpenCodeNpm and
+        // CodexStandalone.
+        let slot_order: Vec<ClientInstallSlot> = probes.iter().map(|p| p.slot).collect();
+        let npm_index = slot_order
+            .iter()
+            .position(|s| *s == ClientInstallSlot::OpenCodeNpm)
+            .unwrap();
+        let desktop_index = slot_order
+            .iter()
+            .position(|s| *s == ClientInstallSlot::OpenCodeDesktop)
+            .unwrap();
+        let codex_index = slot_order
+            .iter()
+            .position(|s| *s == ClientInstallSlot::CodexStandalone)
+            .unwrap();
+        assert!(npm_index < desktop_index);
+        assert!(desktop_index < codex_index);
     }
 
     #[test]

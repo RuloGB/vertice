@@ -62,7 +62,7 @@ pub fn upstream_for(slot: ClientInstallSlot) -> Option<UpstreamIdentity> {
             owner: "openai",
             repo: "codex",
         }),
-        ClientInstallSlot::ClaudeCodeBundled => None,
+        ClientInstallSlot::ClaudeCodeBundled | ClientInstallSlot::OpenCodeDesktop => None,
     }
 }
 
@@ -95,6 +95,7 @@ mod tests {
             })
         );
         assert_eq!(upstream_for(ClientInstallSlot::ClaudeCodeBundled), None);
+        assert_eq!(upstream_for(ClientInstallSlot::OpenCodeDesktop), None);
     }
 
     #[test]
@@ -103,6 +104,17 @@ mod tests {
         // build one from — this is the compile-time shape of "issues no
         // request", not a runtime check.
         assert!(upstream_for(ClientInstallSlot::ClaudeCodeBundled).is_none());
+    }
+
+    /// `detect-desktop-client-installs` design §4.3: `app-update.yml` names
+    /// `anomalyco/opencode`, but it is unverified whether the desktop app
+    /// and the `opencode-ai` CLI share a release-tag namespace — wiring it
+    /// risks a false "outdated" badge, so this slot deliberately has no
+    /// upstream, exactly like `ClaudeCodeBundled` (logged in
+    /// `internal-docs/pendientes-desarrollo.md`, entry P17).
+    #[test]
+    fn opencode_desktop_issues_no_request_by_construction() {
+        assert!(upstream_for(ClientInstallSlot::OpenCodeDesktop).is_none());
     }
 
     #[test]

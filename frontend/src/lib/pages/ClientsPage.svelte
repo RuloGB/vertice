@@ -8,6 +8,7 @@
   import { CLIENT_ICON } from "../clientGroups";
   import { useI18n } from "../i18n/locale.svelte";
   import { fetchUserSettings, setUserSettings } from "../settings";
+  import { presenceFor } from "./presenceFor";
 
   const i18n = useI18n();
 
@@ -36,7 +37,7 @@
       name: "OpenCode",
       owner: "SST",
       icon: CLIENT_ICON.openCode,
-      slots: ["openCodeNpm"] as ClientInstallSlot[],
+      slots: ["openCodeNpm", "openCodeDesktop"] as ClientInstallSlot[],
     },
     {
       id: "codex",
@@ -46,9 +47,6 @@
       slots: ["codexStandalone"] as ClientInstallSlot[],
     },
   ] as const;
-
-  const presenceFor = (slots: readonly ClientInstallSlot[]): ClientPresence | undefined =>
-    (report?.clientPresence ?? []).find((record) => slots.includes(record.slot));
 
   const loading = $derived(status === "idle" || status === "loading");
 
@@ -218,7 +216,7 @@
   {:else}
     <div class="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
       {#each clients as client (client.id)}
-        {@const presence = presenceFor(client.slots)}
+        {@const presence = presenceFor(report?.clientPresence ?? [], client.slots)}
         {@const detected = presence?.status === "detected"}
         {@const badge = badgeFor(presence)}
         {@const versions = presence?.installations.map((installation) => installation.version).join(", ")}

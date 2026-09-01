@@ -1,0 +1,14 @@
+case: entry-out-of-range
+total bytes: 109
+
+offset  0 ..  4   u32  pickle_header_size = 4
+offset  4 ..  8   u32  header_len         = 64 (0x00000040)
+offset  8 .. 12   u32  header_payload_len = 60 (0x0000003c)
+offset 12 .. 16   u32  json_len            = 54 (0x00000036)
+offset 16 .. 70   header JSON text (54 bytes):
+{"files":{"package.json":{"size":10,"offset":"9999"}}}
+offset 70 .. 72   padding (2 bytes of 0x00)
+offset 72 .. 109   payload (37 bytes):
+{"name":"opencode","version":"0.4.2"}
+
+note: offset 9999 resolves outside the payload region -> Entry("root package.json offset is out of the payload") (D2 guard).
