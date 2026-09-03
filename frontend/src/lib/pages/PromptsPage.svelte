@@ -4,6 +4,7 @@
   import ConfirmDialog from "../ConfirmDialog.svelte";
   import { useI18n } from "../i18n/locale.svelte";
   import { getListPageSize, setListPageSize } from "../listPreferences";
+  import { promptBodyPreview } from "../promptPreview";
   import { createPrompt, deletePrompt, fetchPrompts, isPromptError, updatePrompt } from "../prompts";
   import { filterPrompts } from "../promptSearch";
   import * as toast from "../toast.svelte";
@@ -263,7 +264,7 @@
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="min-w-0 space-y-3">
                 <h2 class="text-xl font-semibold text-white">{prompt.title}</h2>
-                <p class="whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">{prompt.body}</p>
+                <p class="whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">{promptBodyPreview(prompt.body)}</p>
                 {#if prompt.tags.length > 0}
                   <div class="flex flex-wrap gap-2" aria-label={i18n.t("prompts.tagsLabel")}>
                     {#each prompt.tags as tag (tag)}

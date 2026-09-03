@@ -405,4 +405,27 @@ describe("PromptsPage", () => {
     expect(visibleText()).toContain("No se pudo copiar el prompt");
     unmount(app);
   });
+
+  it("previews long bodies in the list while copy and edit keep the full text", async () => {
+    const longBody = `Start ${"x".repeat(400)} END-MARKER`;
+    mockedFetchPrompts.mockResolvedValue([prompt({ title: "Long prompt", body: longBody })]);
+    mockedUpdatePrompt.mockResolvedValue(prompt({ title: "Long prompt", body: longBody }));
+
+    const app = mount(PromptsPage, { target: document.body });
+    await flush();
+
+    const card = promptCards()[0];
+    expect(card.textContent).toContain("Start");
+    expect(card.textContent).toContain("…");
+    expect(card.textContent).not.toContain("END-MARKER");
+
+    document.querySelector<HTMLButtonElement>("button[data-testid='copy-prompt']")?.click();
+    await flush();
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(longBody);
+
+    document.querySelector<HTMLButtonElement>("button[data-testid='edit-prompt']")?.click();
+    await flush();
+    expect(document.querySelector<HTMLTextAreaElement>("#prompt-body")!.value).toBe(longBody);
+    unmount(app);
+  });
 });
