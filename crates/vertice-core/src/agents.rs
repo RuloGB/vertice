@@ -12,7 +12,7 @@
 
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::frontmatter;
 use crate::model::{
@@ -52,10 +52,84 @@ pub struct AgentFrontmatter {
     pub name: String,
     pub description: Option<String>,
     pub model: Option<String>,
-    /// Comma-separated scalar (`tools: Read, Grep, Glob, Bash`), NEVER a
-    /// sequence type — verified against the 17 real agent files on the
-    /// reference machine (proposal, Approach).
+    /// Accepts both a comma-separated scalar (`tools: Read, Grep, Glob, Bash`)
+    /// and a YAML sequence (`tools: [Read, Grep]` or `tools: []`). The field
+    /// is not used for component assembly, but must parse without error so
+    /// valid agent files are not reported as scan failures.
+    #[serde(default, deserialize_with = "deserialize_tools")]
     pub tools: Option<String>,
+}
+
+/// Deserialize the `tools` frontmatter field from either a scalar string or
+/// a sequence of strings. A sequence is joined into a single comma-separated
+/// string; an empty sequence becomes `None`. This keeps the field tolerant of
+/// both formats observed in real Claude agent files without changing the
+/// public type.
+fn deserialize_tools<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct ToolsVisitor;
+
+    impl<'de> Visitor<'de> for ToolsVisitor {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string, a sequence of strings, or null")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ToolsVisitor)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value.trim().is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(value.to_string()))
+            }
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            let mut items = Vec::new();
+            while let Some(item) = seq.next_element::<String>()? {
+                items.push(item);
+            }
+            if items.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(items.join(", ")))
+            }
+        }
+    }
+
+    deserializer.deserialize_any(ToolsVisitor)
 }
 
 /// Scan the Claude Code agent roots under `home`. Read-only: `roots::probe`,
@@ -296,5 +370,62 @@ mod tests {
         let path = Path::new("/home/user/.claude/agents/reviewer.md");
 
         assert!(ensure_utf8_path(path).is_ok());
+    }
+
+    #[test]
+    fn tools_field_accepts_string_format() {
+        let yaml = r#"
+name: test-agent
+description: Test agent
+tools: Read, Grep, Glob
+"#;
+        let fm: AgentFrontmatter = crate::yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tools, Some("Read, Grep, Glob".to_string()));
+    }
+
+    #[test]
+    fn tools_field_accepts_sequence_format() {
+        let yaml = r#"
+name: test-agent
+description: Test agent
+tools:
+  - Read
+  - Grep
+  - Glob
+"#;
+        let fm: AgentFrontmatter = crate::yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tools, Some("Read, Grep, Glob".to_string()));
+    }
+
+    #[test]
+    fn tools_field_accepts_empty_sequence() {
+        let yaml = r#"
+name: test-agent
+description: Test agent
+tools: []
+"#;
+        let fm: AgentFrontmatter = crate::yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tools, None);
+    }
+
+    #[test]
+    fn tools_field_accepts_null() {
+        let yaml = r#"
+name: test-agent
+description: Test agent
+tools: null
+"#;
+        let fm: AgentFrontmatter = crate::yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tools, None);
+    }
+
+    #[test]
+    fn tools_field_accepts_missing() {
+        let yaml = r#"
+name: test-agent
+description: Test agent
+"#;
+        let fm: AgentFrontmatter = crate::yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tools, None);
     }
 }
