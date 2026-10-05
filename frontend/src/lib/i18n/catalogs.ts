@@ -27,6 +27,7 @@ export type Catalog = {
     outdatedTitle: string;
     outdatedEmpty: string;
     outdatedUpdateAvailable: string;
+    notificationsTitle: string;
     ctaTitle: string;
     ctaBody: string;
     ctaAction: string;
@@ -323,6 +324,7 @@ export const catalogs = {
       outdatedTitle: "Outdated components",
       outdatedEmpty: "Everything is up to date.",
       outdatedUpdateAvailable: "Update available: {latest}",
+      notificationsTitle: "Notifications",
       ctaTitle: "Browse your components",
       ctaBody: "Your Agents and Skills have been scanned. Access them at any time.",
       ctaAction: "Open agents",
@@ -616,6 +618,7 @@ export const catalogs = {
       outdatedTitle: "Componentes desactualizados",
       outdatedEmpty: "Todo está actualizado.",
       outdatedUpdateAvailable: "Actualización disponible: {latest}",
+      notificationsTitle: "Notificaciones",
       ctaTitle: "Explora tus componentes",
       ctaBody: "Tus Agentes y Skills se han escaneado. Accede a ellos en cualquier momento.",
       ctaAction: "Abrir agentes",

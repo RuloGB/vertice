@@ -394,6 +394,45 @@ The Home page MUST render a scan-status block reflecting one of three states der
 - AND a retry action is offered
 - AND activating retry invokes `rescan`
 
+### Requirement: Home Notifications Section
+
+The Home page MUST render a Notifications section when at least one notice exists, replacing the former Outdated components block. The section title MUST come from the `home.notificationsTitle` catalog key (`Notifications` / `Notificaciones`). Each notice MUST show its title, detail, and badge. The section MUST be hidden when no notices exist. The section MUST be visible regardless of scan status when notices exist, because renewal notices do not depend on the scan.
+
+#### Scenario: Notifications section is visible when notices exist
+
+- GIVEN at least one notice is collected from the registry
+- WHEN Home renders
+- THEN the section heading shows the `home.notificationsTitle` translation
+- AND each notice renders its title, detail, and badge
+
+#### Scenario: Notifications section is hidden when empty
+
+- GIVEN no notices are collected from the registry
+- WHEN Home renders
+- THEN no Notifications section heading is present
+
+#### Scenario: Subscription renewals use the 5-day boundary
+
+- GIVEN a subscription whose next renewal is 5 days away
+- WHEN notices are collected
+- THEN the subscription appears as a notice
+
+- GIVEN a subscription whose next renewal is 6 days away
+- WHEN notices are collected
+- THEN the subscription does NOT appear as a notice
+
+#### Scenario: Source isolation does not drop other sources
+
+- GIVEN the freshness loader rejects and the subscription loader returns a due renewal
+- WHEN notices are collected
+- THEN the renewal notice still appears
+
+#### Scenario: Injected sources appear without editing HomePage
+
+- GIVEN a source registered through `registerNoticeSource`
+- WHEN Home collects notices
+- THEN the injected source's notices appear after the built-in notices
+
 ### Requirement: The Log File Path Is Displayed As Selectable Text On The Scan Route
 
 The `scan` route MUST render the absolute path of the application log file, obtained from the

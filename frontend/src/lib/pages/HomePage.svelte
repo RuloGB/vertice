@@ -1,13 +1,14 @@
 <script lang="ts">
-  import type { ClientInstallSlot } from "../../bindings/ClientInstallSlot";
   import type { ClientKind } from "../../bindings/ClientKind";
-  import type { FreshnessReport } from "../../bindings/FreshnessReport";
   import type { ScanReport } from "../../bindings/ScanReport";
   import { fetchFreshness } from "../freshness";
+  import type { CatalogKey } from "../i18n/catalogs";
   import BrandMark from "../BrandMark.svelte";
   import { useI18n } from "../i18n/locale.svelte";
   import NavIcon from "../NavIcon.svelte";
+  import { collectHomeNotices, type Notice } from "../notifications";
   import type { RouteId } from "../navigation";
+  import { fetchSubscriptions } from "../subscriptions";
 
   const i18n = useI18n();
 
@@ -26,12 +27,6 @@
     onNavigate: (route: RouteId) => void;
     onRetry: () => void;
   } = $props();
-
-  const CLIENT_DEFS = [
-    { name: "Claude Code", slots: ["claudeCodeNpm", "claudeCodeBundled"] as ClientInstallSlot[], kind: "claudeCode" as ClientKind },
-    { name: "OpenCode", slots: ["openCodeNpm"] as ClientInstallSlot[], kind: "openCode" as ClientKind },
-    { name: "Codex", slots: ["codexStandalone"] as ClientInstallSlot[], kind: "codex" as ClientKind },
-  ] as const;
 
   const stats = $derived.by(() => {
     if (report === null) {
@@ -60,30 +55,22 @@
     { key: "mcps", route: "mcp" as RouteId, label: i18n.t("home.statMcps"), value: stats?.mcps },
   ]);
 
-  let freshness = $state<FreshnessReport | null>(null);
+  let notices = $state<Notice[]>([]);
 
-  void (async () => {
-    try {
-      freshness = await fetchFreshness();
-    } catch {
-      // Freshness is best-effort on the home page; never block rendering.
-    }
-  })();
-
-  type OutdatedEntry = { name: string; installed: string; latest: string };
-
-  const outdatedItems = $derived.by((): OutdatedEntry[] => {
-    if (!freshness?.enabled || !report) return [];
-    const items: OutdatedEntry[] = [];
-    for (const check of freshness.checks) {
-      const verdict = check.verdict;
-      if (verdict === "upToDate" || !("outdated" in verdict)) continue;
-      const slot = check.subject.clientInstallation.slot;
-      const def = CLIENT_DEFS.find((candidate) => candidate.slots.includes(slot));
-      if (!def) continue;
-      items.push({ name: def.name, installed: check.installed, latest: verdict.outdated.latest });
-    }
-    return items;
+  $effect(() => {
+    void (async () => {
+      try {
+        notices = await collectHomeNotices({
+          report,
+          today: new Date(),
+          t: (key, params) => i18n.t(key as CatalogKey, params),
+          loadFreshness: fetchFreshness,
+          loadSubscriptions: fetchSubscriptions,
+        });
+      } catch {
+        // Notices are best-effort on the home page; never block rendering.
+      }
+    })();
   });
 </script>
 
@@ -176,21 +163,21 @@
     {/if}
   </div>
 
-  {#if status === "ready" && outdatedItems.length > 0}
+  {#if notices.length > 0}
     <div class="rounded-2xl border border-stroke bg-surface shadow-panel">
       <div class="flex items-center gap-3 border-b border-stroke px-6 py-4">
         <span class="flex size-2 rounded-full bg-action" aria-hidden="true"></span>
-        <h2 class="text-lg font-semibold tracking-tight text-content">{i18n.t("home.outdatedTitle")}</h2>
+        <h2 class="text-lg font-semibold tracking-tight text-content">{i18n.t("home.notificationsTitle")}</h2>
       </div>
       <ul class="divide-y divide-stroke">
-        {#each outdatedItems as item (item.name)}
+        {#each notices as notice (notice.id)}
           <li class="flex items-center justify-between gap-4 px-6 py-3.5">
             <div class="flex flex-col gap-0.5">
-              <span class="text-sm font-semibold text-content">{item.name}</span>
-              <span class="text-xs text-content-muted">{item.installed}</span>
+              <span class="text-sm font-semibold text-content">{notice.title}</span>
+              <span class="text-xs text-content-muted">{notice.detail}</span>
             </div>
             <span class="rounded-full border border-action/45 bg-action/10 px-2.5 py-1 text-xs font-semibold text-action">
-              {i18n.t("home.outdatedUpdateAvailable", { latest: item.latest })}
+              {notice.badge}
             </span>
           </li>
         {/each}
